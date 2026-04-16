@@ -6,6 +6,7 @@ use App\Http\Controllers\MemberController;
 use App\Http\Controllers\TagController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\TeamController;
+use App\Http\Controllers\TeamMemberController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -40,6 +41,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::put('tasks/{task}', [TaskController::class, 'update'])->name('tasks.update');
     Route::delete('tasks/{task}', [TaskController::class, 'destroy'])->name('tasks.destroy');
     Route::put('kanbans/tasks/reorder', [KanbanBoardController::class, 'reorderTasks'])->name('kanbans.tasks.reorder');
+
+    // Team Member invite / remove (auth users with team access)
+    Route::post('teams/{team}/members', [TeamMemberController::class, 'store'])->name('teams.members.store');
+    Route::delete('teams/{team}/members/{user}', [TeamMemberController::class, 'destroy'])->name('teams.members.destroy');
 
     // Member Management — Superadmin & Admin only
     Route::middleware('role:superadmin|admin')->group(function () {

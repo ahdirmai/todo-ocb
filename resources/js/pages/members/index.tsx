@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Head, router, usePage } from '@inertiajs/react';
+import { Head, router, usePage, setLayoutProps } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -35,6 +35,10 @@ const ROLE_CONFIG: Record<string, { label: string; color: string; icon: any }> =
 
 export default function MembersIndex({ members, roles }: { members: Member[]; roles: string[] }) {
     const { auth } = usePage<any>().props;
+
+    setLayoutProps({
+        breadcrumbs: [{ title: 'Manajemen Anggota', href: '/members' }]
+    });
 
     const [inviteOpen, setInviteOpen] = useState(false);
     const [editMember, setEditMember] = useState<Member | null>(null);
@@ -196,9 +200,3 @@ export default function MembersIndex({ members, roles }: { members: Member[]; ro
         </>
     );
 }
-
-MembersIndex.layout = (page: any) => (
-    <AppLayout breadcrumbs={[{ title: 'Manajemen Anggota', href: '/members' }]}>
-        {page}
-    </AppLayout>
-);

@@ -2,14 +2,6 @@ import { Draggable } from '@hello-pangea/dnd';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
-const TAG_COLORS: Record<string, string> = {
-    Design:   'bg-blue-500',
-    Research: 'bg-purple-500',
-    Dev:      'bg-amber-400',
-    Content:  'bg-pink-500',
-    Other:    'bg-slate-400',
-};
-
 interface KanbanCardProps {
     task: any;
     index: number;
@@ -17,9 +9,6 @@ interface KanbanCardProps {
 }
 
 export function KanbanCard({ task, index, onClick }: KanbanCardProps) {
-    const label = task.labels?.[0];
-    const tagText = label?.name || 'Other';
-    const tagColor = TAG_COLORS[tagText] ?? 'bg-slate-400';
 
     return (
         <Draggable draggableId={task.id.toString()} index={index}>
@@ -33,12 +22,20 @@ export function KanbanCard({ task, index, onClick }: KanbanCardProps) {
                         snapshot.isDragging ? 'shadow-lg rotate-1 scale-105 z-50 ring-2 ring-primary/20 cursor-grabbing' : ''
                     }`}
                 >
-                    {/* Tag */}
-                    <div className="flex mb-3">
-                        <Badge className={`${tagColor} text-white hover:bg-opacity-90 border-none rounded-full px-3 py-0.5 text-xs font-semibold`}>
-                            {tagText}
-                        </Badge>
-                    </div>
+                    {/* Tags */}
+                    {task.tags && task.tags.length > 0 && (
+                        <div className="flex mb-3 gap-1.5 flex-wrap">
+                            {task.tags.map((tag: any) => (
+                                <Badge 
+                                    key={tag.id}
+                                    style={{ backgroundColor: tag.color }} 
+                                    className="text-white hover:bg-opacity-90 border-none rounded-full px-2.5 py-0 text-[10px] font-semibold"
+                                >
+                                    {tag.name}
+                                </Badge>
+                            ))}
+                        </div>
+                    )}
 
                     {/* Title */}
                     <h3 className="text-slate-900 dark:text-slate-100 font-bold leading-tight mb-4">

@@ -14,7 +14,7 @@ class TeamController extends Controller
 {
     public function show(Team $team, string $tab = 'overview', ?string $item = null)
     {
-        $team->load('users');
+        $team->load(['users' => fn ($q) => $q->withPivot('role')])->loadCount('tasks');
 
         if ($tab === 'task') {
             $team->load([
@@ -46,9 +46,9 @@ class TeamController extends Controller
         }
 
         $team = Team::create([
-            'name'     => $validated['name'],
+            'name' => $validated['name'],
             'grouping' => GroupingType::from($validated['grouping']),
-            'slug'     => $slug,
+            'slug' => $slug,
         ]);
 
         // Auto-attach the creating user as admin
@@ -57,15 +57,15 @@ class TeamController extends Controller
         // Auto-create default Kanban board
         $kanban = Kanban::create([
             'team_id' => $team->id,
-            'name'    => 'Papan Utama',
+            'name' => 'Papan Utama',
         ]);
 
         $defaultColumns = ['Backlog', 'In Progress', 'In Review', 'Done'];
         foreach ($defaultColumns as $index => $columnName) {
             KanbanColumn::create([
-                'kanban_id'  => $kanban->id,
-                'title'      => $columnName,
-                'order'      => $index,
+                'kanban_id' => $kanban->id,
+                'title' => $columnName,
+                'order' => $index,
                 'is_default' => true,
             ]);
         }
@@ -76,8 +76,8 @@ class TeamController extends Controller
     public function update(Request $request, Team $team)
     {
         $validated = $request->validate([
-            'name'      => 'required|string|max:255',
-            'grouping'  => 'sometimes|required|string|in:hq,team,project',
+            'name' => 'required|string|max:255',
+            'grouping' => 'sometimes|required|string|in:hq,team,project',
             'is_active' => 'sometimes|boolean',
         ]);
 

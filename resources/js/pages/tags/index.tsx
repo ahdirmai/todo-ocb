@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Head, router } from '@inertiajs/react';
+import { Head, router, usePage, setLayoutProps } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,7 +23,13 @@ const PRESET_COLORS = [
     '#10b981', '#06b6d4', '#f97316', '#84cc16', '#6366f1',
 ];
 
-export default function TagsIndex({ tags }: { tags: Tag[] }) {
+export default function TagsIndex() {
+    const { tags } = usePage<any>().props;
+
+    setLayoutProps({
+        breadcrumbs: [{ title: 'Manajemen Tag Global', href: '/tags' }]
+    });
+
     const [open, setOpen] = useState(false);
     const [editing, setEditing] = useState<Tag | null>(null);
     const [form, setForm] = useState({ name: '', color: PRESET_COLORS[0] });
@@ -71,7 +77,7 @@ export default function TagsIndex({ tags }: { tags: Tag[] }) {
                 {/* Tag Grid */}
                 <div className="flex-1 overflow-auto p-6">
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                        {tags.map((tag) => (
+                        {tags.map((tag: Tag) => (
                             <div
                                 key={tag.id}
                                 className="flex items-center justify-between p-3 rounded-xl border border-sidebar-border/70 bg-white dark:bg-zinc-900 group hover:shadow-sm transition-shadow"
@@ -155,9 +161,3 @@ export default function TagsIndex({ tags }: { tags: Tag[] }) {
         </>
     );
 }
-
-TagsIndex.layout = (page: any) => (
-    <AppLayout breadcrumbs={[{ title: 'Manajemen Tag', href: '/tags' }]}>
-        {page}
-    </AppLayout>
-);

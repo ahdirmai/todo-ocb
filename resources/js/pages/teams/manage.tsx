@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Head, router, usePage } from '@inertiajs/react';
+import { Head, router, usePage, setLayoutProps } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -44,6 +44,10 @@ interface Team {
 
 export default function TeamsManage() {
     const { allTeamsData } = usePage<any>().props;
+
+    setLayoutProps({
+        breadcrumbs: [{ title: 'Manajemen Tim', href: '/teams/manage' }],
+    });
 
     const allTeams: Team[] = [
         ...(allTeamsData?.hq ?? []),
@@ -259,9 +263,3 @@ export default function TeamsManage() {
         </>
     );
 }
-
-TeamsManage.layout = (page: any) => (
-    <AppLayout breadcrumbs={[{ title: 'Manajemen Tim', href: '/teams/manage' }]}>
-        {page}
-    </AppLayout>
-);

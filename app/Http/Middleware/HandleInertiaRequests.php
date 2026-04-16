@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Models\Tag;
 use App\Models\Team;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -38,8 +39,18 @@ class HandleInertiaRequests extends Middleware
     public function share(Request $request): array
     {
         $user = $request->user();
+        $isAdmin = $user?->hasAnyRole(['superadmin', 'admin']);
+
+        // Admins see all active teams; members see only their assigned teams
+        $activeTeamsQuery = Team::where('is_active', true);
+        if ($user && ! $isAdmin) {
+            $activeTeamsQuery->whereHas('users', fn ($q) => $q->where('users.id', $user->id));
+        }
+        $activeTeams = rescue(fn () => $activeTeamsQuery->get()->groupBy(fn ($t) => $t->grouping->value), collect());
         $allTeams = rescue(fn () => Team::all()->groupBy(fn ($t) => $t->grouping->value), collect());
-        $activeTeams = rescue(fn () => Team::where('is_active', true)->get()->groupBy(fn ($t) => $t->grouping->value), collect());
+
+        // All application users for invite dropdowns (shared to all pages)
+        $allUsers = rescue(fn () => User::with('roles:id,name')->orderBy('name')->get(['id', 'name', 'email']), []);
 
         return [
             ...parent::share($request),
@@ -61,6 +72,7 @@ class HandleInertiaRequests extends Middleware
                 'project' => $allTeams->get('project', []),
             ],
             'tags' => rescue(fn () => Tag::orderBy('name')->get(['id', 'name', 'color']), []),
+            'allUsers' => $allUsers,
         ];
     }
 }

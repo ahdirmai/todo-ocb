@@ -32,4 +32,9 @@ class Team extends Model
     {
         return $this->hasMany(Kanban::class);
     }
+
+    public function tasks()
+    {
+        return $this->hasMany(Task::class);
+    }
 }

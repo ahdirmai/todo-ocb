@@ -1,4 +1,4 @@
-import { Head, router, usePage } from '@inertiajs/react';
+import { Head, router, usePage, setLayoutProps } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -24,6 +24,10 @@ const TAB_LABELS: Record<Tab, string> = {
 };
 
 export default function TeamShow({ team, tab, item }: { team: any; tab: Tab; item?: string }) {
+    setLayoutProps({
+        breadcrumbs: [{ title: team.name, href: `/teams/${team.slug}` }]
+    });
+
     const handleTabChange = (value: string) => {
         router.visit(`/teams/${team.slug}/${value}`, {
             preserveScroll: true,
@@ -52,9 +56,6 @@ export default function TeamShow({ team, tab, item }: { team: any; tab: Tab; ite
                                 </div>
                             )}
                         </div>
-                        <Button variant="outline" className="rounded-full shadow-sm text-sm h-9 px-4">
-                            <Plus className="w-4 h-4 mr-1" /> Invite
-                        </Button>
                     </div>
                 </div>
 
