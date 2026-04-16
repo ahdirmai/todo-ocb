@@ -1,6 +1,7 @@
 import { Draggable } from '@hello-pangea/dnd';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { usePage } from '@inertiajs/react';
 
 interface KanbanCardProps {
     task: any;
@@ -9,9 +10,21 @@ interface KanbanCardProps {
 }
 
 export function KanbanCard({ task, index, onClick }: KanbanCardProps) {
+    const { auth, team } = usePage<any>().props;
+
+    const isGlobalAdmin = auth?.roles?.some((r: string) => ['superadmin', 'admin'].includes(r));
+    const isTaskCreator = task.creator_id === auth?.user?.id;
+    const isTeamAdmin = team?.users?.find((u: any) => u.id === auth?.user?.id)?.pivot?.role === 'admin';
+    
+    const canModify = Boolean(isGlobalAdmin || isTaskCreator || isTeamAdmin);
+
+    const formatDate = (dateStr: string) => {
+        if (!dateStr) return '';
+        return new Date(dateStr).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+    };
 
     return (
-        <Draggable draggableId={task.id.toString()} index={index}>
+        <Draggable draggableId={task.id.toString()} index={index} isDragDisabled={!canModify}>
             {(provided, snapshot) => (
                 <div
                     ref={provided.innerRef}
@@ -38,9 +51,19 @@ export function KanbanCard({ task, index, onClick }: KanbanCardProps) {
                     )}
 
                     {/* Title */}
-                    <h3 className="text-slate-900 dark:text-slate-100 font-bold leading-tight mb-4">
+                    <h3 className="text-slate-900 dark:text-slate-100 font-bold leading-tight mb-3">
                         {task.title}
                     </h3>
+
+                    {/* Dates */}
+                    <div className="flex flex-col gap-1 mb-4 text-[10px] text-slate-400 dark:text-slate-500 border-l-2 border-slate-200 dark:border-slate-800 pl-2">
+                        {task.created_at && (
+                            <span className="flex items-center gap-1"><span className="font-semibold text-slate-500 dark:text-slate-400">Dibuat:</span> {formatDate(task.created_at)}</span>
+                        )}
+                        {task.updated_at && task.updated_at !== task.created_at && (
+                            <span className="flex items-center gap-1"><span className="font-semibold text-slate-500 dark:text-slate-400">Terakhir diedit:</span> {formatDate(task.updated_at)}</span>
+                        )}
+                    </div>
 
                     {/* Footer: Avatars */}
                     <div className="flex items-center justify-between">

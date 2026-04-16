@@ -19,7 +19,12 @@ interface TaskDetailModalProps {
 }
 
 export function TaskDetailModal({ task, open, onClose }: TaskDetailModalProps) {
-    const { tags: globalTags = [] } = usePage<any>().props;
+    const { tags: globalTags = [], auth, team } = usePage<any>().props;
+
+    const isGlobalAdmin = auth?.roles?.some((r: string) => ['superadmin', 'admin'].includes(r));
+    const isTaskCreator = task?.creator_id === auth?.user?.id;
+    const isTeamAdmin = team?.users?.find((u: any) => u.id === auth?.user?.id)?.pivot?.role === 'admin';
+    const canModify = Boolean(isGlobalAdmin || isTaskCreator || isTeamAdmin);
 
     const [title, setTitle] = useState(task?.title || '');
     const [description, setDescription] = useState(task?.description || '');
@@ -85,8 +90,8 @@ export function TaskDetailModal({ task, open, onClose }: TaskDetailModalProps) {
                                 return (
                                     <button
                                         key={tag.id}
-                                        onClick={() => toggleTag(tag.id)}
-                                        className="px-3 py-0.5 rounded-full text-xs font-semibold text-white transition-all"
+                                        onClick={() => canModify && toggleTag(tag.id)}
+                                        className={`px-3 py-0.5 rounded-full text-xs font-semibold text-white transition-all ${canModify ? 'cursor-pointer' : 'cursor-default opacity-80'}`}
                                         style={{
                                             backgroundColor: tag.color,
                                             opacity: selected ? 1 : 0.35,
@@ -107,6 +112,7 @@ export function TaskDetailModal({ task, open, onClose }: TaskDetailModalProps) {
                         <label className="text-xs font-medium text-muted-foreground mb-1 block">Judul</label>
                         <Input
                             value={title}
+                            readOnly={!canModify}
                             onChange={(e) => setTitle(e.target.value)}
                             className="text-base font-semibold"
                             placeholder="Judul tugas..."
@@ -118,6 +124,7 @@ export function TaskDetailModal({ task, open, onClose }: TaskDetailModalProps) {
                         <label className="text-xs font-medium text-muted-foreground mb-1 block">Deskripsi</label>
                         <Textarea
                             value={description}
+                            readOnly={!canModify}
                             onChange={(e) => setDescription(e.target.value)}
                             rows={4}
                             placeholder="Tambahkan deskripsi tugas..."
@@ -133,6 +140,7 @@ export function TaskDetailModal({ task, open, onClose }: TaskDetailModalProps) {
                         <Input
                             type="date"
                             value={dueDate}
+                            readOnly={!canModify}
                             onChange={(e) => setDueDate(e.target.value)}
                             className="w-48 text-sm"
                         />
@@ -140,17 +148,25 @@ export function TaskDetailModal({ task, open, onClose }: TaskDetailModalProps) {
 
                     {/* Actions */}
                     <div className="flex items-center justify-between pt-2 border-t border-sidebar-border/70">
-                        <Button variant="destructive" size="sm" onClick={handleDelete} className="text-xs">
-                            Hapus Tugas
-                        </Button>
-                        <div className="flex gap-2">
-                            <Button variant="outline" size="sm" onClick={onClose} className="text-xs">Batal</Button>
-                            <Button size="sm" onClick={handleSave} disabled={saving} className="text-xs">
-                                {saving
-                                    ? <><Loader2 className="w-3 h-3 animate-spin mr-1" />Menyimpan...</>
-                                    : 'Simpan'}
-                            </Button>
-                        </div>
+                        {canModify ? (
+                            <>
+                                <Button variant="destructive" size="sm" onClick={handleDelete} className="text-xs">
+                                    Hapus Tugas
+                                </Button>
+                                <div className="flex gap-2">
+                                    <Button variant="outline" size="sm" onClick={onClose} className="text-xs">Batal</Button>
+                                    <Button size="sm" onClick={handleSave} disabled={saving} className="text-xs">
+                                        {saving
+                                            ? <><Loader2 className="w-3 h-3 animate-spin mr-1" />Menyimpan...</>
+                                            : 'Simpan'}
+                                    </Button>
+                                </div>
+                            </>
+                        ) : (
+                            <div className="flex justify-end w-full">
+                                <Button variant="outline" size="sm" onClick={onClose} className="text-xs">Tutup</Button>
+                            </div>
+                        )}
                     </div>
                 </div>
             </DialogContent>

@@ -21,6 +21,7 @@ class TaskController extends Controller
 
         Task::create([
             ...$validated,
+            'creator_id' => $request->user()?->id,
             'order_position' => $maxOrder + 1,
         ]);
 
