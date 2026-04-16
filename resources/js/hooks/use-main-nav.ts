@@ -23,28 +23,37 @@ export function useMainNav(): NavGroup[] {
         {
             title: 'HQ',
             icon: Building,
+            grouping: 'hq',
             items: teamsData.hq?.map((t: any) => ({
                 title: t.name,
                 href: `/teams/${t.slug}`,
                 icon: Circle,
+                id: t.id,
+                isActive: t.is_active,
             })) || [],
         },
         {
             title: 'Tim',
             icon: Users,
+            grouping: 'team',
             items: teamsData.team?.map((t: any) => ({
                 title: t.name,
                 href: `/teams/${t.slug}`,
                 icon: Circle,
+                id: t.id,
+                isActive: t.is_active,
             })) || [],
         },
         {
             title: 'Proyek',
             icon: CheckSquare,
+            grouping: 'project',
             items: teamsData.project?.map((t: any) => ({
                 title: t.name,
                 href: `/teams/${t.slug}`,
                 icon: Circle,
+                id: t.id,
+                isActive: t.is_active,
             })) || [],
         },
     ];

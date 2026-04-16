@@ -19,6 +19,7 @@ class Team extends Model
     {
         return [
             'grouping' => GroupingType::class,
+            'is_active' => 'boolean',
         ];
     }
 

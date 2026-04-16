@@ -18,6 +18,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
         return Inertia::render('dashboard');
     })->name('dashboard');
 
+    // Team management page (admin)
+    Route::get('teams/manage', function () {
+        return Inertia::render('teams/manage');
+    })->middleware('role:superadmin|admin')->name('teams.manage');
+
     // Team routes — URL-based tab navigation
     Route::get('teams/{team:slug}/{tab?}/{item?}', [TeamController::class, 'show'])
         ->where('tab', 'overview|task|chat|announcement|question|document')
@@ -47,6 +52,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('tags', [TagController::class, 'store'])->name('tags.store');
         Route::put('tags/{tag}', [TagController::class, 'update'])->name('tags.update');
         Route::delete('tags/{tag}', [TagController::class, 'destroy'])->name('tags.destroy');
+
+        // Team Management
+        Route::post('teams', [TeamController::class, 'store'])->name('teams.store');
+        Route::put('teams/{team}', [TeamController::class, 'update'])->name('teams.update');
+        Route::patch('teams/{team}/archive', [TeamController::class, 'archive'])->name('teams.archive');
+        Route::patch('teams/{team}/restore', [TeamController::class, 'restore'])->name('teams.restore');
+        Route::delete('teams/{team}', [TeamController::class, 'destroy'])->name('teams.destroy');
     });
 });
 

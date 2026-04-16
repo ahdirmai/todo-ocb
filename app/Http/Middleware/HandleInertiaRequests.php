@@ -38,7 +38,8 @@ class HandleInertiaRequests extends Middleware
     public function share(Request $request): array
     {
         $user = $request->user();
-        $teams = Team::all()->groupBy(fn ($t) => $t->grouping->value);
+        $allTeams = rescue(fn () => Team::all()->groupBy(fn ($t) => $t->grouping->value), collect());
+        $activeTeams = rescue(fn () => Team::where('is_active', true)->get()->groupBy(fn ($t) => $t->grouping->value), collect());
 
         return [
             ...parent::share($request),
@@ -50,9 +51,14 @@ class HandleInertiaRequests extends Middleware
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
             'teamsData' => [
-                'hq' => $teams->get('hq', []),
-                'team' => $teams->get('team', []),
-                'project' => $teams->get('project', []),
+                'hq' => $activeTeams->get('hq', []),
+                'team' => $activeTeams->get('team', []),
+                'project' => $activeTeams->get('project', []),
+            ],
+            'allTeamsData' => [
+                'hq' => $allTeams->get('hq', []),
+                'team' => $allTeams->get('team', []),
+                'project' => $allTeams->get('project', []),
             ],
             'tags' => rescue(fn () => Tag::orderBy('name')->get(['id', 'name', 'color']), []),
         ];
