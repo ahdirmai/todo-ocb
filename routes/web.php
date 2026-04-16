@@ -1,14 +1,53 @@
 <?php
 
+use App\Http\Controllers\KanbanBoardController;
+use App\Http\Controllers\KanbanColumnController;
+use App\Http\Controllers\MemberController;
+use App\Http\Controllers\TagController;
+use App\Http\Controllers\TaskController;
+use App\Http\Controllers\TeamController;
 use Illuminate\Support\Facades\Route;
-use Laravel\Fortify\Features;
+use Inertia\Inertia;
 
-Route::inertia('/', 'welcome', [
-    'canRegister' => Features::enabled(Features::registration()),
-])->name('home');
+Route::get('/', function () {
+    return Inertia::render('welcome');
+})->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::inertia('dashboard', 'dashboard')->name('dashboard');
+    Route::get('dashboard', function () {
+        return Inertia::render('dashboard');
+    })->name('dashboard');
+
+    // Team routes — URL-based tab navigation
+    Route::get('teams/{team:slug}/{tab?}/{item?}', [TeamController::class, 'show'])
+        ->where('tab', 'overview|task|chat|announcement|question|document')
+        ->name('teams.show');
+
+    // Kanban Column CRUD
+    Route::post('kanbans/{kanban}/columns', [KanbanColumnController::class, 'store'])->name('kanbans.columns.store');
+    Route::put('kanbans/columns/{column}', [KanbanColumnController::class, 'update'])->name('kanbans.columns.update');
+    Route::delete('kanbans/columns/{column}', [KanbanColumnController::class, 'destroy'])->name('kanbans.columns.destroy');
+    Route::put('kanbans/columns/reorder', [KanbanBoardController::class, 'reorderColumns'])->name('kanbans.columns.reorder');
+
+    // Task CRUD
+    Route::post('tasks', [TaskController::class, 'store'])->name('tasks.store');
+    Route::get('tasks/{task}', [TaskController::class, 'show'])->name('tasks.show');
+    Route::put('tasks/{task}', [TaskController::class, 'update'])->name('tasks.update');
+    Route::delete('tasks/{task}', [TaskController::class, 'destroy'])->name('tasks.destroy');
+    Route::put('kanbans/tasks/reorder', [KanbanBoardController::class, 'reorderTasks'])->name('kanbans.tasks.reorder');
+
+    // Member Management — Superadmin & Admin only
+    Route::middleware('role:superadmin|admin')->group(function () {
+        Route::get('members', [MemberController::class, 'index'])->name('members.index');
+        Route::post('members', [MemberController::class, 'store'])->name('members.store');
+        Route::put('members/{user}', [MemberController::class, 'update'])->name('members.update');
+        Route::delete('members/{user}', [MemberController::class, 'destroy'])->name('members.destroy');
+
+        Route::get('tags', [TagController::class, 'index'])->name('tags.index');
+        Route::post('tags', [TagController::class, 'store'])->name('tags.store');
+        Route::put('tags/{tag}', [TagController::class, 'update'])->name('tags.update');
+        Route::delete('tags/{tag}', [TagController::class, 'destroy'])->name('tags.destroy');
+    });
 });
 
 require __DIR__.'/settings.php';

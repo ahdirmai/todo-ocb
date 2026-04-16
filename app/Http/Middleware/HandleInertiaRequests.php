@@ -2,6 +2,8 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\Tag;
+use App\Models\Team;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -35,13 +37,24 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        $user = $request->user();
+        $teams = Team::all()->groupBy(fn ($t) => $t->grouping->value);
+
         return [
             ...parent::share($request),
             'name' => config('app.name'),
             'auth' => [
-                'user' => $request->user(),
+                'user' => $user,
+                'roles' => $user ? $user->getRoleNames() : [],
+                'permissions' => $user ? $user->getAllPermissions()->pluck('name') : [],
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
+            'teamsData' => [
+                'hq' => $teams->get('hq', []),
+                'team' => $teams->get('team', []),
+                'project' => $teams->get('project', []),
+            ],
+            'tags' => rescue(fn () => Tag::orderBy('name')->get(['id', 'name', 'color']), []),
         ];
     }
 }

@@ -39,14 +39,7 @@ type Props = {
     breadcrumbs?: BreadcrumbItem[];
 };
 
-const mainNavItems: NavItem[] = [
-    {
-        title: 'Dashboard',
-        href: dashboard(),
-        icon: LayoutGrid,
-    },
-];
-
+import { useMainNav } from '@/hooks/use-main-nav';
 const rightNavItems: NavItem[] = [
     {
         title: 'Repository',
@@ -68,6 +61,7 @@ export function AppHeader({ breadcrumbs = [] }: Props) {
     const { auth } = page.props;
     const getInitials = useInitials();
     const { isCurrentUrl, whenCurrentUrl } = useCurrentUrl();
+    const mainNavGroups = useMainNav();
 
     return (
         <>
@@ -98,17 +92,25 @@ export function AppHeader({ breadcrumbs = [] }: Props) {
                                 <div className="flex h-full flex-1 flex-col space-y-4 p-4">
                                     <div className="flex h-full flex-col justify-between text-sm">
                                         <div className="flex flex-col space-y-4">
-                                            {mainNavItems.map((item) => (
-                                                <Link
-                                                    key={item.title}
-                                                    href={item.href}
-                                                    className="flex items-center space-x-2 font-medium"
-                                                >
-                                                    {item.icon && (
-                                                        <item.icon className="h-5 w-5" />
-                                                    )}
-                                                    <span>{item.title}</span>
-                                                </Link>
+                                            {mainNavGroups.map((group) => (
+                                                <div key={group.title} className="flex flex-col space-y-2">
+                                                    <span className="flex items-center space-x-2 text-xs font-semibold text-muted-foreground px-2">
+                                                        {group.icon && <group.icon className="h-4 w-4" />}
+                                                        <span>{group.title}</span>
+                                                    </span>
+                                                    {group.items.map((item) => (
+                                                        <Link
+                                                            key={item.title}
+                                                            href={item.href}
+                                                            className="flex items-center space-x-2 font-medium px-2"
+                                                        >
+                                                            {item.icon && (
+                                                                <item.icon className="h-5 w-5" />
+                                                            )}
+                                                            <span>{item.title}</span>
+                                                        </Link>
+                                                    ))}
+                                                </div>
                                             ))}
                                         </div>
 
@@ -146,7 +148,7 @@ export function AppHeader({ breadcrumbs = [] }: Props) {
                     <div className="ml-6 hidden h-full items-center space-x-6 lg:flex">
                         <NavigationMenu className="flex h-full items-stretch">
                             <NavigationMenuList className="flex h-full items-stretch space-x-2">
-                                {mainNavItems.map((item, index) => (
+                                {mainNavGroups.flatMap((group) => group.items).map((item, index) => (
                                     <NavigationMenuItem
                                         key={index}
                                         className="relative flex h-full items-center"
