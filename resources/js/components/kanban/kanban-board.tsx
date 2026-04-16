@@ -20,7 +20,22 @@ export function KanbanBoard({ kanban }: { kanban: any }) {
     const [modalOpen, setModalOpen] = useState(false);
 
     useEffect(() => {
-        setColumns(kanban?.columns || []);
+        const newColumns = kanban?.columns || [];
+        setColumns(newColumns);
+        
+        if (selectedTask) {
+            let updatedTask = null;
+            for (const col of newColumns) {
+                const found = col.tasks?.find((t: any) => t.id === selectedTask.id);
+                if (found) {
+                    updatedTask = found;
+                    break;
+                }
+            }
+            if (updatedTask) {
+                setSelectedTask(updatedTask);
+            }
+        }
     }, [kanban]);
 
     const handleCardClick = (task: any) => {

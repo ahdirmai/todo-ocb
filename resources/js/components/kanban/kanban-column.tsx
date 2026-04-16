@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Droppable } from '@hello-pangea/dnd';
 import { KanbanCard } from './kanban-card';
 import { MoreHorizontal, Plus, Pencil, Trash2, Check, X } from 'lucide-react';
@@ -28,6 +28,8 @@ export function KanbanColumn({ column, colorClass, teamId, onCardClick, onTaskCr
     const [addingTask, setAddingTask] = useState(false);
     const [newTaskTitle, setNewTaskTitle] = useState('');
     const [savingTask, setSavingTask] = useState(false);
+    const [newTaskAttachments, setNewTaskAttachments] = useState<File[]>([]);
+    const taskFileInputRef = useRef<HTMLInputElement>(null);
 
     const handleRenameColumn = () => {
         if (!title.trim() || title === column.title) {
@@ -51,16 +53,19 @@ export function KanbanColumn({ column, colorClass, teamId, onCardClick, onTaskCr
         if (!newTaskTitle.trim() || savingTask) return;
         setSavingTask(true);
 
-        // Optimistic stub task to show in modal immediately after server responds
-        router.post(TaskActions.store.url(), {
-            kanban_column_id: column.id,
-            team_id: teamId,
-            title: newTaskTitle.trim(),
-        }, {
+        const formData = new FormData();
+        formData.append('kanban_column_id', column.id);
+        formData.append('team_id', teamId);
+        formData.append('title', newTaskTitle.trim());
+        
+        newTaskAttachments.forEach((file, index) => {
+            formData.append(`attachments[${index}]`, file);
+        });
+
+        router.post(TaskActions.store.url(), formData, {
             preserveScroll: true,
             preserveState: false, // let Inertia refresh props.team so new task appears
             onSuccess: (page) => {
-                // Find the newly created task. It will be the last one in this column.
                 const updatedKanban = (page.props as any).team?.kanbans?.[0];
                 const updatedColumn = updatedKanban?.columns?.find((c: any) => c.id === column.id);
                 const latestTasks = updatedColumn?.tasks ?? [];
@@ -68,7 +73,9 @@ export function KanbanColumn({ column, colorClass, teamId, onCardClick, onTaskCr
 
                 setSavingTask(false);
                 setNewTaskTitle('');
+                setNewTaskAttachments([]);
                 setAddingTask(false);
+                if (taskFileInputRef.current) taskFileInputRef.current.value = '';
 
                 if (newTask) {
                     onTaskCreated(newTask);
@@ -171,17 +178,41 @@ export function KanbanColumn({ column, colorClass, teamId, onCardClick, onTaskCr
                                         placeholder="Judul task baru..."
                                         className="h-8 text-sm"
                                     />
-                                    <div className="flex gap-2">
+                                    
+                                    {newTaskAttachments.length > 0 && (
+                                        <div className="flex flex-wrap gap-1 mt-1">
+                                            {newTaskAttachments.map((f, i) => (
+                                                <span key={i} className="text-[10px] bg-slate-100 dark:bg-zinc-800 px-2 py-0.5 rounded flex items-center gap-1">
+                                                    {f.name}
+                                                    <button onClick={() => setNewTaskAttachments(newTaskAttachments.filter((_, idx) => idx !== i))} className="ml-1 text-red-500 hover:text-red-700">
+                                                        <X className="w-2.5 h-2.5" />
+                                                    </button>
+                                                </span>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    <div className="flex gap-2 items-center">
+                                        <input type="file" multiple className="hidden" ref={taskFileInputRef} onChange={(e) => {
+                                            if (e.target.files?.length) setNewTaskAttachments([...newTaskAttachments, ...Array.from(e.target.files)]);
+                                        }} />
+                                        <button 
+                                            title="Lampirkan File"
+                                            onClick={(e) => { e.preventDefault(); taskFileInputRef.current?.click(); }} 
+                                            className="w-8 h-8 flex items-center justify-center rounded-md border border-sidebar-border hover:bg-slate-50 dark:hover:bg-zinc-800 text-slate-500 transition-colors"
+                                        >
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+                                        </button>
                                         <button
                                             onClick={handleAddTask}
                                             disabled={savingTask}
-                                            className="flex-1 text-xs py-1 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
+                                            className="flex-1 text-xs py-1.5 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
                                         >
                                             {savingTask ? 'Menyimpan...' : 'Tambah'}
                                         </button>
                                         <button
                                             onClick={() => setAddingTask(false)}
-                                            className="flex-1 text-xs py-1 rounded-md border border-sidebar-border hover:bg-slate-50 dark:hover:bg-zinc-800 transition-colors"
+                                            className="flex-1 text-xs py-1.5 rounded-md border border-sidebar-border hover:bg-slate-50 dark:hover:bg-zinc-800 transition-colors"
                                         >
                                             Batal
                                         </button>

@@ -19,7 +19,9 @@ class TeamController extends Controller
         if ($tab === 'task') {
             $team->load([
                 'kanbans.columns.tasks.tags',
+                'kanbans.columns.tasks.media',
                 'kanbans.columns.tasks.comments.user',
+                'kanbans.columns.tasks.comments.media',
             ]);
         }
 
