@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Link, router, usePage } from '@inertiajs/react';
-import { BookOpen, FolderGit2, Shield, Tag, Users2, Plus } from 'lucide-react';
+import { BookOpen, FolderGit2, Shield, Tag, Users2, Plus, Moon, Sun } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
+import { useAppearance } from '@/hooks/use-appearance';
 import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
@@ -44,6 +45,7 @@ export function AppSidebar() {
     const mainNavGroups = useMainNav();
     const { auth } = usePage<any>().props;
     const isAdmin = auth?.roles?.includes('superadmin') || auth?.roles?.includes('admin');
+    const { appearance, updateAppearance } = useAppearance();
 
     const [open, setOpen] = useState(false);
     const [form, setForm] = useState({ name: '', grouping: 'team' as 'hq' | 'team' | 'project' });
@@ -81,15 +83,20 @@ export function AppSidebar() {
                 <SidebarContent>
                     {/* Quick-add team button — admin only, above Platform group */}
                     {isAdmin && (
-                        <div className="px-3 pt-2 pb-1">
-                            <button
-                                onClick={() => setOpen(true)}
-                                className="flex w-full items-center gap-2 rounded-md border border-dashed border-sidebar-border/70 px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
-                            >
-                                <Plus className="w-3.5 h-3.5" />
-                                <span>Tambah Tim Baru</span>
-                            </button>
-                        </div>
+                        <SidebarGroup className="px-2 py-2">
+                            <SidebarMenu>
+                                <SidebarMenuItem>
+                                    <SidebarMenuButton
+                                        onClick={() => setOpen(true)}
+                                        tooltip="Tambah Tim Baru"
+                                        className="border border-dashed border-sidebar-border/70 text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground justify-center group-data-[collapsible=icon]:border-transparent group-data-[collapsible=icon]:justify-center"
+                                    >
+                                        <Plus className="w-4 h-4 shrink-0" />
+                                        <span className="truncate">Tambah Tim Baru</span>
+                                    </SidebarMenuButton>
+                                </SidebarMenuItem>
+                            </SidebarMenu>
+                        </SidebarGroup>
                     )}
 
                     <NavMain groups={mainNavGroups} />
@@ -128,6 +135,25 @@ export function AppSidebar() {
                 </SidebarContent>
 
                 <SidebarFooter>
+                    <SidebarMenu>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton 
+                                onClick={() => updateAppearance(appearance === 'dark' ? 'light' : 'dark')}
+                                tooltip={appearance === 'dark' ? 'Mode Terang' : 'Mode Gelap'}
+                                className="w-full flex justify-between items-center"
+                            >
+                                <div className="flex items-center gap-2">
+                                    {appearance === 'dark' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
+                                    <span>{appearance === 'dark' ? 'Mode Gelap' : 'Mode Terang'}</span>
+                                </div>
+                                <div 
+                                    className={`relative inline-flex h-4 w-7 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background group-data-[collapsible=icon]:hidden ${appearance === 'dark' ? 'bg-primary' : 'bg-slate-300 dark:bg-slate-700'}`}
+                                >
+                                    <span className={`pointer-events-none block h-3 w-3 rounded-full bg-white shadow-lg ring-0 transition-transform ${appearance === 'dark' ? 'translate-x-3' : 'translate-x-0'}`} />
+                                </div>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                    </SidebarMenu>
                     <NavFooter items={footerNavItems} className="mt-auto" />
                     <NavUser />
                 </SidebarFooter>

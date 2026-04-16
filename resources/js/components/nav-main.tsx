@@ -4,10 +4,12 @@ import { ChevronRight, Plus, MoreHorizontal, Pencil, Archive } from 'lucide-reac
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
     SidebarGroup,
-    SidebarGroupLabel,
     SidebarMenu,
     SidebarMenuButton,
     SidebarMenuItem,
+    SidebarMenuSub,
+    SidebarMenuSubButton,
+    SidebarMenuSubItem,
     SidebarMenuAction,
 } from '@/components/ui/sidebar';
 import {
@@ -87,89 +89,86 @@ export function NavMain({ groups = [] }: { groups: NavGroup[] }) {
 
     return (
         <>
-            {groups.map((group) => (
-                <Collapsible key={group.title} defaultOpen className="group/collapsible">
-                    <SidebarGroup className="px-2 py-0">
-                        <SidebarGroupLabel
-                            asChild
-                            className="flex items-center space-x-2 w-full justify-between cursor-pointer"
-                        >
-                            <CollapsibleTrigger>
-                                <div className="flex items-center space-x-2 flex-1 min-w-0">
-                                    {group.icon && <group.icon className="h-4 w-4 shrink-0" />}
-                                    <span className="truncate">{group.title}</span>
-                                </div>
-                                <div className="flex items-center gap-1 ml-auto shrink-0">
-                                    {/* + button for admin on team groups */}
-                                    {isAdmin && (group as any).grouping && (
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                setNewTeamName('');
-                                                setCreateModal({ open: true, grouping: (group as any).grouping });
-                                            }}
-                                            className="flex items-center justify-center w-4 h-4 text-sidebar-foreground/50 hover:text-sidebar-foreground transition-colors rounded"
-                                            title={`Tambah ${group.title}`}
-                                        >
-                                            <Plus className="h-3 w-3" />
-                                        </button>
-                                    )}
-                                    <ChevronRight className="h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-90" />
-                                </div>
-                            </CollapsibleTrigger>
-                        </SidebarGroupLabel>
+        <SidebarGroup>
+            <SidebarMenu>
+                {groups.map((group) => (
+                    <Collapsible key={group.title} defaultOpen className="group/collapsible">
+                        <SidebarMenuItem>
+                            <div className="flex w-full items-center group/menu-item">
+                                <CollapsibleTrigger asChild>
+                                    <SidebarMenuButton tooltip={group.title} className="flex-1">
+                                        {group.icon && <group.icon className="!h-4 !w-4 shrink-0" />}
+                                        <span>{group.title}</span>
+                                        <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                                    </SidebarMenuButton>
+                                </CollapsibleTrigger>
+                                {/* Admin Add Button */}
+                                {isAdmin && (group as any).grouping && (
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setNewTeamName('');
+                                            setCreateModal({ open: true, grouping: (group as any).grouping });
+                                        }}
+                                        className="h-7 w-7 text-sidebar-foreground/50 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors rounded-md flex items-center justify-center shrink-0 ml-1 group-data-[collapsible=icon]:opacity-0 pointer-events-auto mr-1"
+                                        title={`Tambah ${group.title}`}
+                                    >
+                                        <Plus className="h-4 w-4" />
+                                    </button>
+                                )}
+                            </div>
 
-                        <CollapsibleContent>
-                            <SidebarMenu>
-                                {group.items.map((item) => (
-                                    <SidebarMenuItem key={item.title} className="group/item">
-                                        <SidebarMenuButton
-                                            asChild
-                                            isActive={isCurrentUrl(item.href)}
-                                            tooltip={{ children: item.title }}
-                                        >
-                                            <Link href={item.href} prefetch>
-                                                {item.icon && <item.icon />}
-                                                <span>{item.title}</span>
-                                            </Link>
-                                        </SidebarMenuButton>
+                            <CollapsibleContent>
+                                <SidebarMenuSub>
+                                    {group.items.map((item) => (
+                                        <SidebarMenuSubItem key={item.title}>
+                                            <SidebarMenuSubButton
+                                                asChild
+                                                isActive={isCurrentUrl(item.href)}
+                                            >
+                                                <Link href={item.href} prefetch>
+                                                    <span className="truncate">{item.title}</span>
+                                                </Link>
+                                            </SidebarMenuSubButton>
 
-                                        {/* Dropdown per item — admin only */}
-                                        {isAdmin && (item as any).id && (
-                                            <DropdownMenu>
-                                                <DropdownMenuTrigger asChild>
-                                                    <SidebarMenuAction
-                                                        showOnHover
-                                                        className="opacity-0 group-hover/item:opacity-100 transition-opacity"
-                                                    >
-                                                        <MoreHorizontal className="w-3.5 h-3.5" />
-                                                    </SidebarMenuAction>
-                                                </DropdownMenuTrigger>
-                                                <DropdownMenuContent side="right" align="start" className="w-36">
-                                                    <DropdownMenuItem
-                                                        onClick={() => {
-                                                            setEditName((item as any).title);
-                                                            setEditModal({ open: true, team: item });
-                                                        }}
-                                                    >
-                                                        <Pencil className="w-3.5 h-3.5 mr-2" /> Rename
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem
-                                                        onClick={() => handleArchive(item)}
-                                                        className="text-amber-600 focus:text-amber-600"
-                                                    >
-                                                        <Archive className="w-3.5 h-3.5 mr-2" /> Arsipkan
-                                                    </DropdownMenuItem>
-                                                </DropdownMenuContent>
-                                            </DropdownMenu>
-                                        )}
-                                    </SidebarMenuItem>
-                                ))}
-                            </SidebarMenu>
-                        </CollapsibleContent>
-                    </SidebarGroup>
-                </Collapsible>
-            ))}
+                                            {/* Dropdown per item — admin only */}
+                                            {isAdmin && (item as any).id && (
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <SidebarMenuAction
+                                                            showOnHover
+                                                            className="opacity-0 group-hover/menu-item:opacity-100 transition-opacity"
+                                                        >
+                                                            <MoreHorizontal className="w-3.5 h-3.5" />
+                                                        </SidebarMenuAction>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent side="right" align="start" className="w-36">
+                                                        <DropdownMenuItem
+                                                            onClick={() => {
+                                                                setEditName((item as any).title);
+                                                                setEditModal({ open: true, team: item });
+                                                            }}
+                                                        >
+                                                            <Pencil className="w-3.5 h-3.5 mr-2" /> Rename
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem
+                                                            onClick={() => handleArchive(item)}
+                                                            className="text-amber-600 focus:text-amber-600"
+                                                        >
+                                                            <Archive className="w-3.5 h-3.5 mr-2" /> Arsipkan
+                                                        </DropdownMenuItem>
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
+                                            )}
+                                        </SidebarMenuSubItem>
+                                    ))}
+                                </SidebarMenuSub>
+                            </CollapsibleContent>
+                        </SidebarMenuItem>
+                    </Collapsible>
+                ))}
+            </SidebarMenu>
+        </SidebarGroup>
 
             {/* Create Team Modal */}
             <Dialog open={createModal.open} onOpenChange={(v) => !v && setCreateModal({ ...createModal, open: false })}>

@@ -20,41 +20,41 @@ export function useMainNav(): NavGroup[] {
                 },
             ],
         },
-        {
+        ...((teamsData.hq && teamsData.hq.length > 0) ? [{
             title: 'HQ',
             icon: Building,
             grouping: 'hq',
-            items: teamsData.hq?.map((t: any) => ({
+            items: teamsData.hq.map((t: any) => ({
                 title: t.name,
                 href: `/teams/${t.slug}`,
                 icon: Circle,
                 id: t.id,
                 isActive: t.is_active,
-            })) || [],
-        },
-        {
+            })),
+        }] : []),
+        ...((teamsData.team && teamsData.team.length > 0) ? [{
             title: 'Tim',
             icon: Users,
             grouping: 'team',
-            items: teamsData.team?.map((t: any) => ({
+            items: teamsData.team.map((t: any) => ({
                 title: t.name,
                 href: `/teams/${t.slug}`,
                 icon: Circle,
                 id: t.id,
                 isActive: t.is_active,
-            })) || [],
-        },
-        {
+            })),
+        }] : []),
+        ...((teamsData.project && teamsData.project.length > 0) ? [{
             title: 'Proyek',
             icon: CheckSquare,
             grouping: 'project',
-            items: teamsData.project?.map((t: any) => ({
+            items: teamsData.project.map((t: any) => ({
                 title: t.name,
                 href: `/teams/${t.slug}`,
                 icon: Circle,
                 id: t.id,
                 isActive: t.is_active,
-            })) || [],
-        },
+            })),
+        }] : []),
     ];
 }
