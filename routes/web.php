@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\ActivityLogController;
+use App\Http\Controllers\CommentController;
 use App\Http\Controllers\KanbanBoardController;
 use App\Http\Controllers\KanbanColumnController;
 use App\Http\Controllers\MemberController;
@@ -26,7 +28,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Team routes — URL-based tab navigation
     Route::get('teams/{team:slug}/{tab?}/{item?}', [TeamController::class, 'show'])
-        ->where('tab', 'overview|task|chat|announcement|question|document')
+        ->where('tab', 'overview|task|chat|announcement|question|document|activity')
         ->name('teams.show');
 
     // Kanban Column CRUD
@@ -40,8 +42,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('tasks/{task}', [TaskController::class, 'show'])->name('tasks.show');
     Route::put('tasks/{task}', [TaskController::class, 'update'])->name('tasks.update');
     Route::delete('tasks/{task}', [TaskController::class, 'destroy'])->name('tasks.destroy');
-    Route::post('tasks/{task}/comments', [\App\Http\Controllers\CommentController::class, 'store'])->name('tasks.comments.store');
-    Route::delete('comments/{comment}', [\App\Http\Controllers\CommentController::class, 'destroy'])->name('comments.destroy');
+    Route::post('tasks/{task}/comments', [CommentController::class, 'store'])->name('tasks.comments.store');
+    Route::delete('comments/{comment}', [CommentController::class, 'destroy'])->name('comments.destroy');
     Route::put('kanbans/tasks/reorder', [KanbanBoardController::class, 'reorderTasks'])->name('kanbans.tasks.reorder');
 
     // Team Member invite / remove (auth users with team access)
@@ -66,6 +68,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::patch('teams/{team}/archive', [TeamController::class, 'archive'])->name('teams.archive');
         Route::patch('teams/{team}/restore', [TeamController::class, 'restore'])->name('teams.restore');
         Route::delete('teams/{team}', [TeamController::class, 'destroy'])->name('teams.destroy');
+        // Activity Logs — admin & superadmin only
+        Route::get('activity', [ActivityLogController::class, 'index'])->name('activity.index');
     });
 });
 

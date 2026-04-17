@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Team;
 use App\Models\User;
+use App\Services\ActivityLogger;
 use Illuminate\Http\Request;
 
 class TeamMemberController extends Controller
@@ -19,11 +20,20 @@ class TeamMemberController extends Controller
         ]);
 
         $role = $validated['role'] ?? 'member';
+        $user = User::find($validated['user_id']);
 
         // syncWithoutDetaching so re-invite doesn't error
         $team->users()->syncWithoutDetaching([
             $validated['user_id'] => ['role' => $role],
         ]);
+
+        ActivityLogger::log(
+            event: 'member_added',
+            logName: 'member',
+            description: "Anggota \"{$user->name}\" ditambahkan ke tim \"{$team->name}\"",
+            subject: $user,
+            teamId: $team->id,
+        );
 
         return back();
     }
@@ -33,8 +43,15 @@ class TeamMemberController extends Controller
      */
     public function destroy(Team $team, User $user)
     {
-        // Prevent removing self if you're the only admin
         $team->users()->detach($user->id);
+
+        ActivityLogger::log(
+            event: 'member_removed',
+            logName: 'member',
+            description: "Anggota \"{$user->name}\" dikeluarkan dari tim \"{$team->name}\"",
+            subject: $user,
+            teamId: $team->id,
+        );
 
         return back();
     }

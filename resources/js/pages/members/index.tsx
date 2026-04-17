@@ -4,6 +4,7 @@ import AppLayout from '@/layouts/app-layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
     Dialog,
     DialogContent,
@@ -24,6 +25,7 @@ interface Member {
     id: number;
     name: string;
     email: string;
+    avatar_url?: string | null;
     role: string;
 }
 
@@ -98,9 +100,12 @@ export default function MembersIndex({ members, roles }: { members: Member[]; ro
                                         <tr key={m.id} className="hover:bg-slate-50/50 dark:hover:bg-zinc-900/30 transition-colors">
                                             <td className="px-4 py-3 font-medium text-slate-900 dark:text-slate-100">
                                                 <div className="flex items-center gap-2">
-                                                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold">
-                                                        {m.name.charAt(0).toUpperCase()}
-                                                    </div>
+                                                    <Avatar className="w-8 h-8">
+                                                        <AvatarImage src={m.avatar_url ?? undefined} alt={m.name} className="object-cover" />
+                                                        <AvatarFallback className="bg-primary/10 text-primary text-xs font-bold">
+                                                            {m.name.charAt(0).toUpperCase()}
+                                                        </AvatarFallback>
+                                                    </Avatar>
                                                     {m.name}
                                                 </div>
                                             </td>

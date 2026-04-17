@@ -10,6 +10,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { UserPlus, MoreHorizontal, Trash2, Building, UsersRound, Kanban, CheckSquare } from 'lucide-react';
 import * as TeamMemberActions from '@/actions/App/Http/Controllers/TeamMemberController';
 
@@ -83,9 +84,12 @@ export function OverviewTab({ team }: { team: any }) {
 
                                 return (
                                     <div key={user.id} className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50/50 dark:hover:bg-zinc-900/30 transition-colors">
-                                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold shrink-0">
-                                            {user.name.charAt(0).toUpperCase()}
-                                        </div>
+                                        <Avatar className="w-8 h-8 shrink-0">
+                                            <AvatarImage src={user.avatar_url ?? undefined} alt={user.name} className="object-cover" />
+                                            <AvatarFallback className="bg-primary/10 text-primary text-xs font-bold">
+                                                {user.name.charAt(0).toUpperCase()}
+                                            </AvatarFallback>
+                                        </Avatar>
                                         <div className="flex-1 min-w-0">
                                             <p className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">{user.name}</p>
                                             <p className="text-xs text-muted-foreground truncate">{user.email}</p>
@@ -147,9 +151,12 @@ export function OverviewTab({ team }: { team: any }) {
                                                     }}
                                                     className={`shrink-0 ${isDisabled ? 'opacity-50' : ''}`}
                                                 />
-                                                <span className="w-7 h-7 rounded-full bg-primary/10 text-primary text-xs font-bold flex items-center justify-center shrink-0">
-                                                    {u.name.charAt(0).toUpperCase()}
-                                                </span>
+                                                <Avatar className="w-7 h-7 shrink-0">
+                                                    <AvatarImage src={u.avatar_url ?? undefined} alt={u.name} className="object-cover" />
+                                                    <AvatarFallback className="bg-primary/10 text-primary text-[10px] font-bold">
+                                                        {u.name.charAt(0).toUpperCase()}
+                                                    </AvatarFallback>
+                                                </Avatar>
                                                 <div className="flex-1 min-w-0">
                                                     <p className="text-sm font-medium text-slate-800 dark:text-slate-200 truncate leading-none">
                                                         {u.name} {u.id === auth.user.id && '(Anda)'}

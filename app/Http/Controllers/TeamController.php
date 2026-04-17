@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Enums\GroupingType;
+use App\Models\ActivityLog;
 use App\Models\Kanban;
 use App\Models\KanbanColumn;
 use App\Models\Team;
@@ -25,10 +26,21 @@ class TeamController extends Controller
             ]);
         }
 
+        /** @var array<string,mixed> $extraProps */
+        $extraProps = [];
+
+        if ($tab === 'activity') {
+            $extraProps['activityLogs'] = ActivityLog::with('causer')
+                ->forTeam($team->id)
+                ->latest()
+                ->paginate(30);
+        }
+
         return Inertia::render('teams/show', [
             'team' => $team,
             'tab' => $tab,
             'item' => $item,
+            ...$extraProps,
         ]);
     }
 

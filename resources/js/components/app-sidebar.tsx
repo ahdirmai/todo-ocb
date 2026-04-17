@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, router, usePage } from '@inertiajs/react';
-import { BookOpen, FolderGit2, Shield, Tag, Users2, Plus, Moon, Sun } from 'lucide-react';
+import { BookOpen, FolderGit2, Shield, Tag, Users2, Plus, Moon, Sun, Activity } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { useAppearance } from '@/hooks/use-appearance';
 import { NavFooter } from '@/components/nav-footer';
@@ -126,6 +126,14 @@ export function AppSidebar() {
                                         <Link href="/tags">
                                             <Tag className="w-4 h-4" />
                                             <span>Manajemen Tag</span>
+                                        </Link>
+                                    </SidebarMenuButton>
+                                </SidebarMenuItem>
+                                <SidebarMenuItem>
+                                    <SidebarMenuButton asChild>
+                                        <Link href="/activity">
+                                            <Activity className="w-4 h-4" />
+                                            <span>Log Aktivitas</span>
                                         </Link>
                                     </SidebarMenuButton>
                                 </SidebarMenuItem>

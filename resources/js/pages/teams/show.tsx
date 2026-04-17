@@ -11,8 +11,9 @@ import { PengumumanTab } from './partials/pengumuman-tab';
 import { PertanyaanTab } from './partials/pertanyaan-tab';
 import { DokumenTab } from './partials/dokumen-tab';
 import { TugasTab } from './partials/tugas-tab';
+import { ActivityTab } from './partials/activity-tab';
 
-type Tab = 'overview' | 'task' | 'chat' | 'announcement' | 'question' | 'document';
+type Tab = 'overview' | 'task' | 'chat' | 'announcement' | 'question' | 'document' | 'activity';
 
 const TAB_LABELS: Record<Tab, string> = {
     overview: 'Overview',
@@ -21,6 +22,7 @@ const TAB_LABELS: Record<Tab, string> = {
     announcement: 'Pengumuman',
     question: 'Pertanyaan',
     document: 'Dokumen & File',
+    activity: 'Aktivitas',
 };
 
 export default function TeamShow({ team, tab, item }: { team: any; tab: Tab; item?: string }) {
@@ -46,7 +48,7 @@ export default function TeamShow({ team, tab, item }: { team: any; tab: Tab; ite
                         <div className="flex -space-x-2">
                             {team.users?.slice(0, 3).map((u: any, i: number) => (
                                 <Avatar key={u.id} className="w-8 h-8 border-2 border-white dark:border-zinc-950">
-                                    <AvatarImage src={`https://i.pravatar.cc/100?img=${i + 10}`} />
+                                    <AvatarImage src={u.avatar_url ?? undefined} alt={u.name} className="object-cover" />
                                     <AvatarFallback>{u.name?.charAt(0)}</AvatarFallback>
                                 </Avatar>
                             ))}
@@ -92,6 +94,9 @@ export default function TeamShow({ team, tab, item }: { team: any; tab: Tab; ite
                         </TabsContent>
                         <TabsContent value="document" className="h-full m-0 p-6 flex flex-col">
                             <DokumenTab team={team} />
+                        </TabsContent>
+                        <TabsContent value="activity" className="h-full m-0 p-6 flex flex-col">
+                            <ActivityTab />
                         </TabsContent>
                     </div>
                 </Tabs>
