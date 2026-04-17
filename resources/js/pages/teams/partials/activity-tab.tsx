@@ -1,4 +1,4 @@
-import { usePage } from '@inertiajs/react';
+import { Link, usePage } from '@inertiajs/react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 
@@ -7,6 +7,8 @@ type ActivityLog = {
     log_name: string;
     event: string;
     description: string;
+    subject_id: string | null;
+    subject_type: string | null;
     causer: { id: number; name: string; email: string } | null;
     properties: Record<string, any> | null;
     created_at: string;
@@ -59,6 +61,8 @@ function ActivityItem({ log }: { log: ActivityLog }) {
         .slice(0, 2)
         .toUpperCase() ?? '?';
 
+    const { team } = usePage<any>().props;
+
     return (
         <div className="flex items-start gap-3 py-3">
             <Avatar className="w-8 h-8 shrink-0 mt-0.5">
@@ -71,7 +75,13 @@ function ActivityItem({ log }: { log: ActivityLog }) {
                     <Badge variant="outline" className={`px-1.5 py-0 text-[10px] font-medium border-0 ${colorClass}`}>
                         {label}
                     </Badge>
-                    <p className="text-sm text-slate-700 dark:text-slate-200 leading-snug">{log.description}</p>
+                    {log.log_name === 'task' && log.subject_id && log.subject_type === 'App\\Models\\Task' ? (
+                        <Link href={`/teams/${team.slug}/task?taskId=${log.subject_id}`} className="text-sm text-slate-700 dark:text-slate-200 leading-snug hover:text-primary hover:underline transition-colors focus:outline-none">
+                            {log.description}
+                        </Link>
+                    ) : (
+                        <p className="text-sm text-slate-700 dark:text-slate-200 leading-snug">{log.description}</p>
+                    )}
                 </div>
                 <p className="text-xs text-muted-foreground mt-0.5">
                     {log.causer?.name ?? 'Sistem'} · {timeAgo(log.created_at)}

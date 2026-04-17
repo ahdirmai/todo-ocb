@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Comment;
 use App\Models\Task;
+use App\Services\ActivityLogger;
 use Illuminate\Http\Request;
 
 class CommentController extends Controller
@@ -29,13 +30,32 @@ class CommentController extends Controller
             }
         }
 
+        ActivityLogger::log(
+            event: 'commented',
+            logName: 'task',
+            description: "Komentar baru ditambahkan pada task \"{$task->title}\"",
+            subject: $task,
+            teamId: $task->team_id,
+        );
+
         return back();
     }
 
     public function destroy(Comment $comment)
     {
         if ($comment->user_id === auth()->id() || auth()->user()?->hasAnyRole(['admin', 'superadmin'])) {
+            $task = $comment->task; // Assuming comment belongs to a task, we need it for logging
             $comment->delete();
+
+            if ($task) {
+                ActivityLogger::log(
+                    event: 'comment_deleted',
+                    logName: 'task',
+                    description: "Komentar dihapus pada task \"{$task->title}\"",
+                    subject: $task,
+                    teamId: $task->team_id,
+                );
+            }
         }
 
         return back();

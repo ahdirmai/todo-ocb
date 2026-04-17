@@ -23,10 +23,15 @@ export function KanbanBoard({ kanban }: { kanban: any }) {
         const newColumns = kanban?.columns || [];
         setColumns(newColumns);
         
-        if (selectedTask) {
+        // Parse URL params for taskId
+        const urlParams = new URLSearchParams(window.location.search);
+        const taskIdParam = urlParams.get('taskId');
+        const targetTaskId = taskIdParam || selectedTask?.id;
+
+        if (targetTaskId) {
             let updatedTask = null;
             for (const col of newColumns) {
-                const found = col.tasks?.find((t: any) => t.id === selectedTask.id);
+                const found = col.tasks?.find((t: any) => t.id === targetTaskId);
                 if (found) {
                     updatedTask = found;
                     break;
@@ -34,6 +39,15 @@ export function KanbanBoard({ kanban }: { kanban: any }) {
             }
             if (updatedTask) {
                 setSelectedTask(updatedTask);
+                if (taskIdParam && !modalOpen) {
+                    setModalOpen(true);
+                    
+                    // Cleanup URL purely cosmetically so refreshing doesn't keep opening it if user closed it
+                    // The standard way in Inertia without causing a visit is History API:
+                    const url = new URL(window.location.href);
+                    url.searchParams.delete('taskId');
+                    window.history.replaceState({}, '', url);
+                }
             }
         }
     }, [kanban]);

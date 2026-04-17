@@ -71,13 +71,17 @@ export function TaskDetailModal({ task, open, onClose }: TaskDetailModalProps) {
     const isGlobalAdmin = auth?.roles?.some((r: string) => ['superadmin', 'admin'].includes(r));
     const isTaskCreator = task?.creator_id === auth?.user?.id;
     const isTeamAdmin = team?.users?.find((u: any) => u.id === auth?.user?.id)?.pivot?.role === 'admin';
-    const canModify = Boolean(isGlobalAdmin || isTaskCreator || isTeamAdmin);
+    const isAssignee = task?.assignees?.some((a: any) => a.id === auth?.user?.id);
+    const canModify = Boolean(isGlobalAdmin || isTaskCreator || isTeamAdmin || isAssignee);
 
     const [title, setTitle] = useState(task?.title || '');
     const [description, setDescription] = useState(task?.description || '');
     const [dueDate, setDueDate] = useState(task?.due_date?.split('T')[0] || '');
     const [selectedTagIds, setSelectedTagIds] = useState<string[]>(
         task?.tags?.map((t: any) => t.id) ?? []
+    );
+    const [selectedAssigneeIds, setSelectedAssigneeIds] = useState<string[]>(
+        task?.assignees?.map((a: any) => a.id) ?? []
     );
     const [saving, setSaving] = useState(false);
 
@@ -104,11 +108,18 @@ export function TaskDetailModal({ task, open, onClose }: TaskDetailModalProps) {
         setDescription(task.description || '');
         setDueDate(task.due_date?.split('T')[0] || '');
         setSelectedTagIds(task.tags?.map((t: any) => t.id) ?? []);
+        setSelectedAssigneeIds(task.assignees?.map((a: any) => a.id) ?? []);
     }
 
     const toggleTag = (id: string) => {
         setSelectedTagIds((prev) =>
             prev.includes(id) ? prev.filter((t) => t !== id) : [...prev, id]
+        );
+    };
+
+    const toggleAssignee = (id: string) => {
+        setSelectedAssigneeIds((prev) =>
+            prev.includes(id) ? prev.filter((u) => u !== id) : [...prev, id]
         );
     };
 
@@ -121,6 +132,7 @@ export function TaskDetailModal({ task, open, onClose }: TaskDetailModalProps) {
             description,
             due_date: dueDate || undefined,
             tag_ids: selectedTagIds,
+            assignee_ids: selectedAssigneeIds,
             attachments: taskAttachments,
         }, {
             preserveScroll: true,
@@ -221,6 +233,33 @@ export function TaskDetailModal({ task, open, onClose }: TaskDetailModalProps) {
                         </div>
                     </div>
 
+                    {/* Assignees */}
+                    <div>
+                        <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Anggota Tugas</label>
+                        <div className="flex flex-wrap gap-2">
+                            {team?.users?.map((user: any) => {
+                                const selected = selectedAssigneeIds.includes(user.id);
+                                return (
+                                    <button
+                                        key={user.id}
+                                        type="button"
+                                        onClick={() => {
+                                            if (canModify && user.id !== task?.creator_id) toggleAssignee(user.id);
+                                        }}
+                                        className={`flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium transition-all ${(!canModify || user.id === task?.creator_id) ? 'cursor-default opacity-80' : 'cursor-pointer hover:ring-1'} ${selected ? 'bg-primary text-primary-foreground shadow-sm ring-2 ring-primary ring-offset-1 dark:ring-offset-zinc-950' : 'bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-zinc-700'}`}
+                                        title={user.id === task?.creator_id ? "Pembuat tugas tidak dapat diunselect" : ""}
+                                    >
+                                        <Avatar className="w-4 h-4 bg-white/20">
+                                            <AvatarImage src={user.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}`} />
+                                            <AvatarFallback className="text-[8px] text-slate-600 dark:text-slate-400">{user.name?.charAt(0)}</AvatarFallback>
+                                        </Avatar>
+                                        {user.name.split(' ')[0]}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+
                     {/* Title */}
                     <div>
                         <label className="text-xs font-medium text-muted-foreground mb-1 block">Judul</label>
@@ -314,7 +353,62 @@ export function TaskDetailModal({ task, open, onClose }: TaskDetailModalProps) {
                             <MessageSquare className="w-3.5 h-3.5" /> Komentar
                         </label>
 
-                        <div className="flex flex-col gap-4 mb-4 max-h-[300px] overflow-y-auto pr-2">
+                        {/* Hidden File Input for Comments */}
+                        <input
+                            type="file"
+                            multiple
+                            className="hidden"
+                            ref={fileInputRef}
+                            onChange={(e) => {
+                                if (e.target.files?.length) {
+                                    setAttachments([...attachments, ...Array.from(e.target.files)]);
+                                }
+                            }}
+                        />
+
+                        {/* Main Comment Form */}
+                        {!replyingTo && (
+                            <div className="flex gap-2 items-start mb-4">
+                                <Avatar className="w-8 h-8">
+                                    <AvatarImage src={`https://i.pravatar.cc/100?u=${auth?.user?.id}`} />
+                                    <AvatarFallback>{auth?.user?.name?.charAt(0) || 'U'}</AvatarFallback>
+                                </Avatar>
+                                <div className="flex-1 flex flex-col gap-2">
+                                    <RichTextEditor
+                                        content={commentText}
+                                        onChange={setCommentText}
+                                        disabled={sendingComment}
+                                        onSubmit={handleAddComment}
+                                    />
+
+                                    {attachments.length > 0 && (
+                                        <div className="flex flex-wrap gap-2 mt-1">
+                                            {attachments.map((file, i) => (
+                                                <span key={i} className="text-[10px] bg-slate-100 dark:bg-zinc-800 px-2 py-1 rounded flex items-center gap-1">
+                                                    <Paperclip className="w-3 h-3" /> {file.name}
+                                                    <button onClick={() => setAttachments(attachments.filter((_, idx) => idx !== i))} className="ml-1 text-red-500 hover:text-red-700">
+                                                        <X className="w-3 h-3" />
+                                                    </button>
+                                                </span>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    <div className="flex justify-between items-center mt-1">
+                                        <div className="flex actions">
+                                            <Button type="button" variant="ghost" size="sm" className="h-8 text-xs text-muted-foreground flex items-center gap-1" onClick={() => fileInputRef.current?.click()}>
+                                                <Paperclip className="w-3.5 h-3.5" /> Lampirkan File
+                                            </Button>
+                                        </div>
+                                        <Button size="sm" disabled={sendingComment || (!commentText.replace(/<p><\/p>/g, '').trim() && attachments.length === 0)} onClick={handleAddComment} className="text-xs h-8">
+                                            {sendingComment ? <><Loader2 className="w-3 h-3 animate-spin mr-1" />Mengirim</> : 'Kirim Komentar'}
+                                        </Button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        <div className="flex flex-col gap-4 max-h-[300px] overflow-y-auto pr-2">
                             {comments.length === 0 && (
                                 <div className="text-center text-xs text-muted-foreground py-4 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-lg">Belum ada komentar.</div>
                             )}
@@ -451,60 +545,7 @@ export function TaskDetailModal({ task, open, onClose }: TaskDetailModalProps) {
                             ))}
                         </div>
 
-                        {/* Hidden File Input for Comments */}
-                        <input
-                            type="file"
-                            multiple
-                            className="hidden"
-                            ref={fileInputRef}
-                            onChange={(e) => {
-                                if (e.target.files?.length) {
-                                    setAttachments([...attachments, ...Array.from(e.target.files)]);
-                                }
-                            }}
-                        />
 
-                        {/* Main Comment Form */}
-                        {!replyingTo && (
-                            <div className="flex gap-2 items-start mt-2">
-                                <Avatar className="w-8 h-8">
-                                    <AvatarImage src={`https://i.pravatar.cc/100?u=${auth?.user?.id}`} />
-                                    <AvatarFallback>{auth?.user?.name?.charAt(0) || 'U'}</AvatarFallback>
-                                </Avatar>
-                                <div className="flex-1 flex flex-col gap-2">
-                                    <RichTextEditor
-                                        content={commentText}
-                                        onChange={setCommentText}
-                                        disabled={sendingComment}
-                                        onSubmit={handleAddComment}
-                                    />
-
-                                    {attachments.length > 0 && (
-                                        <div className="flex flex-wrap gap-2 mt-1">
-                                            {attachments.map((file, i) => (
-                                                <span key={i} className="text-[10px] bg-slate-100 dark:bg-zinc-800 px-2 py-1 rounded flex items-center gap-1">
-                                                    <Paperclip className="w-3 h-3" /> {file.name}
-                                                    <button onClick={() => setAttachments(attachments.filter((_, idx) => idx !== i))} className="ml-1 text-red-500 hover:text-red-700">
-                                                        <X className="w-3 h-3" />
-                                                    </button>
-                                                </span>
-                                            ))}
-                                        </div>
-                                    )}
-
-                                    <div className="flex justify-between items-center mt-1">
-                                        <div className="flex actions">
-                                            <Button type="button" variant="ghost" size="sm" className="h-8 text-xs text-muted-foreground flex items-center gap-1" onClick={() => fileInputRef.current?.click()}>
-                                                <Paperclip className="w-3.5 h-3.5" /> Lampirkan File
-                                            </Button>
-                                        </div>
-                                        <Button size="sm" disabled={sendingComment || (!commentText.replace(/<p><\/p>/g, '').trim() && attachments.length === 0)} onClick={handleAddComment} className="text-xs h-8">
-                                            {sendingComment ? <><Loader2 className="w-3 h-3 animate-spin mr-1" />Mengirim</> : 'Kirim Komentar'}
-                                        </Button>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
                     </div>
 
                     {/* Actions */}

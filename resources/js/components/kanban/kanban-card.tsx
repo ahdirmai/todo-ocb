@@ -15,8 +15,9 @@ export function KanbanCard({ task, index, onClick }: KanbanCardProps) {
     const isGlobalAdmin = auth?.roles?.some((r: string) => ['superadmin', 'admin'].includes(r));
     const isTaskCreator = task.creator_id === auth?.user?.id;
     const isTeamAdmin = team?.users?.find((u: any) => u.id === auth?.user?.id)?.pivot?.role === 'admin';
+    const isAssignee = task.assignees?.some((a: any) => a.id === auth?.user?.id);
     
-    const canModify = Boolean(isGlobalAdmin || isTaskCreator || isTeamAdmin);
+    const canModify = Boolean(isGlobalAdmin || isTaskCreator || isTeamAdmin || isAssignee);
 
     const formatDate = (dateStr: string) => {
         if (!dateStr) return '';
@@ -68,18 +69,21 @@ export function KanbanCard({ task, index, onClick }: KanbanCardProps) {
                     {/* Footer: Avatars */}
                     <div className="flex items-center justify-between">
                         <div className="flex -space-x-2">
-                            {/* Show assigned users from comments/assignees if available, else placeholder */}
-                            {task.comments?.slice(0, 2).map((c: any, i: number) => (
-                                <Avatar key={c.id ?? i} className="w-6 h-6 border-2 border-white dark:border-zinc-900">
-                                    <AvatarImage src={`https://i.pravatar.cc/100?img=${(c.user_id ?? i) + 5}`} />
-                                    <AvatarFallback className="text-[10px]">{c.user?.name?.charAt(0) ?? '?'}</AvatarFallback>
+                            {task.assignees?.slice(0, 4).map((a: any) => (
+                                <Avatar key={a.id} className="w-6 h-6 border-2 border-white dark:border-zinc-900 bg-slate-100">
+                                    <AvatarImage src={a.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(a.name)}`} />
+                                    <AvatarFallback className="text-[10px] text-slate-600">{a.name?.charAt(0)}</AvatarFallback>
                                 </Avatar>
                             ))}
-                            {(!task.comments || task.comments.length === 0) && (
-                                <Avatar className="w-6 h-6 border-2 border-white dark:border-zinc-900">
-                                    <AvatarImage src="https://i.pravatar.cc/100?img=11" />
-                                    <AvatarFallback className="text-[10px]">U</AvatarFallback>
-                                </Avatar>
+                            {task.assignees?.length > 4 && (
+                                <div className="w-6 h-6 rounded-full flex items-center justify-center bg-slate-100 dark:bg-zinc-800 border-2 border-white dark:border-zinc-900 text-[9px] font-semibold text-slate-600 dark:text-slate-400">
+                                    +{task.assignees.length - 4}
+                                </div>
+                            )}
+                            {(!task.assignees || task.assignees.length === 0) && (
+                                <div className="w-6 h-6 rounded-full flex items-center justify-center bg-slate-100 dark:bg-zinc-800 border-2 border-white dark:border-zinc-900 border-dashed">
+                                    <span className="text-[10px] text-slate-400">-</span>
+                                </div>
                             )}
                         </div>
 

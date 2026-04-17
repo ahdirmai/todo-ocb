@@ -62,4 +62,9 @@ class User extends Authenticatable implements HasMedia
     {
         return $this->getFirstMediaUrl('avatar', 'thumb') ?: null;
     }
+
+    public function assignedTasks()
+    {
+        return $this->belongsToMany(Task::class, 'task_user');
+    }
 }

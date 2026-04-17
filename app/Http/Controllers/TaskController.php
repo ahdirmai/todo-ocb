@@ -32,6 +32,10 @@ class TaskController extends Controller
             'order_position' => $maxOrder + 1,
         ]);
 
+        if ($request->user()) {
+            $task->assignees()->attach($request->user()->id);
+        }
+
         if ($attachments) {
             foreach ($attachments as $file) {
                 $task->addMedia($file)->toMediaCollection('documents');
@@ -52,7 +56,7 @@ class TaskController extends Controller
 
     public function show(Task $task)
     {
-        $task->load(['tags', 'comments.user', 'media']);
+        $task->load(['tags', 'comments.user', 'media', 'assignees']);
 
         return response()->json($task);
     }
@@ -67,12 +71,17 @@ class TaskController extends Controller
             'order_position' => 'sometimes|integer',
             'tag_ids' => 'sometimes|array',
             'tag_ids.*' => 'exists:tags,id',
+            'assignee_ids' => 'sometimes|array',
+            'assignee_ids.*' => 'exists:users,id',
             'attachments' => 'nullable|array',
             'attachments.*' => 'file|max:10240',
         ]);
 
         $tagIds = $validated['tag_ids'] ?? null;
         unset($validated['tag_ids']);
+
+        $assigneeIds = $validated['assignee_ids'] ?? null;
+        unset($validated['assignee_ids']);
 
         $attachments = $request->file('attachments');
         unset($validated['attachments']);
@@ -96,6 +105,32 @@ class TaskController extends Controller
         }
 
         $task->update($validated);
+
+        if ($request->has('assignee_ids')) {
+            $oldAssignees = $task->assignees()->pluck('users.id')->toArray();
+            $newAssignees = $request->input('assignee_ids') ?? [];
+
+            // Ensure creator is always included
+            if ($task->creator_id && !in_array($task->creator_id, $newAssignees)) {
+                $newAssignees[] = $task->creator_id;
+            }
+
+            $task->assignees()->sync($newAssignees);
+
+            $added = array_diff($newAssignees, $oldAssignees);
+            $removed = array_diff($oldAssignees, $newAssignees);
+
+            if ($added || $removed) {
+                ActivityLogger::log(
+                    event: 'assignees_changed',
+                    logName: 'task',
+                    description: "Anggota tugas pada \"{$task->title}\" diperbarui",
+                    subject: $task,
+                    properties: ['added' => array_values($added), 'removed' => array_values($removed)],
+                    teamId: $task->team_id,
+                );
+            }
+        }
 
         // Log tag changes
         if ($tagIds !== null) {

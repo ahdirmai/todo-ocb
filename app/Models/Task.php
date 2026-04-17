@@ -40,4 +40,9 @@ class Task extends Model implements HasMedia
     {
         return $this->hasMany(Comment::class);
     }
+
+    public function assignees()
+    {
+        return $this->belongsToMany(User::class, 'task_user');
+    }
 }

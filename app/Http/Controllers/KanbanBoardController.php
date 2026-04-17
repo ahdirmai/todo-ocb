@@ -32,10 +32,30 @@ class KanbanBoardController extends Controller
             'tasks.*.order_position' => 'required|integer',
         ]);
 
-        foreach ($validated['tasks'] as $task) {
-            Task::where('id', $task['id'])->update([
-                'kanban_column_id' => $task['kanban_column_id'],
-                'order_position' => $task['order_position'],
+        foreach ($validated['tasks'] as $taskData) {
+            $task = Task::find($taskData['id']);
+            if (!$task) continue;
+
+            if ($task->kanban_column_id !== $taskData['kanban_column_id']) {
+                $oldColumn = KanbanColumn::find($task->kanban_column_id);
+                $newColumn = KanbanColumn::find($taskData['kanban_column_id']);
+
+                \App\Services\ActivityLogger::log(
+                    event: 'moved',
+                    logName: 'task',
+                    description: "Task \"{$task->title}\" dipindah ke kolom \"{$newColumn?->title}\"",
+                    subject: $task,
+                    properties: [
+                        'old' => ['column' => $oldColumn?->title],
+                        'new' => ['column' => $newColumn?->title],
+                    ],
+                    teamId: $task->team_id,
+                );
+            }
+
+            $task->update([
+                'kanban_column_id' => $taskData['kanban_column_id'],
+                'order_position' => $taskData['order_position'],
             ]);
         }
 
