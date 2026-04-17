@@ -15,8 +15,9 @@ return new class extends Migration {
             $table->string('log_name')->nullable()->index(); // task, comment, team, member, kanban, auth
             $table->string('event')->nullable();             // created, updated, deleted, moved, etc.
             $table->string('description');
-            $table->nullableMorphs('subject');               // subject_type, subject_id
-            $table->nullableMorphs('causer');                // causer_type, causer_id
+            $table->nullableUuidMorphs('subject');             // subject_type, subject_id (uuid)
+            $table->string('causer_type')->nullable()->index();
+            $table->string('causer_id')->nullable()->index(); // string to handle both uuid & int PKs
             $table->json('properties')->nullable();          // {old: {}, attributes: {}}
             $table->foreignUuid('team_id')->nullable()->constrained()->nullOnDelete();
             $table->timestamps();
