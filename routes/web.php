@@ -9,6 +9,7 @@ use App\Http\Controllers\TagController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\TeamController;
 use App\Http\Controllers\TeamMemberController;
+use App\Http\Controllers\TeamMessageController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -45,6 +46,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('tasks/{task}/comments', [CommentController::class, 'store'])->name('tasks.comments.store');
     Route::delete('comments/{comment}', [CommentController::class, 'destroy'])->name('comments.destroy');
     Route::put('kanbans/tasks/reorder', [KanbanBoardController::class, 'reorderTasks'])->name('kanbans.tasks.reorder');
+
+    // Team Chat
+    Route::get('teams/{team}/messages', [TeamMessageController::class, 'index'])->name('teams.messages.index');
+    Route::post('teams/{team}/messages', [TeamMessageController::class, 'store'])->name('teams.messages.store');
+    Route::get('team-messages/{message}/media/{media}', [TeamMessageController::class, 'download'])->name('team-messages.download');
 
     // Team Member invite / remove (auth users with team access)
     Route::post('teams/{team}/members', [TeamMemberController::class, 'store'])->name('teams.members.store');

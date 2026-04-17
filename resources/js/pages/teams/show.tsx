@@ -83,7 +83,7 @@ export default function TeamShow({ team, tab, item }: { team: any; tab: Tab; ite
                         <TabsContent value="task" className="h-full m-0 p-0 flex flex-col">
                             <TugasTab team={team} item={item} />
                         </TabsContent>
-                        <TabsContent value="chat" className="h-full m-0 p-6 flex flex-col">
+                        <TabsContent value="chat" className="h-full m-0 p-0 flex flex-col overflow-hidden">
                             <ChatTab team={team} />
                         </TabsContent>
                         <TabsContent value="announcement" className="h-full m-0 p-6 flex flex-col">

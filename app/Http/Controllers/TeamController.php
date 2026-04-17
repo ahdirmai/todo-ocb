@@ -7,6 +7,7 @@ use App\Models\ActivityLog;
 use App\Models\Kanban;
 use App\Models\KanbanColumn;
 use App\Models\Team;
+use App\Models\TeamMessage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
@@ -34,6 +35,33 @@ class TeamController extends Controller
                 ->forTeam($team->id)
                 ->latest()
                 ->paginate(30);
+        }
+
+        if ($tab === 'chat') {
+            $extraProps['messages'] = TeamMessage::with('user')
+                ->where('team_id', $team->id)
+                ->latest()
+                ->limit(50)
+                ->get()
+                ->reverse()
+                ->values()
+                ->map(fn (TeamMessage $msg) => [
+                    'id' => $msg->id,
+                    'body' => $msg->body,
+                    'created_at' => $msg->created_at->toISOString(),
+                    'user' => $msg->user ? [
+                        'id' => $msg->user->id,
+                        'name' => $msg->user->name,
+                        'avatar_url' => $msg->user->avatar_url,
+                    ] : null,
+                    'attachments' => $msg->getMedia('attachments')->map(fn ($m) => [
+                        'id' => $m->id,
+                        'name' => $m->file_name,
+                        'url' => $m->getUrl(),
+                        'mime' => $m->mime_type,
+                        'size' => $m->size,
+                    ])->toArray(),
+                ]);
         }
 
         return Inertia::render('teams/show', [
