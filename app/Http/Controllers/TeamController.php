@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Enums\GroupingType;
 use App\Models\ActivityLog;
+use App\Models\Announcement;
 use App\Models\Kanban;
 use App\Models\KanbanColumn;
 use App\Models\Team;
@@ -25,6 +26,12 @@ class TeamController extends Controller
                 'kanbans.columns.tasks.comments.user',
                 'kanbans.columns.tasks.comments.media',
                 'kanbans.columns.tasks.assignees',
+            ]);
+        }
+
+        if ($tab === 'overview') {
+            $team->load([
+                'kanbans.columns' => fn ($q) => $q->withCount('tasks'),
             ]);
         }
 
@@ -61,22 +68,22 @@ class TeamController extends Controller
                         'url' => $m->getUrl(),
                         'mime' => $m->mime_type,
                         'size' => $m->size,
-            ])->toArray(),
+                    ])->toArray(),
                 ]);
         }
 
         if ($tab === 'announcement') {
-            $extraProps['announcements'] = \App\Models\Announcement::with([
+            $extraProps['announcements'] = Announcement::with([
                 'user',
                 'media',
                 'comments.user',
                 'comments.media',
                 'comments.replies.user',
-                'comments.replies.media'
+                'comments.replies.media',
             ])
-            ->where('team_id', $team->id)
-            ->latest()
-            ->paginate(15);
+                ->where('team_id', $team->id)
+                ->latest()
+                ->paginate(15);
         }
 
         return Inertia::render('teams/show', [

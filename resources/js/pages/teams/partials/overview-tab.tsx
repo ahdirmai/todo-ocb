@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { router, usePage } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,6 +20,15 @@ import {
     Kanban,
     CheckSquare,
 } from 'lucide-react';
+import {
+    BarChart,
+    Bar,
+    XAxis,
+    YAxis,
+    CartesianGrid,
+    Tooltip,
+    ResponsiveContainer,
+} from 'recharts';
 import * as TeamMemberActions from '@/actions/App/Http/Controllers/TeamMemberController';
 
 const ROLE_STYLE: Record<string, string> = {
@@ -41,6 +50,16 @@ export function OverviewTab({ team }: { team: any }) {
                 u.name.toLowerCase().includes(search.toLowerCase()) ||
                 u.email.toLowerCase().includes(search.toLowerCase()),
         ) ?? [];
+
+    const columnStats = useMemo(() => {
+        const stats: Record<string, number> = {};
+        team.kanbans?.forEach((kanban: any) => {
+            kanban.columns?.forEach((col: any) => {
+                stats[col.title] = (stats[col.title] || 0) + (col.tasks_count || 0);
+            });
+        });
+        return Object.entries(stats).map(([name, tasks]) => ({ name, tasks }));
+    }, [team.kanbans]);
 
     return (
         <div className="flex h-full flex-col gap-6 overflow-auto p-6">
@@ -72,7 +91,7 @@ export function OverviewTab({ team }: { team: any }) {
                     <Kanban className="h-5 w-5 text-primary" />
                     <div>
                         <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-                            {team.kanbans?.length ?? 1}
+                            {team.kanbans?.length ?? 0}
                         </p>
                         <p className="text-xs text-muted-foreground">
                             Kanban Board
@@ -80,6 +99,41 @@ export function OverviewTab({ team }: { team: any }) {
                     </div>
                 </div>
             </div>
+
+            {/* Analytics */}
+            {columnStats.length > 0 && (
+                <div className="rounded-xl border border-sidebar-border/70 bg-white p-5 dark:bg-zinc-900">
+                    <h3 className="mb-6 text-sm font-semibold text-slate-700 dark:text-slate-300">
+                        Distribusi Tugas per Kolom Kanban
+                    </h3>
+                    <div className="h-64 w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={columnStats} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#cbd5e1" className="dark:stroke-slate-700 dark:opacity-20" />
+                                <XAxis 
+                                    dataKey="name" 
+                                    axisLine={false} 
+                                    tickLine={false} 
+                                    tick={{ fill: '#64748b', fontSize: 12 }}
+                                    dy={10}
+                                />
+                                <YAxis 
+                                    axisLine={false} 
+                                    tickLine={false} 
+                                    tick={{ fill: '#64748b', fontSize: 12 }}
+                                    allowDecimals={false}
+                                />
+                                <Tooltip 
+                                    cursor={{ fill: '#94a3b8', opacity: 0.1 }}
+                                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', backgroundColor: 'var(--tw-colors-white, #fff)', color: '#0f172a' }}
+                                    itemStyle={{ color: '#8b5cf6', fontWeight: 600 }}
+                                />
+                                <Bar dataKey="tasks" name="Jumlah Tugas" fill="#8b5cf6" radius={[4, 4, 0, 0]} maxBarSize={40} />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
+            )}
 
             {/* Members Section */}
             <div className="flex flex-col gap-3">
