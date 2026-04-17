@@ -28,6 +28,7 @@ const LOG_COLORS: Record<string, string> = {
     member: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300',
     kanban: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300',
     auth: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300',
+    announcement: 'bg-pink-100 text-pink-700 dark:bg-pink-950 dark:text-pink-300',
 };
 
 const LOG_LABELS: Record<string, string> = {
@@ -37,6 +38,7 @@ const LOG_LABELS: Record<string, string> = {
     member: 'Anggota',
     kanban: 'Kanban',
     auth: 'Auth',
+    announcement: 'Pengumuman',
 };
 
 function timeAgo(dateStr: string): string {
@@ -77,6 +79,10 @@ function ActivityItem({ log }: { log: ActivityLog }) {
                     </Badge>
                     {log.log_name === 'task' && log.subject_id && log.subject_type === 'App\\Models\\Task' ? (
                         <Link href={`/teams/${team.slug}/task?taskId=${log.subject_id}`} className="text-sm text-slate-700 dark:text-slate-200 leading-snug hover:text-primary hover:underline transition-colors focus:outline-none">
+                            {log.description}
+                        </Link>
+                    ) : log.log_name === 'announcement' && log.subject_id && log.subject_type === 'App\\Models\\Announcement' ? (
+                        <Link href={`/teams/${team.slug}/announcement`} className="text-sm text-slate-700 dark:text-slate-200 leading-snug hover:text-primary hover:underline transition-colors focus:outline-none">
                             {log.description}
                         </Link>
                     ) : (

@@ -18,6 +18,11 @@ class Comment extends Model implements HasMedia
         return $this->belongsTo(Task::class);
     }
 
+    public function announcement()
+    {
+        return $this->belongsTo(Announcement::class);
+    }
+
     public function user()
     {
         return $this->belongsTo(User::class);

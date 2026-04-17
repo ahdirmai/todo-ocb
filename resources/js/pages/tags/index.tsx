@@ -23,8 +23,17 @@ const PRESET_COLORS = [
     '#10b981', '#06b6d4', '#f97316', '#84cc16', '#6366f1',
 ];
 
+type PaginatedTags = {
+    data: Tag[];
+    total: number;
+    current_page: number;
+    last_page: number;
+    next_page_url: string | null;
+    prev_page_url: string | null;
+};
+
 export default function TagsIndex() {
-    const { tags } = usePage<any>().props;
+    const { tags } = usePage<{ tags: PaginatedTags }>().props;
 
     setLayoutProps({
         breadcrumbs: [{ title: 'Manajemen Tag Global', href: '/tags' }]
@@ -66,8 +75,8 @@ export default function TagsIndex() {
                 {/* Header */}
                 <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-sidebar-border/70">
                     <div>
-                        <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Manajemen Tag</h1>
-                        <p className="text-sm text-muted-foreground mt-0.5">{tags.length} tag tersedia</p>
+                        <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-1">Manajemen Tag</h1>
+                        <p className="text-sm text-muted-foreground mt-0.5">Total {tags.total} tag tersedia</p>
                     </div>
                     <Button onClick={openCreate} className="gap-2">
                         <Plus className="w-4 h-4" /> Buat Tag
@@ -75,37 +84,64 @@ export default function TagsIndex() {
                 </div>
 
                 {/* Tag Grid */}
-                <div className="flex-1 overflow-auto p-6">
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                        {tags.map((tag: Tag) => (
-                            <div
-                                key={tag.id}
-                                className="flex items-center justify-between p-3 rounded-xl border border-sidebar-border/70 bg-white dark:bg-zinc-900 group hover:shadow-sm transition-shadow"
-                            >
-                                <div className="flex items-center gap-2.5">
-                                    <div
-                                        className="w-5 h-5 rounded-full flex-shrink-0"
-                                        style={{ backgroundColor: tag.color }}
-                                    />
-                                    <span className="text-sm font-semibold text-slate-800 dark:text-slate-200">{tag.name}</span>
+                <div className="flex-1 overflow-auto p-6 flex flex-col">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 flex-1 content-start">
+                        {tags.data.length === 0 ? (
+                            <p className="text-sm text-muted-foreground text-center col-span-full py-12 border-2 border-dashed border-border rounded-xl">
+                                Belum ada tag yang dibuat.
+                            </p>
+                        ) : (
+                            tags.data.map((tag: Tag) => (
+                                <div
+                                    key={tag.id}
+                                    className="flex items-center justify-between p-3 rounded-xl border border-sidebar-border/70 bg-white dark:bg-zinc-900 group hover:border-primary/30 transition-colors"
+                                >
+                                    <div className="flex items-center gap-2.5">
+                                        <div
+                                            className="w-4 h-4 rounded-full flex-shrink-0"
+                                            style={{ backgroundColor: tag.color }}
+                                        />
+                                        <span className="text-sm font-medium text-slate-800 dark:text-slate-200">{tag.name}</span>
+                                    </div>
+                                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button
+                                            onClick={() => openEdit(tag)}
+                                            className="p-1 rounded text-slate-400 hover:text-primary hover:bg-primary/10 transition-colors"
+                                        >
+                                            <Pencil className="w-3 h-3" />
+                                        </button>
+                                        <button
+                                            onClick={() => handleDelete(tag)}
+                                            className="p-1 rounded text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                                        >
+                                            <Trash2 className="w-3 h-3" />
+                                        </button>
+                                    </div>
                                 </div>
-                                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <button
-                                        onClick={() => openEdit(tag)}
-                                        className="p-1 rounded text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-zinc-800"
-                                    >
-                                        <Pencil className="w-3.5 h-3.5" />
-                                    </button>
-                                    <button
-                                        onClick={() => handleDelete(tag)}
-                                        className="p-1 rounded text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
-                                    >
-                                        <Trash2 className="w-3.5 h-3.5" />
-                                    </button>
-                                </div>
-                            </div>
-                        ))}
+                            ))
+                        )}
                     </div>
+
+                    {/* Pagination */}
+                    {tags.last_page > 1 && (
+                        <div className="flex justify-between items-center mt-6 pt-6 border-t border-sidebar-border/70">
+                            <p className="text-xs text-muted-foreground">
+                                Halaman {tags.current_page} dari {tags.last_page} · Menampilkan {tags.data.length} data
+                            </p>
+                            <div className="flex gap-2">
+                                {tags.prev_page_url && (
+                                    <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => router.visit(tags.prev_page_url!)}>
+                                        ← Sebelumnya
+                                    </Button>
+                                )}
+                                {tags.next_page_url && (
+                                    <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => router.visit(tags.next_page_url!)}>
+                                        Berikutnya →
+                                    </Button>
+                                )}
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
 

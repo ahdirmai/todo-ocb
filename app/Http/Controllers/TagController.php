@@ -10,7 +10,7 @@ class TagController extends Controller
 {
     public function index()
     {
-        $tags = Tag::with('createdBy:id,name')->orderBy('name')->get();
+        $tags = Tag::with('createdBy:id,name')->orderBy('name')->paginate(20);
 
         return Inertia::render('tags/index', [
             'tags' => $tags,

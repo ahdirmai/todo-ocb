@@ -55,6 +55,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Team Member invite / remove (auth users with team access)
     Route::post('teams/{team}/members', [TeamMemberController::class, 'store'])->name('teams.members.store');
     Route::delete('teams/{team}/members/{user}', [TeamMemberController::class, 'destroy'])->name('teams.members.destroy');
+    Route::get('teams/{team}/mention-users', [TeamMemberController::class, 'mentionList'])->name('teams.mention-users');
+
+    // Announcements
+    Route::post('teams/{team}/announcements', [App\Http\Controllers\AnnouncementController::class, 'store'])->name('teams.announcements.store');
+    Route::put('announcements/{announcement}', [App\Http\Controllers\AnnouncementController::class, 'update'])->name('announcements.update');
+    Route::delete('announcements/{announcement}', [App\Http\Controllers\AnnouncementController::class, 'destroy'])->name('announcements.destroy');
+    Route::post('announcements/{announcement}/comments', [CommentController::class, 'storeAnnouncement'])->name('announcements.comments.store');
 
     // Member Management — Superadmin & Admin only
     Route::middleware('role:superadmin|admin')->group(function () {

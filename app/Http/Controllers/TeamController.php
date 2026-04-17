@@ -61,8 +61,22 @@ class TeamController extends Controller
                         'url' => $m->getUrl(),
                         'mime' => $m->mime_type,
                         'size' => $m->size,
-                    ])->toArray(),
+            ])->toArray(),
                 ]);
+        }
+
+        if ($tab === 'announcement') {
+            $extraProps['announcements'] = \App\Models\Announcement::with([
+                'user',
+                'media',
+                'comments.user',
+                'comments.media',
+                'comments.replies.user',
+                'comments.replies.media'
+            ])
+            ->where('team_id', $team->id)
+            ->latest()
+            ->paginate(15);
         }
 
         return Inertia::render('teams/show', [

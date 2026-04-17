@@ -369,9 +369,9 @@ export function TaskDetailModal({ task, open, onClose }: TaskDetailModalProps) {
                         {/* Main Comment Form */}
                         {!replyingTo && (
                             <div className="flex gap-2 items-start mb-4">
-                                <Avatar className="w-8 h-8">
-                                    <AvatarImage src={`https://i.pravatar.cc/100?u=${auth?.user?.id}`} />
-                                    <AvatarFallback>{auth?.user?.name?.charAt(0) || 'U'}</AvatarFallback>
+                                <Avatar className="w-8 h-8 bg-white/20">
+                                    <AvatarImage src={auth?.user?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(auth?.user?.name || 'User')}`} />
+                                    <AvatarFallback className="text-xs text-slate-600 dark:text-slate-400">{auth?.user?.name?.charAt(0) || 'U'}</AvatarFallback>
                                 </Avatar>
                                 <div className="flex-1 flex flex-col gap-2">
                                     <RichTextEditor
@@ -416,9 +416,9 @@ export function TaskDetailModal({ task, open, onClose }: TaskDetailModalProps) {
                             {comments.map((comment: any) => (
                                 <div key={comment.id} className="flex flex-col gap-2">
                                     <div className="flex gap-3">
-                                        <Avatar className="w-8 h-8">
-                                            <AvatarImage src={`https://i.pravatar.cc/100?u=${comment.user_id}`} />
-                                            <AvatarFallback>{comment.user?.name?.charAt(0) || 'U'}</AvatarFallback>
+                                        <Avatar className="w-8 h-8 bg-white/20">
+                                            <AvatarImage src={comment.user?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(comment.user?.name || 'User')}`} />
+                                            <AvatarFallback className="text-xs text-slate-600 dark:text-slate-400">{comment.user?.name?.charAt(0) || 'U'}</AvatarFallback>
                                         </Avatar>
                                         <div className="flex-1 bg-slate-50 dark:bg-zinc-800/50 rounded-xl p-3">
                                             <div className="flex justify-between items-start mb-1">
@@ -461,9 +461,9 @@ export function TaskDetailModal({ task, open, onClose }: TaskDetailModalProps) {
                                         <div className="flex flex-col gap-2 ml-11 border-l-2 border-slate-200 dark:border-zinc-800 pl-4">
                                             {getReplies(comment.id).map((reply: any) => (
                                                 <div key={reply.id} className="flex gap-3">
-                                                    <Avatar className="w-6 h-6">
-                                                        <AvatarImage src={`https://i.pravatar.cc/100?u=${reply.user_id}`} />
-                                                        <AvatarFallback className="text-[10px]">{reply.user?.name?.charAt(0) || 'U'}</AvatarFallback>
+                                                    <Avatar className="w-6 h-6 bg-white/20">
+                                                        <AvatarImage src={reply.user?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(reply.user?.name || 'User')}`} />
+                                                        <AvatarFallback className="text-[10px] text-slate-600 dark:text-slate-400">{reply.user?.name?.charAt(0) || 'U'}</AvatarFallback>
                                                     </Avatar>
                                                     <div className="flex-1 bg-slate-50 dark:bg-zinc-800/50 rounded-lg p-2.5">
                                                         <div className="flex justify-between items-start mb-1">

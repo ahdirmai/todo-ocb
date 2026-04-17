@@ -16,7 +16,7 @@ class ActivityLogController extends Controller
         $logName = $request->query('log_name');
         $search = $request->query('search');
 
-        $query = ActivityLog::with('causer', 'subject')
+        $query = ActivityLog::with(['causer', 'subject', 'team'])
             ->latest();
 
         if ($logName) {
@@ -28,7 +28,7 @@ class ActivityLogController extends Controller
         }
 
         return Inertia::render('activity/index', [
-            'activityLogs' => $query->paginate(50)->withQueryString(),
+            'activityLogs' => $query->paginate(20)->withQueryString(),
             'filters' => [
                 'log_name' => $logName,
                 'search' => $search,

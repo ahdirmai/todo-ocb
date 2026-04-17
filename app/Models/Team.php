@@ -42,4 +42,9 @@ class Team extends Model
     {
         return $this->hasMany(TeamMessage::class);
     }
+
+    public function announcements()
+    {
+        return $this->hasMany(Announcement::class);
+    }
 }
