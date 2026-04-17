@@ -4,8 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
+return new class extends Migration {
     /**
      * Run the migrations.
      */
@@ -19,7 +18,7 @@ return new class extends Migration
             $table->nullableMorphs('subject');               // subject_type, subject_id
             $table->nullableMorphs('causer');                // causer_type, causer_id
             $table->json('properties')->nullable();          // {old: {}, attributes: {}}
-            $table->foreignId('team_id')->nullable()->constrained()->nullOnDelete();
+            $table->foreignUuid('team_id')->nullable()->constrained()->nullOnDelete();
             $table->timestamps();
         });
     }
