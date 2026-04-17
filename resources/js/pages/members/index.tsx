@@ -29,35 +29,66 @@ interface Member {
     role: string;
 }
 
-const ROLE_CONFIG: Record<string, { label: string; color: string; icon: any }> = {
-    superadmin: { label: 'Superadmin', color: 'bg-red-100 text-red-700',    icon: ShieldCheck },
-    admin:      { label: 'Admin',      color: 'bg-amber-100 text-amber-700', icon: Shield },
-    member:     { label: 'Member',     color: 'bg-slate-100 text-slate-600', icon: User },
-};
+const ROLE_CONFIG: Record<string, { label: string; color: string; icon: any }> =
+    {
+        superadmin: {
+            label: 'Superadmin',
+            color: 'bg-red-100 text-red-700',
+            icon: ShieldCheck,
+        },
+        admin: {
+            label: 'Admin',
+            color: 'bg-amber-100 text-amber-700',
+            icon: Shield,
+        },
+        member: {
+            label: 'Member',
+            color: 'bg-slate-100 text-slate-600',
+            icon: User,
+        },
+    };
 
-export default function MembersIndex({ members, roles }: { members: Member[]; roles: string[] }) {
+export default function MembersIndex({
+    members,
+    roles,
+}: {
+    members: Member[];
+    roles: string[];
+}) {
     const { auth } = usePage<any>().props;
 
     setLayoutProps({
-        breadcrumbs: [{ title: 'Manajemen Anggota', href: '/members' }]
+        breadcrumbs: [{ title: 'Manajemen Anggota', href: '/members' }],
     });
 
     const [inviteOpen, setInviteOpen] = useState(false);
     const [editMember, setEditMember] = useState<Member | null>(null);
-    const [form, setForm] = useState({ name: '', email: '', password: '', role: 'member' });
+    const [form, setForm] = useState({
+        name: '',
+        email: '',
+        password: '',
+        role: 'member',
+    });
     const [editRole, setEditRole] = useState('');
 
     const handleInvite = () => {
         router.post(MemberActions.store.url(), form, {
-            onSuccess: () => { setInviteOpen(false); setForm({ name: '', email: '', password: '', role: 'member' }); },
+            onSuccess: () => {
+                setInviteOpen(false);
+                setForm({ name: '', email: '', password: '', role: 'member' });
+            },
         });
     };
 
     const handleChangeRole = () => {
         if (!editMember) return;
-        router.put(MemberActions.update.url(editMember.id), { role: editRole }, {
-            onSuccess: () => setEditMember(null),
-        });
+        router.put(
+            MemberActions.update.url(editMember.id),
+            { role: editRole },
+            {
+                onSuccess: () => setEditMember(null),
+            },
+        );
     };
 
     const handleDelete = (member: Member) => {
@@ -70,49 +101,83 @@ export default function MembersIndex({ members, roles }: { members: Member[]; ro
             <Head title="Manajemen Anggota" />
             <div className="flex h-full flex-1 flex-col overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
                 {/* Header */}
-                <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-sidebar-border/70">
+                <div className="flex items-center justify-between border-b border-sidebar-border/70 px-6 pt-5 pb-4">
                     <div>
-                        <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Manajemen Anggota</h1>
-                        <p className="text-sm text-muted-foreground mt-0.5">{members.length} anggota terdaftar</p>
+                        <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+                            Manajemen Anggota
+                        </h1>
+                        <p className="mt-0.5 text-sm text-muted-foreground">
+                            {members.length} anggota terdaftar
+                        </p>
                     </div>
-                    <Button onClick={() => setInviteOpen(true)} className="gap-2">
-                        <Plus className="w-4 h-4" /> Undang Anggota
+                    <Button
+                        onClick={() => setInviteOpen(true)}
+                        className="gap-2"
+                    >
+                        <Plus className="h-4 w-4" /> Undang Anggota
                     </Button>
                 </div>
 
                 {/* Member Table */}
                 <div className="flex-1 overflow-auto p-6">
-                    <div className="rounded-xl border border-sidebar-border/70 overflow-hidden">
+                    <div className="overflow-hidden rounded-xl border border-sidebar-border/70">
                         <table className="w-full text-sm">
                             <thead className="bg-slate-50 dark:bg-zinc-900/50">
                                 <tr>
-                                    <th className="text-left px-4 py-3 font-semibold text-slate-600 dark:text-slate-400">Nama</th>
-                                    <th className="text-left px-4 py-3 font-semibold text-slate-600 dark:text-slate-400">Email</th>
-                                    <th className="text-left px-4 py-3 font-semibold text-slate-600 dark:text-slate-400">Role</th>
-                                    <th className="text-right px-4 py-3 font-semibold text-slate-600 dark:text-slate-400">Aksi</th>
+                                    <th className="px-4 py-3 text-left font-semibold text-slate-600 dark:text-slate-400">
+                                        Nama
+                                    </th>
+                                    <th className="px-4 py-3 text-left font-semibold text-slate-600 dark:text-slate-400">
+                                        Email
+                                    </th>
+                                    <th className="px-4 py-3 text-left font-semibold text-slate-600 dark:text-slate-400">
+                                        Role
+                                    </th>
+                                    <th className="px-4 py-3 text-right font-semibold text-slate-600 dark:text-slate-400">
+                                        Aksi
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-sidebar-border/50">
                                 {members.map((m) => {
-                                    const cfg = ROLE_CONFIG[m.role] ?? ROLE_CONFIG.member;
+                                    const cfg =
+                                        ROLE_CONFIG[m.role] ??
+                                        ROLE_CONFIG.member;
                                     const Icon = cfg.icon;
                                     return (
-                                        <tr key={m.id} className="hover:bg-slate-50/50 dark:hover:bg-zinc-900/30 transition-colors">
+                                        <tr
+                                            key={m.id}
+                                            className="transition-colors hover:bg-slate-50/50 dark:hover:bg-zinc-900/30"
+                                        >
                                             <td className="px-4 py-3 font-medium text-slate-900 dark:text-slate-100">
                                                 <div className="flex items-center gap-2">
-                                                    <Avatar className="w-8 h-8">
-                                                        <AvatarImage src={m.avatar_url ?? undefined} alt={m.name} className="object-cover" />
-                                                        <AvatarFallback className="bg-primary/10 text-primary text-xs font-bold">
-                                                            {m.name.charAt(0).toUpperCase()}
+                                                    <Avatar className="h-8 w-8">
+                                                        <AvatarImage
+                                                            src={
+                                                                m.avatar_url ??
+                                                                undefined
+                                                            }
+                                                            alt={m.name}
+                                                            className="object-cover"
+                                                        />
+                                                        <AvatarFallback className="bg-primary/10 text-xs font-bold text-primary">
+                                                            {m.name
+                                                                .charAt(0)
+                                                                .toUpperCase()}
                                                         </AvatarFallback>
                                                     </Avatar>
                                                     {m.name}
                                                 </div>
                                             </td>
-                                            <td className="px-4 py-3 text-muted-foreground">{m.email}</td>
+                                            <td className="px-4 py-3 text-muted-foreground">
+                                                {m.email}
+                                            </td>
                                             <td className="px-4 py-3">
-                                                <Badge className={`${cfg.color} border-none gap-1 font-semibold`}>
-                                                    <Icon className="w-3 h-3" /> {cfg.label}
+                                                <Badge
+                                                    className={`${cfg.color} gap-1 border-none font-semibold`}
+                                                >
+                                                    <Icon className="h-3 w-3" />{' '}
+                                                    {cfg.label}
                                                 </Badge>
                                             </td>
                                             <td className="px-4 py-3">
@@ -120,18 +185,31 @@ export default function MembersIndex({ members, roles }: { members: Member[]; ro
                                                     {m.id !== auth.user.id && (
                                                         <>
                                                             <Button
-                                                                variant="ghost" size="sm"
+                                                                variant="ghost"
+                                                                size="sm"
                                                                 className="h-8 w-8 p-0"
-                                                                onClick={() => { setEditMember(m); setEditRole(m.role); }}
+                                                                onClick={() => {
+                                                                    setEditMember(
+                                                                        m,
+                                                                    );
+                                                                    setEditRole(
+                                                                        m.role,
+                                                                    );
+                                                                }}
                                                             >
-                                                                <Pencil className="w-3.5 h-3.5" />
+                                                                <Pencil className="h-3.5 w-3.5" />
                                                             </Button>
                                                             <Button
-                                                                variant="ghost" size="sm"
-                                                                className="h-8 w-8 p-0 text-red-500 hover:text-red-600 hover:bg-red-50"
-                                                                onClick={() => handleDelete(m)}
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                className="h-8 w-8 p-0 text-red-500 hover:bg-red-50 hover:text-red-600"
+                                                                onClick={() =>
+                                                                    handleDelete(
+                                                                        m,
+                                                                    )
+                                                                }
                                                             >
-                                                                <Trash2 className="w-3.5 h-3.5" />
+                                                                <Trash2 className="h-3.5 w-3.5" />
                                                             </Button>
                                                         </>
                                                     )}
@@ -147,35 +225,85 @@ export default function MembersIndex({ members, roles }: { members: Member[]; ro
             </div>
 
             {/* Invite Modal */}
-            <Dialog open={inviteOpen} onOpenChange={(v) => !v && setInviteOpen(false)}>
+            <Dialog
+                open={inviteOpen}
+                onOpenChange={(v) => !v && setInviteOpen(false)}
+            >
                 <DialogContent className="max-w-md">
                     <DialogHeader>
                         <DialogTitle>Undang Anggota Baru</DialogTitle>
                     </DialogHeader>
-                    <div className="flex flex-col gap-3 mt-2">
+                    <div className="mt-2 flex flex-col gap-3">
                         <div>
-                            <label className="text-xs font-medium text-muted-foreground mb-1 block">Nama</label>
-                            <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Nama lengkap" />
+                            <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                                Nama
+                            </label>
+                            <Input
+                                value={form.name}
+                                onChange={(e) =>
+                                    setForm({ ...form, name: e.target.value })
+                                }
+                                placeholder="Nama lengkap"
+                            />
                         </div>
                         <div>
-                            <label className="text-xs font-medium text-muted-foreground mb-1 block">Email</label>
-                            <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="email@example.com" />
+                            <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                                Email
+                            </label>
+                            <Input
+                                type="email"
+                                value={form.email}
+                                onChange={(e) =>
+                                    setForm({ ...form, email: e.target.value })
+                                }
+                                placeholder="email@example.com"
+                            />
                         </div>
                         <div>
-                            <label className="text-xs font-medium text-muted-foreground mb-1 block">Password</label>
-                            <Input type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder="Min. 8 karakter" />
+                            <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                                Password
+                            </label>
+                            <Input
+                                type="password"
+                                value={form.password}
+                                onChange={(e) =>
+                                    setForm({
+                                        ...form,
+                                        password: e.target.value,
+                                    })
+                                }
+                                placeholder="Min. 8 karakter"
+                            />
                         </div>
                         <div>
-                            <label className="text-xs font-medium text-muted-foreground mb-1 block">Role</label>
-                            <Select value={form.role} onValueChange={(v) => setForm({ ...form, role: v })}>
-                                <SelectTrigger><SelectValue /></SelectTrigger>
+                            <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                                Role
+                            </label>
+                            <Select
+                                value={form.role}
+                                onValueChange={(v) =>
+                                    setForm({ ...form, role: v })
+                                }
+                            >
+                                <SelectTrigger>
+                                    <SelectValue />
+                                </SelectTrigger>
                                 <SelectContent>
-                                    {roles.map((r) => <SelectItem key={r} value={r}>{ROLE_CONFIG[r]?.label ?? r}</SelectItem>)}
+                                    {roles.map((r) => (
+                                        <SelectItem key={r} value={r}>
+                                            {ROLE_CONFIG[r]?.label ?? r}
+                                        </SelectItem>
+                                    ))}
                                 </SelectContent>
                             </Select>
                         </div>
                         <div className="flex justify-end gap-2 pt-2">
-                            <Button variant="outline" onClick={() => setInviteOpen(false)}>Batal</Button>
+                            <Button
+                                variant="outline"
+                                onClick={() => setInviteOpen(false)}
+                            >
+                                Batal
+                            </Button>
                             <Button onClick={handleInvite}>Undang</Button>
                         </div>
                     </div>
@@ -183,20 +311,36 @@ export default function MembersIndex({ members, roles }: { members: Member[]; ro
             </Dialog>
 
             {/* Edit Role Modal */}
-            <Dialog open={!!editMember} onOpenChange={(v) => !v && setEditMember(null)}>
+            <Dialog
+                open={!!editMember}
+                onOpenChange={(v) => !v && setEditMember(null)}
+            >
                 <DialogContent className="max-w-sm">
                     <DialogHeader>
-                        <DialogTitle>Ubah Role — {editMember?.name}</DialogTitle>
+                        <DialogTitle>
+                            Ubah Role — {editMember?.name}
+                        </DialogTitle>
                     </DialogHeader>
-                    <div className="flex flex-col gap-3 mt-2">
+                    <div className="mt-2 flex flex-col gap-3">
                         <Select value={editRole} onValueChange={setEditRole}>
-                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectTrigger>
+                                <SelectValue />
+                            </SelectTrigger>
                             <SelectContent>
-                                {roles.map((r) => <SelectItem key={r} value={r}>{ROLE_CONFIG[r]?.label ?? r}</SelectItem>)}
+                                {roles.map((r) => (
+                                    <SelectItem key={r} value={r}>
+                                        {ROLE_CONFIG[r]?.label ?? r}
+                                    </SelectItem>
+                                ))}
                             </SelectContent>
                         </Select>
                         <div className="flex justify-end gap-2">
-                            <Button variant="outline" onClick={() => setEditMember(null)}>Batal</Button>
+                            <Button
+                                variant="outline"
+                                onClick={() => setEditMember(null)}
+                            >
+                                Batal
+                            </Button>
                             <Button onClick={handleChangeRole}>Simpan</Button>
                         </div>
                     </div>

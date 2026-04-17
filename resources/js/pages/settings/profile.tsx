@@ -21,24 +21,32 @@ export default function Profile({
     status?: string;
 }) {
     const { auth } = usePage().props;
-    const user = auth.user as { name: string; email: string; email_verified_at: string | null; avatar_url?: string | null };
+    const user = auth.user as {
+        name: string;
+        email: string;
+        email_verified_at: string | null;
+        avatar_url?: string | null;
+    };
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [isUploading, setIsUploading] = useState(false);
 
-    const initials = user.name
-        ?.split(' ')
-        .map((n: string) => n[0])
-        .join('')
-        .slice(0, 2)
-        .toUpperCase() ?? '?';
+    const initials =
+        user.name
+            ?.split(' ')
+            .map((n: string) => n[0])
+            .join('')
+            .slice(0, 2)
+            .toUpperCase() ?? '?';
 
     const currentAvatar = previewUrl ?? user.avatar_url ?? null;
 
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
-        if (!file) { return; }
+        if (!file) {
+            return;
+        }
 
         // Show local preview immediately
         const reader = new FileReader();
@@ -56,7 +64,9 @@ export default function Profile({
             onFinish: () => {
                 setIsUploading(false);
                 setPreviewUrl(null);
-                if (fileInputRef.current) { fileInputRef.current.value = ''; }
+                if (fileInputRef.current) {
+                    fileInputRef.current.value = '';
+                }
             },
         });
     };
@@ -83,12 +93,16 @@ export default function Profile({
 
                 {/* Avatar Uploader */}
                 <div className="flex items-center gap-5">
-                    <div className="relative group">
-                        <Avatar className="w-20 h-20 ring-2 ring-border">
+                    <div className="group relative">
+                        <Avatar className="h-20 w-20 ring-2 ring-border">
                             {currentAvatar ? (
-                                <AvatarImage src={currentAvatar} alt={user.name} className="object-cover" />
+                                <AvatarImage
+                                    src={currentAvatar}
+                                    alt={user.name}
+                                    className="object-cover"
+                                />
                             ) : null}
-                            <AvatarFallback className="text-2xl font-semibold bg-muted text-muted-foreground select-none">
+                            <AvatarFallback className="bg-muted text-2xl font-semibold text-muted-foreground select-none">
                                 {initials}
                             </AvatarFallback>
                         </Avatar>
@@ -98,18 +112,34 @@ export default function Profile({
                             type="button"
                             onClick={() => fileInputRef.current?.click()}
                             disabled={isUploading}
-                            className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer disabled:cursor-not-allowed"
+                            className="absolute inset-0 flex cursor-pointer items-center justify-center rounded-full bg-black/40 opacity-0 transition-opacity group-hover:opacity-100 disabled:cursor-not-allowed"
                             aria-label="Change avatar"
                         >
-                            <Camera className="w-6 h-6 text-white" />
+                            <Camera className="h-6 w-6 text-white" />
                         </button>
 
                         {/* Uploading spinner */}
                         {isUploading && (
                             <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/50">
-                                <svg className="animate-spin w-5 h-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                                <svg
+                                    className="h-5 w-5 animate-spin text-white"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <circle
+                                        className="opacity-25"
+                                        cx="12"
+                                        cy="12"
+                                        r="10"
+                                        stroke="currentColor"
+                                        strokeWidth="4"
+                                    />
+                                    <path
+                                        className="opacity-75"
+                                        fill="currentColor"
+                                        d="M4 12a8 8 0 018-8v8z"
+                                    />
                                 </svg>
                             </div>
                         )}
@@ -124,7 +154,7 @@ export default function Profile({
                                 disabled={isUploading}
                                 onClick={() => fileInputRef.current?.click()}
                             >
-                                <Camera className="w-3.5 h-3.5 mr-1.5" />
+                                <Camera className="mr-1.5 h-3.5 w-3.5" />
                                 {currentAvatar ? 'Ganti Foto' : 'Upload Foto'}
                             </Button>
 
@@ -137,12 +167,14 @@ export default function Profile({
                                     onClick={handleRemove}
                                     className="text-destructive hover:text-destructive"
                                 >
-                                    <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+                                    <Trash2 className="mr-1.5 h-3.5 w-3.5" />
                                     Hapus
                                 </Button>
                             )}
                         </div>
-                        <p className="text-xs text-muted-foreground">JPG, PNG, GIF, atau WebP. Maks 2MB.</p>
+                        <p className="text-xs text-muted-foreground">
+                            JPG, PNG, GIF, atau WebP. Maks 2MB.
+                        </p>
                     </div>
 
                     {/* Hidden file input */}

@@ -10,7 +10,7 @@ export function TugasTab({ team, item }: Props) {
 
     if (!kanban) {
         return (
-            <div className="flex h-full items-center justify-center text-muted-foreground border-2 border-dashed border-sidebar-border/70 rounded-xl">
+            <div className="flex h-full items-center justify-center rounded-xl border-2 border-dashed border-sidebar-border/70 text-muted-foreground">
                 Belum ada papan Kanban untuk tim ini.
             </div>
         );

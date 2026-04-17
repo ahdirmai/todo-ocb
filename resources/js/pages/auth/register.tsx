@@ -11,7 +11,7 @@ export default function Register() {
     return (
         <>
             <Head title="Register" />
-            <div className="flex items-center justify-center min-h-screen">
+            <div className="flex min-h-screen items-center justify-center">
                 <p className="text-sm text-muted-foreground">Redirecting...</p>
             </div>
         </>
@@ -22,4 +22,3 @@ Register.layout = {
     title: 'Register',
     description: '',
 };
-

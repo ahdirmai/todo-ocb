@@ -47,4 +47,9 @@ class Team extends Model
     {
         return $this->hasMany(Announcement::class);
     }
+
+    public function documents()
+    {
+        return $this->hasMany(Document::class);
+    }
 }

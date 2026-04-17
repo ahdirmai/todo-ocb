@@ -1,13 +1,16 @@
 <?php
 
 use App\Http\Controllers\ActivityLogController;
+use App\Http\Controllers\AnnouncementController;
 use App\Http\Controllers\CommentController;
+use App\Http\Controllers\DocumentCommentController;
 use App\Http\Controllers\KanbanBoardController;
 use App\Http\Controllers\KanbanColumnController;
 use App\Http\Controllers\MemberController;
 use App\Http\Controllers\TagController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\TeamController;
+use App\Http\Controllers\TeamDocumentController;
 use App\Http\Controllers\TeamMemberController;
 use App\Http\Controllers\TeamMessageController;
 use Illuminate\Support\Facades\Route;
@@ -58,10 +61,25 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('teams/{team}/mention-users', [TeamMemberController::class, 'mentionList'])->name('teams.mention-users');
 
     // Announcements
-    Route::post('teams/{team}/announcements', [App\Http\Controllers\AnnouncementController::class, 'store'])->name('teams.announcements.store');
-    Route::put('announcements/{announcement}', [App\Http\Controllers\AnnouncementController::class, 'update'])->name('announcements.update');
-    Route::delete('announcements/{announcement}', [App\Http\Controllers\AnnouncementController::class, 'destroy'])->name('announcements.destroy');
+    Route::post('teams/{team}/announcements', [AnnouncementController::class, 'store'])->name('teams.announcements.store');
+    Route::put('announcements/{announcement}', [AnnouncementController::class, 'update'])->name('announcements.update');
+    Route::delete('announcements/{announcement}', [AnnouncementController::class, 'destroy'])->name('announcements.destroy');
     Route::post('announcements/{announcement}/comments', [CommentController::class, 'storeAnnouncement'])->name('announcements.comments.store');
+
+    // Documents
+    Route::get('teams/{team:slug}/documents', [TeamDocumentController::class, 'index'])->name('documents.index');
+    Route::get('teams/{team:slug}/documents/create', [TeamDocumentController::class, 'create'])->name('documents.create');
+    Route::post('teams/{team:slug}/documents/folder', [TeamDocumentController::class, 'storeFolder'])->name('documents.folder.store');
+    Route::post('teams/{team:slug}/documents/file', [TeamDocumentController::class, 'storeFile'])->name('documents.file.store');
+    Route::post('teams/{team:slug}/documents/document', [TeamDocumentController::class, 'storeDocument'])->name('documents.document.store');
+    Route::get('teams/{team:slug}/documents/{document}', [TeamDocumentController::class, 'show'])->name('documents.show');
+    Route::get('teams/{team:slug}/documents/{document}/edit', [TeamDocumentController::class, 'edit'])->name('documents.edit');
+    // Using multipart/form-data for update requires POST with _method=PUT
+    Route::post('teams/{team:slug}/documents/{document}', [TeamDocumentController::class, 'update'])->name('documents.update');
+    Route::put('teams/{team:slug}/documents/{document}', [TeamDocumentController::class, 'update']);
+    Route::post('teams/{team:slug}/documents/{document}/update-file', [TeamDocumentController::class, 'updateFile'])->name('documents.update-file');
+    Route::delete('teams/{team:slug}/documents/{document}', [TeamDocumentController::class, 'destroy'])->name('documents.destroy');
+    Route::post('documents/{document}/comments', [DocumentCommentController::class, 'store'])->name('documents.comments.store');
 
     // Member Management — Superadmin & Admin only
     Route::middleware('role:superadmin|admin')->group(function () {

@@ -4,7 +4,17 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Paperclip, Send, X, Download, Image as ImageIcon, FileText, Loader2, MessageSquare, Users } from 'lucide-react';
+import {
+    Paperclip,
+    Send,
+    X,
+    Download,
+    Image as ImageIcon,
+    FileText,
+    Loader2,
+    MessageSquare,
+    Users,
+} from 'lucide-react';
 
 /* ─── Types ──────────────────────────────────────────────── */
 
@@ -48,7 +58,11 @@ function formatTime(iso: string): string {
     if (diffMin < 1) return 'baru saja';
     if (diffMin < 60) return `${diffMin} mnt lalu`;
     const diffH = Math.floor(diffMin / 60);
-    if (diffH < 24) return date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+    if (diffH < 24)
+        return date.toLocaleTimeString('id-ID', {
+            hour: '2-digit',
+            minute: '2-digit',
+        });
     return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
 }
 
@@ -76,20 +90,20 @@ function getInitials(name: string): string {
 function AttachmentPreview({ attachment }: { attachment: Attachment }) {
     if (isImage(attachment.mime)) {
         return (
-            <div className="mt-2 group relative inline-block rounded-xl overflow-hidden border border-white/20 shadow-sm max-w-xs">
+            <div className="group relative mt-2 inline-block max-w-xs overflow-hidden rounded-xl border border-white/20 shadow-sm">
                 <img
                     src={attachment.url}
                     alt={attachment.name}
-                    className="block max-h-60 w-auto object-cover rounded-xl"
+                    className="block max-h-60 w-auto rounded-xl object-cover"
                     loading="lazy"
                 />
                 <a
                     href={attachment.url}
                     download={attachment.name}
-                    className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl"
+                    className="absolute inset-0 flex items-center justify-center rounded-xl bg-black/40 opacity-0 transition-opacity group-hover:opacity-100"
                     title="Unduh gambar"
                 >
-                    <Download className="w-5 h-5 text-white" />
+                    <Download className="h-5 w-5 text-white" />
                 </a>
             </div>
         );
@@ -99,52 +113,73 @@ function AttachmentPreview({ attachment }: { attachment: Attachment }) {
         <a
             href={attachment.url}
             download={attachment.name}
-            className="mt-2 flex items-center gap-3 px-3 py-2.5 rounded-xl border border-white/20 bg-white/10 hover:bg-white/20 transition-colors max-w-xs group"
+            className="group mt-2 flex max-w-xs items-center gap-3 rounded-xl border border-white/20 bg-white/10 px-3 py-2.5 transition-colors hover:bg-white/20"
         >
-            <div className="shrink-0 w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center">
-                <FileText className="w-4 h-4" />
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/20">
+                <FileText className="h-4 w-4" />
             </div>
-            <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium truncate">{attachment.name}</p>
-                <p className="text-[10px] opacity-60">{formatFileSize(attachment.size)}</p>
+            <div className="min-w-0 flex-1">
+                <p className="truncate text-xs font-medium">
+                    {attachment.name}
+                </p>
+                <p className="text-[10px] opacity-60">
+                    {formatFileSize(attachment.size)}
+                </p>
             </div>
-            <Download className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+            <Download className="h-3.5 w-3.5 shrink-0 opacity-0 transition-opacity group-hover:opacity-100" />
         </a>
     );
 }
 
-function MessageBubble({ message, isMine }: { message: ChatMessage; isMine: boolean }) {
+function MessageBubble({
+    message,
+    isMine,
+}: {
+    message: ChatMessage;
+    isMine: boolean;
+}) {
     const hasBody = !!message.body?.trim();
 
     return (
-        <div className={`flex gap-2.5 ${isMine ? 'flex-row-reverse' : 'flex-row'} group`}>
+        <div
+            className={`flex gap-2.5 ${isMine ? 'flex-row-reverse' : 'flex-row'} group`}
+        >
             {/* Avatar */}
             {!isMine && (
-                <Avatar className="w-8 h-8 shrink-0 mt-0.5 ring-2 ring-background">
-                    <AvatarImage src={message.user?.avatar_url ?? undefined} className="object-cover" />
-                    <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
+                <Avatar className="mt-0.5 h-8 w-8 shrink-0 ring-2 ring-background">
+                    <AvatarImage
+                        src={message.user?.avatar_url ?? undefined}
+                        className="object-cover"
+                    />
+                    <AvatarFallback className="bg-primary/10 text-xs font-semibold text-primary">
                         {message.user ? getInitials(message.user.name) : '?'}
                     </AvatarFallback>
                 </Avatar>
             )}
 
-            <div className={`flex flex-col max-w-[70%] ${isMine ? 'items-end' : 'items-start'}`}>
+            <div
+                className={`flex max-w-[70%] flex-col ${isMine ? 'items-end' : 'items-start'}`}
+            >
                 {/* Name + time */}
                 {!isMine && message.user && (
-                    <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1 px-1">
+                    <span className="mb-1 px-1 text-[11px] font-semibold text-slate-500 dark:text-slate-400">
                         {message.user.name}
                     </span>
                 )}
 
                 {/* Bubble */}
                 <div
-                    className={`relative px-4 py-2.5 rounded-2xl text-sm leading-relaxed shadow-sm ${
+                    className={`relative rounded-2xl px-4 py-2.5 text-sm leading-relaxed shadow-sm ${
                         isMine
-                            ? 'bg-primary text-primary-foreground rounded-tr-sm'
-                            : 'bg-white dark:bg-zinc-800 text-slate-900 dark:text-slate-100 border border-sidebar-border/50 rounded-tl-sm'
+                            ? 'rounded-tr-sm bg-primary text-primary-foreground'
+                            : 'rounded-tl-sm border border-sidebar-border/50 bg-white text-slate-900 dark:bg-zinc-800 dark:text-slate-100'
                     }`}
                 >
-                    {hasBody && <p className="whitespace-pre-wrap break-words">{message.body}</p>}
+                    {hasBody && (
+                        <p className="break-words whitespace-pre-wrap">
+                            {message.body}
+                        </p>
+                    )}
 
                     {/* Attachments */}
                     {message.attachments.map((att) => (
@@ -153,7 +188,7 @@ function MessageBubble({ message, isMine }: { message: ChatMessage; isMine: bool
                 </div>
 
                 {/* Timestamp */}
-                <span className="text-[10px] text-muted-foreground mt-1 px-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <span className="mt-1 px-1 text-[10px] text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100">
                     {formatTime(message.created_at)}
                 </span>
             </div>
@@ -165,10 +200,10 @@ function MemberSidebar({ team }: { team: any }) {
     const members: TeamUser[] = team.users ?? [];
 
     return (
-        <aside className="w-60 shrink-0 border-l border-sidebar-border/70 flex flex-col bg-slate-50/50 dark:bg-zinc-900/30">
-            <div className="px-4 py-3 border-b border-sidebar-border/50">
+        <aside className="flex w-60 shrink-0 flex-col border-l border-sidebar-border/70 bg-slate-50/50 dark:bg-zinc-900/30">
+            <div className="border-b border-sidebar-border/50 px-4 py-3">
                 <div className="flex items-center gap-2">
-                    <Users className="w-3.5 h-3.5 text-muted-foreground" />
+                    <Users className="h-3.5 w-3.5 text-muted-foreground" />
                     <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">
                         Anggota ({members.length})
                     </span>
@@ -178,20 +213,28 @@ function MemberSidebar({ team }: { team: any }) {
                 {members.map((user) => {
                     const role = user.pivot?.role ?? 'member';
                     return (
-                        <div key={user.id} className="flex items-center gap-2.5 px-3 py-2 hover:bg-slate-100/60 dark:hover:bg-zinc-800/50 transition-colors rounded-lg mx-1">
+                        <div
+                            key={user.id}
+                            className="mx-1 flex items-center gap-2.5 rounded-lg px-3 py-2 transition-colors hover:bg-slate-100/60 dark:hover:bg-zinc-800/50"
+                        >
                             <div className="relative shrink-0">
-                                <Avatar className="w-8 h-8">
-                                    <AvatarImage src={user.avatar_url ?? undefined} className="object-cover" />
-                                    <AvatarFallback className="bg-primary/10 text-primary text-xs font-bold">
+                                <Avatar className="h-8 w-8">
+                                    <AvatarImage
+                                        src={user.avatar_url ?? undefined}
+                                        className="object-cover"
+                                    />
+                                    <AvatarFallback className="bg-primary/10 text-xs font-bold text-primary">
                                         {getInitials(user.name)}
                                     </AvatarFallback>
                                 </Avatar>
-                                <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-background" />
+                                <span className="absolute -right-0.5 -bottom-0.5 h-2.5 w-2.5 rounded-full border-2 border-background bg-emerald-400" />
                             </div>
-                            <div className="flex-1 min-w-0">
-                                <p className="text-xs font-medium text-slate-800 dark:text-slate-200 truncate leading-none">{user.name}</p>
+                            <div className="min-w-0 flex-1">
+                                <p className="truncate text-xs leading-none font-medium text-slate-800 dark:text-slate-200">
+                                    {user.name}
+                                </p>
                                 <Badge
-                                    className={`mt-1 text-[9px] px-1.5 py-0 border-none leading-none h-4 ${
+                                    className={`mt-1 h-4 border-none px-1.5 py-0 text-[9px] leading-none ${
                                         role === 'admin'
                                             ? 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300'
                                             : 'bg-slate-100 text-slate-500 dark:bg-zinc-800 dark:text-slate-400'
@@ -214,7 +257,9 @@ export function ChatTab({ team }: { team: any }) {
     const { auth, messages: initialMessages } = usePage<any>().props;
     const currentUserId: number = auth?.user?.id;
 
-    const [messages, setMessages] = useState<ChatMessage[]>(initialMessages ?? []);
+    const [messages, setMessages] = useState<ChatMessage[]>(
+        initialMessages ?? [],
+    );
     const [text, setText] = useState('');
     const [file, setFile] = useState<File | null>(null);
     const [sending, setSending] = useState(false);
@@ -270,7 +315,11 @@ export function ChatTab({ team }: { team: any }) {
 
         // Get CSRF token from meta tag
         const csrfToken =
-            (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content ?? '';
+            (
+                document.querySelector(
+                    'meta[name="csrf-token"]',
+                ) as HTMLMetaElement
+            )?.content ?? '';
 
         const echoInstance = (window as any).Echo;
         const socketId = echoInstance ? echoInstance.socketId() : '';
@@ -278,10 +327,10 @@ export function ChatTab({ team }: { team: any }) {
         try {
             const res = await fetch(`/teams/${team.id}/messages`, {
                 method: 'POST',
-                headers: { 
-                    'X-CSRF-TOKEN': csrfToken, 
-                    'Accept': 'application/json',
-                    ...(socketId ? { 'X-Socket-ID': socketId } : {})
+                headers: {
+                    'X-CSRF-TOKEN': csrfToken,
+                    Accept: 'application/json',
+                    ...(socketId ? { 'X-Socket-ID': socketId } : {}),
                 },
                 body: formData,
             });
@@ -322,22 +371,28 @@ export function ChatTab({ team }: { team: any }) {
         let lastDate = '';
 
         messages.forEach((msg) => {
-            const dateStr = new Date(msg.created_at).toLocaleDateString('id-ID', {
-                weekday: 'long',
-                day: 'numeric',
-                month: 'long',
-                year: 'numeric',
-            });
+            const dateStr = new Date(msg.created_at).toLocaleDateString(
+                'id-ID',
+                {
+                    weekday: 'long',
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric',
+                },
+            );
 
             if (dateStr !== lastDate) {
                 lastDate = dateStr;
                 elements.push(
-                    <div key={`sep-${msg.id}`} className="flex items-center gap-3 my-4">
-                        <div className="flex-1 h-px bg-sidebar-border/50" />
-                        <span className="text-[10px] font-medium text-muted-foreground bg-background px-2 py-0.5 rounded-full border border-sidebar-border/50 shrink-0">
+                    <div
+                        key={`sep-${msg.id}`}
+                        className="my-4 flex items-center gap-3"
+                    >
+                        <div className="h-px flex-1 bg-sidebar-border/50" />
+                        <span className="shrink-0 rounded-full border border-sidebar-border/50 bg-background px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
                             {dateStr}
                         </span>
-                        <div className="flex-1 h-px bg-sidebar-border/50" />
+                        <div className="h-px flex-1 bg-sidebar-border/50" />
                     </div>,
                 );
             }
@@ -355,20 +410,20 @@ export function ChatTab({ team }: { team: any }) {
     };
 
     return (
-        <div className="flex h-full w-full max-h-[calc(100vh-14rem)] min-h-[400px] overflow-hidden">
+        <div className="flex h-full max-h-[calc(100vh-14rem)] min-h-[400px] w-full overflow-hidden">
             {/* ── Chat Panel ──────────────────────────────────── */}
-            <div className="flex flex-1 flex-col min-w-0">
+            <div className="flex min-w-0 flex-1 flex-col">
                 {/* Header */}
-                <div className="flex items-center justify-between px-5 py-3 border-b border-sidebar-border/70 bg-white/50 dark:bg-zinc-900/50 shrink-0">
+                <div className="flex shrink-0 items-center justify-between border-b border-sidebar-border/70 bg-white/50 px-5 py-3 dark:bg-zinc-900/50">
                     <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center">
-                            <MessageSquare className="w-4 h-4 text-primary" />
+                        <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10">
+                            <MessageSquare className="h-4 w-4 text-primary" />
                         </div>
                         <div>
-                            <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 leading-none">
+                            <p className="text-sm leading-none font-semibold text-slate-900 dark:text-slate-100">
                                 {team.name}
                             </p>
-                            <p className="text-[11px] text-muted-foreground mt-0.5">
+                            <p className="mt-0.5 text-[11px] text-muted-foreground">
                                 {team.users?.length ?? 0} anggota
                             </p>
                         </div>
@@ -376,7 +431,7 @@ export function ChatTab({ team }: { team: any }) {
                     {/* Connection indicator */}
                     <div className="flex items-center gap-1.5">
                         <span
-                            className={`w-2 h-2 rounded-full ${connected ? 'bg-emerald-400 animate-pulse' : 'bg-slate-300 dark:bg-zinc-600'}`}
+                            className={`h-2 w-2 rounded-full ${connected ? 'animate-pulse bg-emerald-400' : 'bg-slate-300 dark:bg-zinc-600'}`}
                         />
                         <span className="text-[10px] text-muted-foreground">
                             {connected ? 'Live' : 'Menghubungkan...'}
@@ -385,17 +440,18 @@ export function ChatTab({ team }: { team: any }) {
                 </div>
 
                 {/* Message list */}
-                <div className="flex-1 overflow-y-auto px-5 py-4 flex flex-col gap-3">
+                <div className="flex flex-1 flex-col gap-3 overflow-y-auto px-5 py-4">
                     {messages.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center h-full gap-3 text-center">
-                            <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center">
-                                <MessageSquare className="w-7 h-7 text-primary/60" />
+                        <div className="flex h-full flex-col items-center justify-center gap-3 text-center">
+                            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10">
+                                <MessageSquare className="h-7 w-7 text-primary/60" />
                             </div>
                             <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
                                 Belum ada pesan
                             </p>
-                            <p className="text-xs text-muted-foreground max-w-52">
-                                Jadilah yang pertama memulai percakapan di tim ini!
+                            <p className="max-w-52 text-xs text-muted-foreground">
+                                Jadilah yang pertama memulai percakapan di tim
+                                ini!
                             </p>
                         </div>
                     ) : (
@@ -406,45 +462,46 @@ export function ChatTab({ team }: { team: any }) {
 
                 {/* File preview strip */}
                 {file && (
-                    <div className="px-5 py-2 border-t border-sidebar-border/50 bg-slate-50/80 dark:bg-zinc-900/50">
-                        <div className="flex items-center gap-2 bg-white dark:bg-zinc-800 border border-sidebar-border/50 rounded-xl px-3 py-2 max-w-xs">
+                    <div className="border-t border-sidebar-border/50 bg-slate-50/80 px-5 py-2 dark:bg-zinc-900/50">
+                        <div className="flex max-w-xs items-center gap-2 rounded-xl border border-sidebar-border/50 bg-white px-3 py-2 dark:bg-zinc-800">
                             {isImage(file.type) ? (
-                                <ImageIcon className="w-4 h-4 text-primary shrink-0" />
+                                <ImageIcon className="h-4 w-4 shrink-0 text-primary" />
                             ) : (
-                                <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
+                                <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
                             )}
-                            <span className="text-xs font-medium text-slate-800 dark:text-slate-200 truncate flex-1">
+                            <span className="flex-1 truncate text-xs font-medium text-slate-800 dark:text-slate-200">
                                 {file.name}
                             </span>
-                            <span className="text-[10px] text-muted-foreground shrink-0">
+                            <span className="shrink-0 text-[10px] text-muted-foreground">
                                 {formatFileSize(file.size)}
                             </span>
                             <button
                                 onClick={() => {
                                     setFile(null);
-                                    if (fileInputRef.current) fileInputRef.current.value = '';
+                                    if (fileInputRef.current)
+                                        fileInputRef.current.value = '';
                                 }}
-                                className="shrink-0 p-0.5 rounded-md hover:bg-slate-100 dark:hover:bg-zinc-700 text-muted-foreground hover:text-slate-800 dark:hover:text-slate-200 transition-colors"
+                                className="shrink-0 rounded-md p-0.5 text-muted-foreground transition-colors hover:bg-slate-100 hover:text-slate-800 dark:hover:bg-zinc-700 dark:hover:text-slate-200"
                                 title="Hapus lampiran"
                             >
-                                <X className="w-3.5 h-3.5" />
+                                <X className="h-3.5 w-3.5" />
                             </button>
                         </div>
                     </div>
                 )}
 
                 {/* Input area */}
-                <div className="px-5 py-4 border-t border-sidebar-border/70 bg-white/50 dark:bg-zinc-900/50 shrink-0">
+                <div className="shrink-0 border-t border-sidebar-border/70 bg-white/50 px-5 py-4 dark:bg-zinc-900/50">
                     <div className="flex items-end gap-2">
                         {/* Attach file button */}
                         <button
                             id="chat-attach-btn"
                             type="button"
                             onClick={() => fileInputRef.current?.click()}
-                            className="shrink-0 w-9 h-9 rounded-xl border border-sidebar-border/70 flex items-center justify-center text-muted-foreground hover:text-primary hover:border-primary/50 hover:bg-primary/5 transition-colors"
+                            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-sidebar-border/70 text-muted-foreground transition-colors hover:border-primary/50 hover:bg-primary/5 hover:text-primary"
                             title="Lampirkan file"
                         >
-                            <Paperclip className="w-4 h-4" />
+                            <Paperclip className="h-4 w-4" />
                         </button>
                         <input
                             ref={fileInputRef}
@@ -463,7 +520,7 @@ export function ChatTab({ team }: { team: any }) {
                             onChange={(e) => setText(e.target.value)}
                             onKeyDown={handleKeyDown}
                             placeholder="Ketik pesan... (Enter kirim, Shift+Enter baris baru)"
-                            className="flex-1 min-h-[40px] max-h-32 resize-none text-sm rounded-xl border-sidebar-border/70 focus:border-primary/50 bg-white dark:bg-zinc-800 py-2.5 px-3.5 leading-relaxed"
+                            className="max-h-32 min-h-[40px] flex-1 resize-none rounded-xl border-sidebar-border/70 bg-white px-3.5 py-2.5 text-sm leading-relaxed focus:border-primary/50 dark:bg-zinc-800"
                             rows={1}
                         />
 
@@ -474,13 +531,13 @@ export function ChatTab({ team }: { team: any }) {
                             onClick={sendMessage}
                             disabled={sending || (!text.trim() && !file)}
                             size="sm"
-                            className="shrink-0 w-9 h-9 p-0 rounded-xl"
+                            className="h-9 w-9 shrink-0 rounded-xl p-0"
                             title="Kirim pesan"
                         >
                             {sending ? (
-                                <Loader2 className="w-4 h-4 animate-spin" />
+                                <Loader2 className="h-4 w-4 animate-spin" />
                             ) : (
-                                <Send className="w-4 h-4" />
+                                <Send className="h-4 w-4" />
                             )}
                         </Button>
                     </div>

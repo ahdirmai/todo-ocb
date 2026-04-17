@@ -13,21 +13,34 @@ import { DokumenTab } from './partials/dokumen-tab';
 import { TugasTab } from './partials/tugas-tab';
 import { ActivityTab } from './partials/activity-tab';
 
-type Tab = 'overview' | 'task' | 'chat' | 'announcement' | 'question' | 'document' | 'activity';
+type Tab =
+    | 'overview'
+    | 'task'
+    | 'chat'
+    | 'announcement'
+    | 'document'
+    | 'activity';
 
 const TAB_LABELS: Record<Tab, string> = {
     overview: 'Overview',
     task: 'Tugas',
     chat: 'Chat',
     announcement: 'Pengumuman',
-    question: 'Pertanyaan',
     document: 'Dokumen & File',
     activity: 'Aktivitas',
 };
 
-export default function TeamShow({ team, tab, item }: { team: any; tab: Tab; item?: string }) {
+export default function TeamShow({
+    team,
+    tab,
+    item,
+}: {
+    team: any;
+    tab: Tab;
+    item?: string;
+}) {
     setLayoutProps({
-        breadcrumbs: [{ title: team.name, href: `/teams/${team.slug}` }]
+        breadcrumbs: [{ title: team.name, href: `/teams/${team.slug}` }],
     });
 
     const handleTabChange = (value: string) => {
@@ -42,18 +55,31 @@ export default function TeamShow({ team, tab, item }: { team: any; tab: Tab; ite
             <div className="flex h-full flex-1 flex-col overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
                 {/* Header Team Area */}
                 <div className="flex items-center justify-between px-6 pt-5 pb-3">
-                    <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100">{team.name}</h1>
+                    <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+                        {team.name}
+                    </h1>
 
                     <div className="flex items-center gap-4">
                         <div className="flex -space-x-2">
-                            {team.users?.slice(0, 3).map((u: any, i: number) => (
-                                <Avatar key={u.id} className="w-8 h-8 border-2 border-white dark:border-zinc-950">
-                                    <AvatarImage src={u.avatar_url ?? undefined} alt={u.name} className="object-cover" />
-                                    <AvatarFallback>{u.name?.charAt(0)}</AvatarFallback>
-                                </Avatar>
-                            ))}
+                            {team.users
+                                ?.slice(0, 3)
+                                .map((u: any, i: number) => (
+                                    <Avatar
+                                        key={u.id}
+                                        className="h-8 w-8 border-2 border-white dark:border-zinc-950"
+                                    >
+                                        <AvatarImage
+                                            src={u.avatar_url ?? undefined}
+                                            alt={u.name}
+                                            className="object-cover"
+                                        />
+                                        <AvatarFallback>
+                                            {u.name?.charAt(0)}
+                                        </AvatarFallback>
+                                    </Avatar>
+                                ))}
                             {team.users?.length > 3 && (
-                                <div className="z-10 flex items-center justify-center w-8 h-8 rounded-full border-2 border-white dark:border-zinc-950 bg-slate-100 dark:bg-zinc-800 text-xs font-medium text-slate-600 dark:text-slate-300">
+                                <div className="z-10 flex h-8 w-8 items-center justify-center rounded-full border-2 border-white bg-slate-100 text-xs font-medium text-slate-600 dark:border-zinc-950 dark:bg-zinc-800 dark:text-slate-300">
                                     +{team.users.length - 3}
                                 </div>
                             )}
@@ -61,14 +87,18 @@ export default function TeamShow({ team, tab, item }: { team: any; tab: Tab; ite
                     </div>
                 </div>
 
-                <Tabs value={tab} onValueChange={handleTabChange} className="flex flex-col flex-1 h-full w-full overflow-hidden">
-                    <div className="px-6 border-b border-sidebar-border/70">
-                        <TabsList className="bg-transparent space-x-6 h-auto p-0 justify-start w-full">
+                <Tabs
+                    value={tab}
+                    onValueChange={handleTabChange}
+                    className="flex h-full w-full flex-1 flex-col overflow-hidden"
+                >
+                    <div className="border-b border-sidebar-border/70 px-6">
+                        <TabsList className="h-auto w-full justify-start space-x-6 bg-transparent p-0">
                             {(Object.keys(TAB_LABELS) as Tab[]).map((key) => (
                                 <TabsTrigger
                                     key={key}
                                     value={key}
-                                    className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-0 pb-3 pt-2 text-sm font-medium text-slate-500 data-[state=active]:text-slate-900 dark:text-slate-400 dark:data-[state=active]:text-slate-100"
+                                    className="rounded-none px-0 pt-2 pb-3 text-sm font-medium text-slate-500 data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-slate-900 data-[state=active]:shadow-none dark:text-slate-400 dark:data-[state=active]:text-slate-100"
                                 >
                                     {TAB_LABELS[key]}
                                 </TabsTrigger>
@@ -77,25 +107,40 @@ export default function TeamShow({ team, tab, item }: { team: any; tab: Tab; ite
                     </div>
 
                     <div className="flex-1 overflow-hidden">
-                        <TabsContent value="overview" className="h-full m-0 p-6 flex flex-col">
+                        <TabsContent
+                            value="overview"
+                            className="m-0 flex h-full flex-col p-6"
+                        >
                             <OverviewTab team={team} />
                         </TabsContent>
-                        <TabsContent value="task" className="h-full m-0 p-0 flex flex-col">
+                        <TabsContent
+                            value="task"
+                            className="m-0 flex h-full flex-col p-0"
+                        >
                             <TugasTab team={team} item={item} />
                         </TabsContent>
-                        <TabsContent value="chat" className="h-full m-0 p-0 flex flex-col overflow-hidden">
+                        <TabsContent
+                            value="chat"
+                            className="m-0 flex h-full flex-col overflow-hidden p-0"
+                        >
                             <ChatTab team={team} />
                         </TabsContent>
-                        <TabsContent value="announcement" className="h-full m-0 p-6 flex flex-col">
+                        <TabsContent
+                            value="announcement"
+                            className="m-0 flex h-full flex-col p-6"
+                        >
                             <PengumumanTab team={team} />
                         </TabsContent>
-                        <TabsContent value="question" className="h-full m-0 p-6 flex flex-col">
-                            <PertanyaanTab team={team} />
-                        </TabsContent>
-                        <TabsContent value="document" className="h-full m-0 p-6 flex flex-col">
+                        <TabsContent
+                            value="document"
+                            className="m-0 flex h-full flex-col p-6"
+                        >
                             <DokumenTab team={team} />
                         </TabsContent>
-                        <TabsContent value="activity" className="h-full m-0 p-6 flex flex-col">
+                        <TabsContent
+                            value="activity"
+                            className="m-0 flex h-full flex-col p-6"
+                        >
                             <ActivityTab />
                         </TabsContent>
                     </div>

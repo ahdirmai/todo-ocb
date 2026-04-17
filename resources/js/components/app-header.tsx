@@ -93,21 +93,30 @@ export function AppHeader({ breadcrumbs = [] }: Props) {
                                     <div className="flex h-full flex-col justify-between text-sm">
                                         <div className="flex flex-col space-y-4">
                                             {mainNavGroups.map((group) => (
-                                                <div key={group.title} className="flex flex-col space-y-2">
-                                                    <span className="flex items-center space-x-2 text-xs font-semibold text-muted-foreground px-2">
-                                                        {group.icon && <group.icon className="h-4 w-4" />}
-                                                        <span>{group.title}</span>
+                                                <div
+                                                    key={group.title}
+                                                    className="flex flex-col space-y-2"
+                                                >
+                                                    <span className="flex items-center space-x-2 px-2 text-xs font-semibold text-muted-foreground">
+                                                        {group.icon && (
+                                                            <group.icon className="h-4 w-4" />
+                                                        )}
+                                                        <span>
+                                                            {group.title}
+                                                        </span>
                                                     </span>
                                                     {group.items.map((item) => (
                                                         <Link
                                                             key={item.title}
                                                             href={item.href}
-                                                            className="flex items-center space-x-2 font-medium px-2"
+                                                            className="flex items-center space-x-2 px-2 font-medium"
                                                         >
                                                             {item.icon && (
                                                                 <item.icon className="h-5 w-5" />
                                                             )}
-                                                            <span>{item.title}</span>
+                                                            <span>
+                                                                {item.title}
+                                                            </span>
                                                         </Link>
                                                     ))}
                                                 </div>
@@ -148,32 +157,34 @@ export function AppHeader({ breadcrumbs = [] }: Props) {
                     <div className="ml-6 hidden h-full items-center space-x-6 lg:flex">
                         <NavigationMenu className="flex h-full items-stretch">
                             <NavigationMenuList className="flex h-full items-stretch space-x-2">
-                                {mainNavGroups.flatMap((group) => group.items).map((item, index) => (
-                                    <NavigationMenuItem
-                                        key={index}
-                                        className="relative flex h-full items-center"
-                                    >
-                                        <Link
-                                            href={item.href}
-                                            className={cn(
-                                                navigationMenuTriggerStyle(),
-                                                whenCurrentUrl(
-                                                    item.href,
-                                                    activeItemStyles,
-                                                ),
-                                                'h-9 cursor-pointer px-3',
-                                            )}
+                                {mainNavGroups
+                                    .flatMap((group) => group.items)
+                                    .map((item, index) => (
+                                        <NavigationMenuItem
+                                            key={index}
+                                            className="relative flex h-full items-center"
                                         >
-                                            {item.icon && (
-                                                <item.icon className="mr-2 h-4 w-4" />
+                                            <Link
+                                                href={item.href}
+                                                className={cn(
+                                                    navigationMenuTriggerStyle(),
+                                                    whenCurrentUrl(
+                                                        item.href,
+                                                        activeItemStyles,
+                                                    ),
+                                                    'h-9 cursor-pointer px-3',
+                                                )}
+                                            >
+                                                {item.icon && (
+                                                    <item.icon className="mr-2 h-4 w-4" />
+                                                )}
+                                                {item.title}
+                                            </Link>
+                                            {isCurrentUrl(item.href) && (
+                                                <div className="absolute bottom-0 left-0 h-0.5 w-full translate-y-px bg-black dark:bg-white"></div>
                                             )}
-                                            {item.title}
-                                        </Link>
-                                        {isCurrentUrl(item.href) && (
-                                            <div className="absolute bottom-0 left-0 h-0.5 w-full translate-y-px bg-black dark:bg-white"></div>
-                                        )}
-                                    </NavigationMenuItem>
-                                ))}
+                                        </NavigationMenuItem>
+                                    ))}
                             </NavigationMenuList>
                         </NavigationMenu>
                     </div>
@@ -220,7 +231,10 @@ export function AppHeader({ breadcrumbs = [] }: Props) {
                                 >
                                     <Avatar className="size-8 overflow-hidden rounded-full">
                                         <AvatarImage
-                                            src={auth.user?.avatar_url ?? auth.user?.avatar}
+                                            src={
+                                                auth.user?.avatar_url ??
+                                                auth.user?.avatar
+                                            }
                                             alt={auth.user?.name}
                                         />
                                         <AvatarFallback className="rounded-lg bg-neutral-200 text-black dark:bg-neutral-700 dark:text-white">

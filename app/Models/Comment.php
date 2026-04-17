@@ -23,6 +23,11 @@ class Comment extends Model implements HasMedia
         return $this->belongsTo(Announcement::class);
     }
 
+    public function document()
+    {
+        return $this->belongsTo(Document::class);
+    }
+
     public function user()
     {
         return $this->belongsTo(User::class);

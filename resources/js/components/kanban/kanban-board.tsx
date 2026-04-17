@@ -22,7 +22,7 @@ export function KanbanBoard({ kanban }: { kanban: any }) {
     useEffect(() => {
         const newColumns = kanban?.columns || [];
         setColumns(newColumns);
-        
+
         // Parse URL params for taskId
         const urlParams = new URLSearchParams(window.location.search);
         const taskIdParam = urlParams.get('taskId');
@@ -31,7 +31,9 @@ export function KanbanBoard({ kanban }: { kanban: any }) {
         if (targetTaskId) {
             let updatedTask = null;
             for (const col of newColumns) {
-                const found = col.tasks?.find((t: any) => t.id === targetTaskId);
+                const found = col.tasks?.find(
+                    (t: any) => t.id === targetTaskId,
+                );
                 if (found) {
                     updatedTask = found;
                     break;
@@ -41,7 +43,7 @@ export function KanbanBoard({ kanban }: { kanban: any }) {
                 setSelectedTask(updatedTask);
                 if (taskIdParam && !modalOpen) {
                     setModalOpen(true);
-                    
+
                     // Cleanup URL purely cosmetically so refreshing doesn't keep opening it if user closed it
                     // The standard way in Inertia without causing a visit is History API:
                     const url = new URL(window.location.href);
@@ -66,10 +68,18 @@ export function KanbanBoard({ kanban }: { kanban: any }) {
         const { destination, source } = result;
 
         if (!destination) return;
-        if (destination.droppableId === source.droppableId && destination.index === source.index) return;
+        if (
+            destination.droppableId === source.droppableId &&
+            destination.index === source.index
+        )
+            return;
 
-        const sourceColIndex = columns.findIndex((c: any) => c.id === source.droppableId);
-        const destColIndex = columns.findIndex((c: any) => c.id === destination.droppableId);
+        const sourceColIndex = columns.findIndex(
+            (c: any) => c.id === source.droppableId,
+        );
+        const destColIndex = columns.findIndex(
+            (c: any) => c.id === destination.droppableId,
+        );
 
         if (sourceColIndex === -1 || destColIndex === -1) return;
 
@@ -78,59 +88,88 @@ export function KanbanBoard({ kanban }: { kanban: any }) {
         const destCol = newColumns[destColIndex];
 
         const sourceTasks = Array.from(sourceCol.tasks || []) as any[];
-        const destTasks = source.droppableId === destination.droppableId
-            ? sourceTasks
-            : Array.from(destCol.tasks || []) as any[];
+        const destTasks =
+            source.droppableId === destination.droppableId
+                ? sourceTasks
+                : (Array.from(destCol.tasks || []) as any[]);
 
         const [movedTask] = sourceTasks.splice(source.index, 1);
         movedTask.kanban_column_id = destCol.id;
         destTasks.splice(destination.index, 0, movedTask);
 
-        const updatedTasks = destTasks.map((t: any, idx: number) => ({ ...t, order_position: idx }));
+        const updatedTasks = destTasks.map((t: any, idx: number) => ({
+            ...t,
+            order_position: idx,
+        }));
 
         if (source.droppableId === destination.droppableId) {
             newColumns[sourceColIndex] = { ...sourceCol, tasks: updatedTasks };
         } else {
-            const updatedSourceTasks = sourceTasks.map((t: any, idx: number) => ({ ...t, order_position: idx }));
-            newColumns[sourceColIndex] = { ...sourceCol, tasks: updatedSourceTasks };
+            const updatedSourceTasks = sourceTasks.map(
+                (t: any, idx: number) => ({ ...t, order_position: idx }),
+            );
+            newColumns[sourceColIndex] = {
+                ...sourceCol,
+                tasks: updatedSourceTasks,
+            };
             newColumns[destColIndex] = { ...destCol, tasks: updatedTasks };
         }
 
         setColumns(newColumns);
 
-        router.put(BoardActions.reorderTasks.url(), {
-            tasks: updatedTasks.map((t: any) => ({
-                id: t.id,
-                kanban_column_id: t.kanban_column_id,
-                order_position: t.order_position,
-            })),
-        }, { preserveScroll: true, preserveState: true });
+        router.put(
+            BoardActions.reorderTasks.url(),
+            {
+                tasks: updatedTasks.map((t: any) => ({
+                    id: t.id,
+                    kanban_column_id: t.kanban_column_id,
+                    order_position: t.order_position,
+                })),
+            },
+            { preserveScroll: true, preserveState: true },
+        );
     };
 
     const handleAddColumn = () => {
         if (!newColumnTitle.trim() || saving) return;
         setSaving(true);
-        router.post(ColumnActions.store.url(kanban.id), {
-            title: newColumnTitle.trim(),
-        }, {
-            preserveScroll: true,
-            onSuccess: () => {
-                setNewColumnTitle('');
-                setAddingColumn(false);
-                setSaving(false);
+        router.post(
+            ColumnActions.store.url(kanban.id),
+            {
+                title: newColumnTitle.trim(),
             },
-            onError: () => setSaving(false),
-        });
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setNewColumnTitle('');
+                    setAddingColumn(false);
+                    setSaving(false);
+                },
+                onError: () => setSaving(false),
+            },
+        );
     };
 
-    if (!kanban) return <div className="p-8 text-muted-foreground">No Kanban Board Found</div>;
+    if (!kanban)
+        return (
+            <div className="p-8 text-muted-foreground">
+                No Kanban Board Found
+            </div>
+        );
 
-    const columnColors = ['border-slate-300', 'border-blue-500', 'border-orange-500', 'border-emerald-500', 'border-purple-500', 'border-pink-500'];
+    const columnColors = [
+        'border-slate-300',
+        'border-blue-500',
+        'border-orange-500',
+        'border-emerald-500',
+        'border-purple-500',
+        'border-pink-500',
+    ];
 
     return (
         <>
             <DragDropContext onDragEnd={onDragEnd}>
-                <div className="flex flex-1 h-full gap-6 overflow-x-auto p-6 pt-4 items-start">
+                <div className="flex h-full flex-1 items-start gap-6 overflow-x-auto p-6 pt-4">
                     {columns.map((column: any, idx: number) => (
                         <KanbanColumn
                             key={column.id}
@@ -143,26 +182,42 @@ export function KanbanBoard({ kanban }: { kanban: any }) {
                     ))}
 
                     {/* Add Column */}
-                    <div className="flex flex-col w-[280px] min-w-[280px]">
+                    <div className="flex w-[280px] min-w-[280px] flex-col">
                         {addingColumn ? (
-                            <div className="flex flex-col gap-2 p-3 rounded-xl border border-sidebar-border/70 bg-white dark:bg-zinc-900">
-                                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Nama Kolom</p>
+                            <div className="flex flex-col gap-2 rounded-xl border border-sidebar-border/70 bg-white p-3 dark:bg-zinc-900">
+                                <p className="text-xs font-semibold tracking-wider text-slate-500 uppercase">
+                                    Nama Kolom
+                                </p>
                                 <Input
                                     autoFocus
                                     value={newColumnTitle}
-                                    onChange={(e) => setNewColumnTitle(e.target.value)}
+                                    onChange={(e) =>
+                                        setNewColumnTitle(e.target.value)
+                                    }
                                     onKeyDown={(e) => {
-                                        if (e.key === 'Enter') handleAddColumn();
-                                        if (e.key === 'Escape') setAddingColumn(false);
+                                        if (e.key === 'Enter')
+                                            handleAddColumn();
+                                        if (e.key === 'Escape')
+                                            setAddingColumn(false);
                                     }}
                                     placeholder="Contoh: In Review"
                                     className="h-8 text-sm"
                                 />
                                 <div className="flex gap-2">
-                                    <Button size="sm" className="h-7 text-xs" onClick={handleAddColumn} disabled={saving}>
+                                    <Button
+                                        size="sm"
+                                        className="h-7 text-xs"
+                                        onClick={handleAddColumn}
+                                        disabled={saving}
+                                    >
                                         {saving ? 'Menyimpan...' : 'Tambah'}
                                     </Button>
-                                    <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setAddingColumn(false)}>
+                                    <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="h-7 text-xs"
+                                        onClick={() => setAddingColumn(false)}
+                                    >
                                         Batal
                                     </Button>
                                 </div>
@@ -170,9 +225,9 @@ export function KanbanBoard({ kanban }: { kanban: any }) {
                         ) : (
                             <button
                                 onClick={() => setAddingColumn(true)}
-                                className="flex items-center gap-2 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 px-4 py-3 text-sm font-medium text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors w-full"
+                                className="flex w-full items-center gap-2 rounded-xl border border-dashed border-slate-300 px-4 py-3 text-sm font-medium text-slate-500 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-900"
                             >
-                                <Plus className="w-4 h-4" /> Tambah Kolom
+                                <Plus className="h-4 w-4" /> Tambah Kolom
                             </button>
                         )}
                     </div>

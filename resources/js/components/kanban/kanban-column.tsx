@@ -22,7 +22,13 @@ interface Props {
     onTaskCreated: (task: any) => void;
 }
 
-export function KanbanColumn({ column, colorClass, teamId, onCardClick, onTaskCreated }: Props) {
+export function KanbanColumn({
+    column,
+    colorClass,
+    teamId,
+    onCardClick,
+    onTaskCreated,
+}: Props) {
     const [editing, setEditing] = useState(false);
     const [title, setTitle] = useState(column.title);
     const [addingTask, setAddingTask] = useState(false);
@@ -37,16 +43,30 @@ export function KanbanColumn({ column, colorClass, teamId, onCardClick, onTaskCr
             setTitle(column.title);
             return;
         }
-        router.put(ColumnActions.update.url(column.id), { title: title.trim() }, {
-            preserveScroll: true,
-            onSuccess: () => setEditing(false),
-            onError: () => { setTitle(column.title); setEditing(false); },
-        });
+        router.put(
+            ColumnActions.update.url(column.id),
+            { title: title.trim() },
+            {
+                preserveScroll: true,
+                onSuccess: () => setEditing(false),
+                onError: () => {
+                    setTitle(column.title);
+                    setEditing(false);
+                },
+            },
+        );
     };
 
     const handleDeleteColumn = () => {
-        if (!confirm(`Hapus kolom "${column.title}"? Semua task di dalamnya akan ikut terhapus.`)) return;
-        router.delete(ColumnActions.destroy.url(column.id), { preserveScroll: true });
+        if (
+            !confirm(
+                `Hapus kolom "${column.title}"? Semua task di dalamnya akan ikut terhapus.`,
+            )
+        )
+            return;
+        router.delete(ColumnActions.destroy.url(column.id), {
+            preserveScroll: true,
+        });
     };
 
     const handleAddTask = () => {
@@ -57,7 +77,7 @@ export function KanbanColumn({ column, colorClass, teamId, onCardClick, onTaskCr
         formData.append('kanban_column_id', column.id);
         formData.append('team_id', teamId);
         formData.append('title', newTaskTitle.trim());
-        
+
         newTaskAttachments.forEach((file, index) => {
             formData.append(`attachments[${index}]`, file);
         });
@@ -67,7 +87,9 @@ export function KanbanColumn({ column, colorClass, teamId, onCardClick, onTaskCr
             preserveState: false, // let Inertia refresh props.team so new task appears
             onSuccess: (page) => {
                 const updatedKanban = (page.props as any).team?.kanbans?.[0];
-                const updatedColumn = updatedKanban?.columns?.find((c: any) => c.id === column.id);
+                const updatedColumn = updatedKanban?.columns?.find(
+                    (c: any) => c.id === column.id,
+                );
                 const latestTasks = updatedColumn?.tasks ?? [];
                 const newTask = latestTasks[latestTasks.length - 1];
 
@@ -75,7 +97,8 @@ export function KanbanColumn({ column, colorClass, teamId, onCardClick, onTaskCr
                 setNewTaskTitle('');
                 setNewTaskAttachments([]);
                 setAddingTask(false);
-                if (taskFileInputRef.current) taskFileInputRef.current.value = '';
+                if (taskFileInputRef.current)
+                    taskFileInputRef.current.value = '';
 
                 if (newTask) {
                     onTaskCreated(newTask);
@@ -86,35 +109,49 @@ export function KanbanColumn({ column, colorClass, teamId, onCardClick, onTaskCr
     };
 
     return (
-        <div className="flex flex-col w-[320px] min-w-[320px] h-full">
+        <div className="flex h-full w-[320px] min-w-[320px] flex-col">
             {/* Column Header */}
-            <div className={`flex items-center justify-between mb-4 pb-2 border-b-2 ${colorClass}`}>
-                <div className="flex items-center gap-2 flex-1">
+            <div
+                className={`mb-4 flex items-center justify-between border-b-2 pb-2 ${colorClass}`}
+            >
+                <div className="flex flex-1 items-center gap-2">
                     {editing ? (
-                        <div className="flex items-center gap-1 flex-1">
+                        <div className="flex flex-1 items-center gap-1">
                             <Input
                                 autoFocus
                                 value={title}
                                 onChange={(e) => setTitle(e.target.value)}
                                 onKeyDown={(e) => {
                                     if (e.key === 'Enter') handleRenameColumn();
-                                    if (e.key === 'Escape') { setTitle(column.title); setEditing(false); }
+                                    if (e.key === 'Escape') {
+                                        setTitle(column.title);
+                                        setEditing(false);
+                                    }
                                 }}
-                                className="h-6 text-xs font-bold uppercase tracking-wider py-0 px-1"
+                                className="h-6 px-1 py-0 text-xs font-bold tracking-wider uppercase"
                             />
-                            <button onClick={handleRenameColumn} className="text-emerald-500 hover:text-emerald-600">
-                                <Check className="w-4 h-4" />
+                            <button
+                                onClick={handleRenameColumn}
+                                className="text-emerald-500 hover:text-emerald-600"
+                            >
+                                <Check className="h-4 w-4" />
                             </button>
-                            <button onClick={() => { setTitle(column.title); setEditing(false); }} className="text-red-400 hover:text-red-500">
-                                <X className="w-4 h-4" />
+                            <button
+                                onClick={() => {
+                                    setTitle(column.title);
+                                    setEditing(false);
+                                }}
+                                className="text-red-400 hover:text-red-500"
+                            >
+                                <X className="h-4 w-4" />
                             </button>
                         </div>
                     ) : (
                         <>
-                            <h2 className="text-sm font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">
+                            <h2 className="text-sm font-bold tracking-wider text-slate-800 uppercase dark:text-slate-200">
                                 {column.title}
                             </h2>
-                            <span className="flex items-center justify-center w-6 h-6 rounded-full bg-slate-100 dark:bg-slate-800 text-xs font-semibold text-slate-500">
+                            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 text-xs font-semibold text-slate-500 dark:bg-slate-800">
                                 {column.tasks?.length || 0}
                             </span>
                         </>
@@ -124,19 +161,19 @@ export function KanbanColumn({ column, colorClass, teamId, onCardClick, onTaskCr
                 {!editing && (
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                            <button className="text-slate-400 hover:text-slate-600 ml-2">
-                                <MoreHorizontal className="w-5 h-5" />
+                            <button className="ml-2 text-slate-400 hover:text-slate-600">
+                                <MoreHorizontal className="h-5 w-5" />
                             </button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-40">
                             <DropdownMenuItem onClick={() => setEditing(true)}>
-                                <Pencil className="w-4 h-4 mr-2" /> Rename
+                                <Pencil className="mr-2 h-4 w-4" /> Rename
                             </DropdownMenuItem>
                             <DropdownMenuItem
                                 onClick={handleDeleteColumn}
                                 className="text-red-600 focus:text-red-600"
                             >
-                                <Trash2 className="w-4 h-4 mr-2" /> Hapus Kolom
+                                <Trash2 className="mr-2 h-4 w-4" /> Hapus Kolom
                             </DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
@@ -146,12 +183,14 @@ export function KanbanColumn({ column, colorClass, teamId, onCardClick, onTaskCr
             {/* Tasks Droppable */}
             <Droppable droppableId={column.id.toString()} type="task">
                 {(provided, snapshot) => (
-                    <ScrollArea className="flex-1 h-full rounded-md pr-3 -mr-3 pb-4">
+                    <ScrollArea className="-mr-3 h-full flex-1 rounded-md pr-3 pb-4">
                         <div
                             ref={provided.innerRef}
                             {...provided.droppableProps}
-                            className={`min-h-[200px] flex flex-col gap-4 rounded-lg transition-colors ${
-                                snapshot.isDraggingOver ? 'bg-slate-50/50 dark:bg-slate-900/50' : ''
+                            className={`flex min-h-[200px] flex-col gap-4 rounded-lg transition-colors ${
+                                snapshot.isDraggingOver
+                                    ? 'bg-slate-50/50 dark:bg-slate-900/50'
+                                    : ''
                             }`}
                         >
                             {column.tasks?.map((task: any, index: number) => (
@@ -166,53 +205,100 @@ export function KanbanColumn({ column, colorClass, teamId, onCardClick, onTaskCr
 
                             {/* Add Task Inline */}
                             {addingTask ? (
-                                <div className="flex flex-col gap-2 p-3 rounded-xl border border-sidebar-border/70 bg-white dark:bg-zinc-900">
+                                <div className="flex flex-col gap-2 rounded-xl border border-sidebar-border/70 bg-white p-3 dark:bg-zinc-900">
                                     <Input
                                         autoFocus
                                         value={newTaskTitle}
-                                        onChange={(e) => setNewTaskTitle(e.target.value)}
+                                        onChange={(e) =>
+                                            setNewTaskTitle(e.target.value)
+                                        }
                                         onKeyDown={(e) => {
-                                            if (e.key === 'Enter') handleAddTask();
-                                            if (e.key === 'Escape') setAddingTask(false);
+                                            if (e.key === 'Enter')
+                                                handleAddTask();
+                                            if (e.key === 'Escape')
+                                                setAddingTask(false);
                                         }}
                                         placeholder="Judul task baru..."
                                         className="h-8 text-sm"
                                     />
-                                    
+
                                     {newTaskAttachments.length > 0 && (
-                                        <div className="flex flex-wrap gap-1 mt-1">
+                                        <div className="mt-1 flex flex-wrap gap-1">
                                             {newTaskAttachments.map((f, i) => (
-                                                <span key={i} className="text-[10px] bg-slate-100 dark:bg-zinc-800 px-2 py-0.5 rounded flex items-center gap-1">
+                                                <span
+                                                    key={i}
+                                                    className="flex items-center gap-1 rounded bg-slate-100 px-2 py-0.5 text-[10px] dark:bg-zinc-800"
+                                                >
                                                     {f.name}
-                                                    <button onClick={() => setNewTaskAttachments(newTaskAttachments.filter((_, idx) => idx !== i))} className="ml-1 text-red-500 hover:text-red-700">
-                                                        <X className="w-2.5 h-2.5" />
+                                                    <button
+                                                        onClick={() =>
+                                                            setNewTaskAttachments(
+                                                                newTaskAttachments.filter(
+                                                                    (_, idx) =>
+                                                                        idx !==
+                                                                        i,
+                                                                ),
+                                                            )
+                                                        }
+                                                        className="ml-1 text-red-500 hover:text-red-700"
+                                                    >
+                                                        <X className="h-2.5 w-2.5" />
                                                     </button>
                                                 </span>
                                             ))}
                                         </div>
                                     )}
 
-                                    <div className="flex gap-2 items-center">
-                                        <input type="file" multiple className="hidden" ref={taskFileInputRef} onChange={(e) => {
-                                            if (e.target.files?.length) setNewTaskAttachments([...newTaskAttachments, ...Array.from(e.target.files)]);
-                                        }} />
-                                        <button 
+                                    <div className="flex items-center gap-2">
+                                        <input
+                                            type="file"
+                                            multiple
+                                            className="hidden"
+                                            ref={taskFileInputRef}
+                                            onChange={(e) => {
+                                                if (e.target.files?.length)
+                                                    setNewTaskAttachments([
+                                                        ...newTaskAttachments,
+                                                        ...Array.from(
+                                                            e.target.files,
+                                                        ),
+                                                    ]);
+                                            }}
+                                        />
+                                        <button
                                             title="Lampirkan File"
-                                            onClick={(e) => { e.preventDefault(); taskFileInputRef.current?.click(); }} 
-                                            className="w-8 h-8 flex items-center justify-center rounded-md border border-sidebar-border hover:bg-slate-50 dark:hover:bg-zinc-800 text-slate-500 transition-colors"
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                taskFileInputRef.current?.click();
+                                            }}
+                                            className="flex h-8 w-8 items-center justify-center rounded-md border border-sidebar-border text-slate-500 transition-colors hover:bg-slate-50 dark:hover:bg-zinc-800"
                                         >
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+                                            <svg
+                                                xmlns="http://www.w3.org/2000/svg"
+                                                width="16"
+                                                height="16"
+                                                viewBox="0 0 24 24"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                strokeWidth="2"
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                            >
+                                                <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48" />
+                                            </svg>
                                         </button>
                                         <button
                                             onClick={handleAddTask}
                                             disabled={savingTask}
-                                            className="flex-1 text-xs py-1.5 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
+                                            className="flex-1 rounded-md bg-primary py-1.5 text-xs text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
                                         >
-                                            {savingTask ? 'Menyimpan...' : 'Tambah'}
+                                            {savingTask
+                                                ? 'Menyimpan...'
+                                                : 'Tambah'}
                                         </button>
                                         <button
                                             onClick={() => setAddingTask(false)}
-                                            className="flex-1 text-xs py-1.5 rounded-md border border-sidebar-border hover:bg-slate-50 dark:hover:bg-zinc-800 transition-colors"
+                                            className="flex-1 rounded-md border border-sidebar-border py-1.5 text-xs transition-colors hover:bg-slate-50 dark:hover:bg-zinc-800"
                                         >
                                             Batal
                                         </button>
@@ -221,9 +307,9 @@ export function KanbanColumn({ column, colorClass, teamId, onCardClick, onTaskCr
                             ) : (
                                 <button
                                     onClick={() => setAddingTask(true)}
-                                    className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 bg-transparent py-3 text-sm font-medium text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors"
+                                    className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-slate-300 bg-transparent py-3 text-sm font-medium text-slate-500 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-900"
                                 >
-                                    <Plus className="w-4 h-4" /> Add Card
+                                    <Plus className="h-4 w-4" /> Add Card
                                 </button>
                             )}
                         </div>
