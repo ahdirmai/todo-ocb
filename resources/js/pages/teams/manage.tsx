@@ -187,8 +187,9 @@ export default function TeamsManage() {
                 {/* Teams Table */}
                 <div className="flex-1 overflow-auto p-6">
                     <div className="overflow-hidden rounded-xl border border-sidebar-border/70">
-                        <table className="w-full text-sm">
-                            <thead className="bg-slate-50 dark:bg-zinc-900/50">
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm">
+                                <thead className="bg-slate-50 dark:bg-zinc-900/50">
                                 <tr>
                                     <th className="px-4 py-3 text-left font-semibold text-slate-600 dark:text-slate-400">
                                         Nama Tim
@@ -325,6 +326,7 @@ export default function TeamsManage() {
                                 )}
                             </tbody>
                         </table>
+                        </div>
                     </div>
                 </div>
             </div>

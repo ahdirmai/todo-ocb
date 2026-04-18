@@ -5,6 +5,12 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import {
+    Sheet,
+    SheetContent,
+    SheetHeader,
+    SheetTitle,
+} from '@/components/ui/sheet';
+import {
     Paperclip,
     Send,
     X,
@@ -196,11 +202,56 @@ function MessageBubble({
     );
 }
 
+function MemberList({ team }: { team: any }) {
+    const members: TeamUser[] = team.users ?? [];
+
+    return (
+        <div className="flex-1 overflow-y-auto py-2">
+            {members.map((user) => {
+                const role = user.pivot?.role ?? 'member';
+                return (
+                    <div
+                        key={user.id}
+                        className="mx-1 flex items-center gap-2.5 rounded-lg px-3 py-2 transition-colors hover:bg-slate-100/60 dark:hover:bg-zinc-800/50"
+                    >
+                        <div className="relative shrink-0">
+                            <Avatar className="h-8 w-8">
+                                <AvatarImage
+                                    src={user.avatar_url ?? undefined}
+                                    className="object-cover"
+                                />
+                                <AvatarFallback className="bg-primary/10 text-xs font-bold text-primary">
+                                    {getInitials(user.name)}
+                                </AvatarFallback>
+                            </Avatar>
+                            <span className="absolute -right-0.5 -bottom-0.5 h-2.5 w-2.5 rounded-full border-2 border-background bg-emerald-400" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                            <p className="truncate text-xs leading-none font-medium text-slate-800 dark:text-slate-200">
+                                {user.name}
+                            </p>
+                            <Badge
+                                className={`mt-1 h-4 border-none px-1.5 py-0 text-[9px] leading-none ${
+                                    role === 'admin'
+                                        ? 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300'
+                                        : 'bg-slate-100 text-slate-500 dark:bg-zinc-800 dark:text-slate-400'
+                                }`}
+                            >
+                                {role === 'admin' ? 'Admin' : 'Member'}
+                            </Badge>
+                        </div>
+                    </div>
+                );
+            })}
+        </div>
+    );
+}
+
 function MemberSidebar({ team }: { team: any }) {
     const members: TeamUser[] = team.users ?? [];
 
     return (
-        <aside className="flex w-60 shrink-0 flex-col border-l border-sidebar-border/70 bg-slate-50/50 dark:bg-zinc-900/30">
+        <aside className="hidden w-60 shrink-0 flex-col border-l border-sidebar-border/70 bg-slate-50/50 md:flex dark:bg-zinc-900/30">
             <div className="border-b border-sidebar-border/50 px-4 py-3">
                 <div className="flex items-center gap-2">
                     <Users className="h-3.5 w-3.5 text-muted-foreground" />
@@ -209,44 +260,7 @@ function MemberSidebar({ team }: { team: any }) {
                     </span>
                 </div>
             </div>
-            <div className="flex-1 overflow-y-auto py-2">
-                {members.map((user) => {
-                    const role = user.pivot?.role ?? 'member';
-                    return (
-                        <div
-                            key={user.id}
-                            className="mx-1 flex items-center gap-2.5 rounded-lg px-3 py-2 transition-colors hover:bg-slate-100/60 dark:hover:bg-zinc-800/50"
-                        >
-                            <div className="relative shrink-0">
-                                <Avatar className="h-8 w-8">
-                                    <AvatarImage
-                                        src={user.avatar_url ?? undefined}
-                                        className="object-cover"
-                                    />
-                                    <AvatarFallback className="bg-primary/10 text-xs font-bold text-primary">
-                                        {getInitials(user.name)}
-                                    </AvatarFallback>
-                                </Avatar>
-                                <span className="absolute -right-0.5 -bottom-0.5 h-2.5 w-2.5 rounded-full border-2 border-background bg-emerald-400" />
-                            </div>
-                            <div className="min-w-0 flex-1">
-                                <p className="truncate text-xs leading-none font-medium text-slate-800 dark:text-slate-200">
-                                    {user.name}
-                                </p>
-                                <Badge
-                                    className={`mt-1 h-4 border-none px-1.5 py-0 text-[9px] leading-none ${
-                                        role === 'admin'
-                                            ? 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300'
-                                            : 'bg-slate-100 text-slate-500 dark:bg-zinc-800 dark:text-slate-400'
-                                    }`}
-                                >
-                                    {role === 'admin' ? 'Admin' : 'Member'}
-                                </Badge>
-                            </div>
-                        </div>
-                    );
-                })}
-            </div>
+            <MemberList team={team} />
         </aside>
     );
 }
@@ -264,6 +278,7 @@ export function ChatTab({ team }: { team: any }) {
     const [file, setFile] = useState<File | null>(null);
     const [sending, setSending] = useState(false);
     const [connected, setConnected] = useState(false);
+    const [memberSheetOpen, setMemberSheetOpen] = useState(false);
 
     const bottomRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -428,14 +443,24 @@ export function ChatTab({ team }: { team: any }) {
                             </p>
                         </div>
                     </div>
-                    {/* Connection indicator */}
-                    <div className="flex items-center gap-1.5">
-                        <span
-                            className={`h-2 w-2 rounded-full ${connected ? 'animate-pulse bg-emerald-400' : 'bg-slate-300 dark:bg-zinc-600'}`}
-                        />
-                        <span className="text-[10px] text-muted-foreground">
-                            {connected ? 'Live' : 'Menghubungkan...'}
-                        </span>
+                    {/* Connection indicator + mobile member toggle */}
+                    <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1.5">
+                            <span
+                                className={`h-2 w-2 rounded-full ${connected ? 'animate-pulse bg-emerald-400' : 'bg-slate-300 dark:bg-zinc-600'}`}
+                            />
+                            <span className="text-[10px] text-muted-foreground">
+                                {connected ? 'Live' : 'Menghubungkan...'}
+                            </span>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => setMemberSheetOpen(true)}
+                            className="flex h-8 w-8 items-center justify-center rounded-lg border border-sidebar-border/70 text-muted-foreground transition-colors hover:bg-primary/5 hover:text-primary md:hidden"
+                            title="Lihat anggota"
+                        >
+                            <Users className="h-4 w-4" />
+                        </button>
                     </div>
                 </div>
 
@@ -544,8 +569,21 @@ export function ChatTab({ team }: { team: any }) {
                 </div>
             </div>
 
-            {/* ── Member Sidebar ───────────────────────────────── */}
+            {/* ── Member Sidebar (desktop) ──────────────────── */}
             <MemberSidebar team={team} />
+
+            {/* ── Member Sheet (mobile) ──────────────────────── */}
+            <Sheet open={memberSheetOpen} onOpenChange={setMemberSheetOpen}>
+                <SheetContent side="right" className="w-72 p-0">
+                    <SheetHeader className="border-b border-sidebar-border/50 px-4 py-3">
+                        <SheetTitle className="flex items-center gap-2 text-sm">
+                            <Users className="h-4 w-4 text-muted-foreground" />
+                            Anggota ({team.users?.length ?? 0})
+                        </SheetTitle>
+                    </SheetHeader>
+                    <MemberList team={team} />
+                </SheetContent>
+            </Sheet>
         </div>
     );
 }

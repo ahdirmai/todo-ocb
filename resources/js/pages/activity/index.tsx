@@ -134,7 +134,7 @@ export default function ActivityIndex() {
                         Cari
                     </Button>
 
-                    <div className="ml-0 flex flex-wrap items-center gap-1.5 sm:ml-auto">
+                    <div className="ml-0 flex flex-nowrap overflow-x-auto pb-1 scrollbar-hide items-center gap-1.5 sm:ml-auto sm:flex-wrap">
                         {FILTER_TABS.map((tab) => (
                             <button
                                 key={tab || 'all'}
@@ -159,8 +159,9 @@ export default function ActivityIndex() {
                         </p>
                     ) : (
                         <div className="overflow-hidden rounded-xl border border-sidebar-border/70 bg-white dark:bg-zinc-900/10">
-                            <table className="w-full text-sm">
-                                <thead className="bg-slate-50 dark:bg-zinc-900/50">
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-sm">
+                                    <thead className="bg-slate-50 dark:bg-zinc-900/50">
                                     <tr>
                                         <th className="px-4 py-3 text-left font-semibold text-slate-600 dark:text-slate-400">
                                             Waktu
@@ -253,6 +254,7 @@ export default function ActivityIndex() {
                                     })}
                                 </tbody>
                             </table>
+                            </div>
                         </div>
                     )}
 

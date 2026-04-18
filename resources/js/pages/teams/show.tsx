@@ -92,8 +92,8 @@ export default function TeamShow({
                     onValueChange={handleTabChange}
                     className="flex h-full w-full flex-1 flex-col overflow-hidden"
                 >
-                    <div className="border-b border-sidebar-border/70 px-6">
-                        <TabsList className="h-auto w-full justify-start space-x-6 bg-transparent p-0">
+                    <div className="w-full overflow-x-auto border-b border-sidebar-border/70 px-6 scrollbar-hide">
+                        <TabsList className="flex h-auto w-max min-w-full justify-start space-x-6 bg-transparent p-0 pb-1">
                             {(Object.keys(TAB_LABELS) as Tab[]).map((key) => (
                                 <TabsTrigger
                                     key={key}

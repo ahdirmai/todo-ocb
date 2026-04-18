@@ -106,31 +106,33 @@ export function OverviewTab({ team }: { team: any }) {
                     <h3 className="mb-6 text-sm font-semibold text-slate-700 dark:text-slate-300">
                         Distribusi Tugas per Kolom Kanban
                     </h3>
-                    <div className="h-64 w-full">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={columnStats} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#cbd5e1" className="dark:stroke-slate-700 dark:opacity-20" />
-                                <XAxis 
-                                    dataKey="name" 
-                                    axisLine={false} 
-                                    tickLine={false} 
-                                    tick={{ fill: '#64748b', fontSize: 12 }}
-                                    dy={10}
-                                />
-                                <YAxis 
-                                    axisLine={false} 
-                                    tickLine={false} 
-                                    tick={{ fill: '#64748b', fontSize: 12 }}
-                                    allowDecimals={false}
-                                />
-                                <Tooltip 
-                                    cursor={{ fill: '#94a3b8', opacity: 0.1 }}
-                                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', backgroundColor: 'var(--tw-colors-white, #fff)', color: '#0f172a' }}
-                                    itemStyle={{ color: '#8b5cf6', fontWeight: 600 }}
-                                />
-                                <Bar dataKey="tasks" name="Jumlah Tugas" fill="#8b5cf6" radius={[4, 4, 0, 0]} maxBarSize={40} />
-                            </BarChart>
-                        </ResponsiveContainer>
+                    <div className="h-64 w-full overflow-x-auto scrollbar-hide">
+                        <div className="h-full min-w-[500px]">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={columnStats} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#cbd5e1" className="dark:stroke-slate-700 dark:opacity-20" />
+                                    <XAxis 
+                                        dataKey="name" 
+                                        axisLine={false} 
+                                        tickLine={false} 
+                                        tick={{ fill: '#64748b', fontSize: 12 }}
+                                        dy={10}
+                                    />
+                                    <YAxis 
+                                        axisLine={false} 
+                                        tickLine={false} 
+                                        tick={{ fill: '#64748b', fontSize: 12 }}
+                                        allowDecimals={false}
+                                    />
+                                    <Tooltip 
+                                        cursor={{ fill: '#94a3b8', opacity: 0.1 }}
+                                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', backgroundColor: 'var(--tw-colors-white, #fff)', color: '#0f172a' }}
+                                        itemStyle={{ color: '#8b5cf6', fontWeight: 600 }}
+                                    />
+                                    <Bar dataKey="tasks" name="Jumlah Tugas" fill="#8b5cf6" radius={[4, 4, 0, 0]} maxBarSize={40} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
                     </div>
                 </div>
             )}
