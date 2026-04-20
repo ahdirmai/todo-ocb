@@ -191,7 +191,7 @@ export function OverviewTab({ team }: { team: any }) {
                                                 {user.name}
                                             </p>
                                             <p className="truncate text-xs text-muted-foreground">
-                                                {user.email}
+                                                {user.position ? `${user.position} • ${user.email}` : user.email}
                                             </p>
                                         </div>
 

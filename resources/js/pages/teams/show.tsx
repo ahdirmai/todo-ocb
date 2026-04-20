@@ -12,6 +12,13 @@ import { PertanyaanTab } from './partials/pertanyaan-tab';
 import { DokumenTab } from './partials/dokumen-tab';
 import { TugasTab } from './partials/tugas-tab';
 import { ActivityTab } from './partials/activity-tab';
+import { useState } from 'react';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 
 type Tab =
     | 'overview'
@@ -39,6 +46,8 @@ export default function TeamShow({
     tab: Tab;
     item?: string;
 }) {
+    const [showMembersModal, setShowMembersModal] = useState(false);
+
     setLayoutProps({
         breadcrumbs: [{ title: team.name, href: `/teams/${team.slug}` }],
     });
@@ -60,7 +69,10 @@ export default function TeamShow({
                     </h1>
 
                     <div className="flex items-center gap-4">
-                        <div className="flex -space-x-2">
+                        <div
+                            className="flex cursor-pointer -space-x-2 transition-opacity hover:opacity-80"
+                            onClick={() => setShowMembersModal(true)}
+                        >
                             {team.users
                                 ?.slice(0, 3)
                                 .map((u: any, i: number) => (
@@ -146,6 +158,43 @@ export default function TeamShow({
                     </div>
                 </Tabs>
             </div>
+
+            <Dialog
+                open={showMembersModal}
+                onOpenChange={setShowMembersModal}
+            >
+                <DialogContent className="max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Anggota Tim — {team.name}</DialogTitle>
+                    </DialogHeader>
+                    <div className="mt-4 flex flex-col gap-4">
+                        {team.users?.map((u: any) => (
+                            <div key={u.id} className="flex items-center gap-3">
+                                <Avatar className="h-10 w-10">
+                                    <AvatarImage
+                                        src={u.avatar_url ?? undefined}
+                                        alt={u.name}
+                                        className="object-cover"
+                                    />
+                                    <AvatarFallback className="bg-primary/10 text-sm font-bold text-primary">
+                                        {u.name?.charAt(0).toUpperCase()}
+                                    </AvatarFallback>
+                                </Avatar>
+                                <div className="flex flex-col">
+                                    <span className="font-semibold text-slate-900 dark:text-slate-100">
+                                        {u.name}
+                                    </span>
+                                    {u.position && (
+                                        <span className="text-xs text-muted-foreground">
+                                            {u.position}
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </DialogContent>
+            </Dialog>
         </>
     );
 }

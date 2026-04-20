@@ -26,6 +26,7 @@ interface Member {
     name: string;
     email: string;
     avatar_url?: string | null;
+    position?: string | null;
     role: string;
 }
 
@@ -67,15 +68,19 @@ export default function MembersIndex({
         name: '',
         email: '',
         password: '',
+        position: '',
         role: 'member',
     });
-    const [editRole, setEditRole] = useState('');
+    const [editForm, setEditForm] = useState({
+        position: '',
+        role: '',
+    });
 
     const handleInvite = () => {
         router.post(MemberActions.store.url(), form, {
             onSuccess: () => {
                 setInviteOpen(false);
-                setForm({ name: '', email: '', password: '', role: 'member' });
+                setForm({ name: '', email: '', password: '', position: '', role: 'member' });
             },
         });
     };
@@ -84,7 +89,7 @@ export default function MembersIndex({
         if (!editMember) return;
         router.put(
             MemberActions.update.url(editMember.id),
-            { role: editRole },
+            editForm,
             {
                 onSuccess: () => setEditMember(null),
             },
@@ -132,6 +137,9 @@ export default function MembersIndex({
                                         Email
                                     </th>
                                     <th className="px-4 py-3 text-left font-semibold text-slate-600 dark:text-slate-400">
+                                        Posisi
+                                    </th>
+                                    <th className="px-4 py-3 text-left font-semibold text-slate-600 dark:text-slate-400">
                                         Role
                                     </th>
                                     <th className="px-4 py-3 text-right font-semibold text-slate-600 dark:text-slate-400">
@@ -173,6 +181,9 @@ export default function MembersIndex({
                                             <td className="px-4 py-3 text-muted-foreground">
                                                 {m.email}
                                             </td>
+                                            <td className="px-4 py-3 text-slate-600 dark:text-slate-400">
+                                                {m.position || '-'}
+                                            </td>
                                             <td className="px-4 py-3">
                                                 <Badge
                                                     className={`${cfg.color} gap-1 border-none font-semibold`}
@@ -193,9 +204,10 @@ export default function MembersIndex({
                                                                     setEditMember(
                                                                         m,
                                                                     );
-                                                                    setEditRole(
-                                                                        m.role,
-                                                                    );
+                                                                    setEditForm({
+                                                                        position: m.position || '',
+                                                                        role: m.role,
+                                                                    });
                                                                 }}
                                                             >
                                                                 <Pencil className="h-3.5 w-3.5" />
@@ -279,6 +291,21 @@ export default function MembersIndex({
                         </div>
                         <div>
                             <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                                Posisi
+                            </label>
+                            <Input
+                                value={form.position}
+                                onChange={(e) =>
+                                    setForm({
+                                        ...form,
+                                        position: e.target.value,
+                                    })
+                                }
+                                placeholder="Contoh: Senior Developer"
+                            />
+                        </div>
+                        <div>
+                            <label className="mb-1 block text-xs font-medium text-muted-foreground">
                                 Role
                             </label>
                             <Select
@@ -324,18 +351,43 @@ export default function MembersIndex({
                         </DialogTitle>
                     </DialogHeader>
                     <div className="mt-2 flex flex-col gap-3">
-                        <Select value={editRole} onValueChange={setEditRole}>
-                            <SelectTrigger>
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {roles.map((r) => (
-                                    <SelectItem key={r} value={r}>
-                                        {ROLE_CONFIG[r]?.label ?? r}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                        <div>
+                            <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                                Posisi
+                            </label>
+                            <Input
+                                value={editForm.position}
+                                onChange={(e) =>
+                                    setEditForm({
+                                        ...editForm,
+                                        position: e.target.value,
+                                    })
+                                }
+                                placeholder="Contoh: Senior Developer"
+                            />
+                        </div>
+                        <div>
+                            <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                                Role
+                            </label>
+                            <Select
+                                value={editForm.role}
+                                onValueChange={(v) =>
+                                    setEditForm({ ...editForm, role: v })
+                                }
+                            >
+                                <SelectTrigger>
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {roles.map((r) => (
+                                        <SelectItem key={r} value={r}>
+                                            {ROLE_CONFIG[r]?.label ?? r}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
                         <div className="flex justify-end gap-2">
                             <Button
                                 variant="outline"

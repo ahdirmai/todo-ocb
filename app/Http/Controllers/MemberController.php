@@ -17,6 +17,7 @@ class MemberController extends Controller
             'name' => $u->name,
             'email' => $u->email,
             'avatar_url' => $u->avatar_url,
+            'position' => $u->position,
             'role' => $u->roles->first()?->name ?? 'member',
         ]);
 
@@ -34,6 +35,7 @@ class MemberController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
             'password' => 'required|string|min:8',
+            'position' => 'nullable|string|max:255',
             'role' => 'required|string|exists:roles,name',
         ]);
 
@@ -41,6 +43,7 @@ class MemberController extends Controller
             'name' => $validated['name'],
             'email' => $validated['email'],
             'password' => bcrypt($validated['password']),
+            'position' => $validated['position'] ?? null,
         ]);
 
         $user->assignRole($validated['role']);
@@ -58,10 +61,14 @@ class MemberController extends Controller
     public function update(Request $request, User $user)
     {
         $validated = $request->validate([
+            'position' => 'nullable|string|max:255',
             'role' => 'required|string|exists:roles,name',
         ]);
 
         $oldRole = $user->roles->first()?->name ?? '-';
+        $user->update([
+            'position' => $validated['position'] ?? $user->position,
+        ]);
         $user->syncRoles($validated['role']);
 
         ActivityLogger::log(
