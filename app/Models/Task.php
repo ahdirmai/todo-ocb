@@ -16,9 +16,21 @@ class Task extends Model implements HasMedia
 
     protected $guarded = [];
 
+    protected function casts(): array
+    {
+        return [
+            'due_date' => 'datetime',
+        ];
+    }
+
     public function team()
     {
         return $this->belongsTo(Team::class);
+    }
+
+    public function creator()
+    {
+        return $this->belongsTo(User::class, 'creator_id');
     }
 
     public function kanbanColumn()
