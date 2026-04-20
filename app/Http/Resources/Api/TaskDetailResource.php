@@ -2,11 +2,14 @@
 
 namespace App\Http\Resources\Api;
 
+use App\Http\Resources\Api\Concerns\FormatsApiDates;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 class TaskDetailResource extends JsonResource
 {
+    use FormatsApiDates;
+
     public function toArray(Request $request): array
     {
         return [
@@ -15,10 +18,10 @@ class TaskDetailResource extends JsonResource
             'team_id' => $this->team_id,
             'title' => $this->title,
             'description' => $this->description,
-            'due_date' => $this->due_date?->toISOString(),
+            'due_date' => $this->humanizeDate($this->due_date),
             'order_position' => $this->order_position,
-            'created_at' => $this->created_at?->toISOString(),
-            'updated_at' => $this->updated_at?->toISOString(),
+            'created_at' => $this->humanizeDate($this->created_at),
+            'updated_at' => $this->humanizeDate($this->updated_at),
             'column' => $this->whenLoaded('kanbanColumn', function () {
                 if (! $this->kanbanColumn) {
                     return null;

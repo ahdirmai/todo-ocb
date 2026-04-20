@@ -155,6 +155,9 @@ test('team task index applies filters and returns stable summary payloads', func
         ->assertJsonPath('data.0.comments_count', 1)
         ->assertJsonPath('data.0.assignees.0.id', $user->id);
 
+    expect($response->json('data.0.due_date'))->toBeString();
+    expect($response->json('data.0.due_date'))->not->toContain('T');
+
     expect($otherTask->id)->not->toBe($matchingTask->id);
 });
 
@@ -256,6 +259,9 @@ test('team digest returns grouped operational snapshots', function () {
         ->assertJsonPath('data.recent_announcements.0.title', 'Daily update')
         ->assertJsonPath('data.recent_messages.0.body', 'Chat recap')
         ->assertJsonPath('data.latest_documents.0.name', 'Latest note');
+
+    expect($response->json('data.recent_messages.0.created_at'))->toBeString();
+    expect($response->json('data.recent_messages.0.created_at'))->not->toContain('T');
 });
 
 test('announcement endpoints return summary and detail payloads', function () {

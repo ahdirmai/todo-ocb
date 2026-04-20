@@ -315,7 +315,7 @@ class TeamReadController extends Controller
                 'id' => $task->id,
                 'label' => $task->title,
                 'description' => $task->description,
-                'meta' => ['due_date' => $task->due_date?->toISOString()],
+                'meta' => ['due_date' => $task->due_date?->diffForHumans()],
                 'links' => ['api' => route('api.tasks.show', $task)],
             ]);
 

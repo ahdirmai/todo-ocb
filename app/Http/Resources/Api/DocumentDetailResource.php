@@ -2,11 +2,14 @@
 
 namespace App\Http\Resources\Api;
 
+use App\Http\Resources\Api\Concerns\FormatsApiDates;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 class DocumentDetailResource extends JsonResource
 {
+    use FormatsApiDates;
+
     public function toArray(Request $request): array
     {
         return [
@@ -17,8 +20,8 @@ class DocumentDetailResource extends JsonResource
             'type' => $this->type,
             'name' => $this->name,
             'content' => $this->content,
-            'created_at' => $this->created_at?->toISOString(),
-            'updated_at' => $this->updated_at?->toISOString(),
+            'created_at' => $this->humanizeDate($this->created_at),
+            'updated_at' => $this->humanizeDate($this->updated_at),
             'owner' => $this->whenLoaded('user', function () {
                 if (! $this->user) {
                     return null;

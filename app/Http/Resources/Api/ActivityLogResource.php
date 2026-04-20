@@ -2,12 +2,15 @@
 
 namespace App\Http\Resources\Api;
 
+use App\Http\Resources\Api\Concerns\FormatsApiDates;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 class ActivityLogResource extends JsonResource
 {
+    use FormatsApiDates;
+
     public function toArray(Request $request): array
     {
         return [
@@ -16,7 +19,7 @@ class ActivityLogResource extends JsonResource
             'event' => $this->event,
             'description' => $this->description,
             'properties' => $this->properties,
-            'created_at' => $this->created_at?->toISOString(),
+            'created_at' => $this->humanizeDate($this->created_at),
             'subject' => $this->formatRelatedModel($this->whenLoaded('subject')),
             'causer' => $this->formatRelatedModel($this->whenLoaded('causer')),
         ];

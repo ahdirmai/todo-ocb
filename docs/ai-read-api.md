@@ -136,8 +136,8 @@ Dokumen ini menjelaskan AI Read API yang ditujukan untuk agent/AI. Fokus utamany
     "description": null,
     "grouping": "team",
     "is_active": true,
-    "created_at": "2026-04-20T02:00:00.000000Z",
-    "updated_at": "2026-04-20T02:00:00.000000Z",
+    "created_at": "2 hours ago",
+    "updated_at": "2 hours ago",
     "tasks_count": 14,
     "members_count": 6,
     "documents_count": 9,
@@ -254,10 +254,10 @@ Endpoint ringkas untuk AI yang butuh “apa yang sedang terjadi sekarang”.
       "entity_type": "task",
       "title": "Bangun AI read API",
       "description_excerpt": "Kontrak JSON dan endpoint baca data",
-      "due_date": "2026-04-21T02:00:00.000000Z",
+      "due_date": "in 1 day",
       "order_position": 0,
-      "created_at": "2026-04-20T02:00:00.000000Z",
-      "updated_at": "2026-04-20T02:00:00.000000Z",
+      "created_at": "2 hours ago",
+      "updated_at": "2 hours ago",
       "comments_count": 3,
       "attachments_count": 0,
       "column": {
@@ -301,7 +301,7 @@ Endpoint ringkas untuk AI yang butuh “apa yang sedang terjadi sekarang”.
     "team_id": "team-uuid",
     "title": "Bangun AI read API",
     "description": "Kontrak JSON dan endpoint baca data",
-    "due_date": "2026-04-21T02:00:00.000000Z",
+    "due_date": "in 1 day",
     "order_position": 0,
     "column": {
       "id": "column-uuid",
@@ -337,8 +337,8 @@ Endpoint ringkas untuk AI yang butuh “apa yang sedang terjadi sekarang”.
       "parent_id": null,
       "type": "document",
       "name": "API Contract",
-      "created_at": "2026-04-20T02:00:00.000000Z",
-      "updated_at": "2026-04-20T02:00:00.000000Z",
+      "created_at": "2 hours ago",
+      "updated_at": "2 hours ago",
       "children_count": 0,
       "comments_count": 0,
       "owner": {
@@ -392,8 +392,8 @@ Endpoint ringkas untuk AI yang butuh “apa yang sedang terjadi sekarang”.
       "entity_type": "announcement",
       "title": "API Rollout",
       "content_excerpt": "Semua endpoint baru siap dipakai.",
-      "created_at": "2026-04-20T02:00:00.000000Z",
-      "updated_at": "2026-04-20T02:00:00.000000Z",
+      "created_at": "2 hours ago",
+      "updated_at": "2 hours ago",
       "comments_count": 1,
       "author": {
         "id": 1,
@@ -440,8 +440,8 @@ Endpoint ringkas untuk AI yang butuh “apa yang sedang terjadi sekarang”.
     {
       "id": "message-uuid",
       "body": "Spec awal siap direview",
-      "created_at": "2026-04-20T02:00:00.000000Z",
-      "updated_at": "2026-04-20T02:00:00.000000Z",
+      "created_at": "2 hours ago",
+      "updated_at": "2 hours ago",
       "user": {
         "id": 1,
         "name": "Ayu",
@@ -464,7 +464,7 @@ Endpoint ringkas untuk AI yang butuh “apa yang sedang terjadi sekarang”.
       "event": "created",
       "description": "Task AI read API dibuat",
       "properties": null,
-      "created_at": "2026-04-20T02:00:00.000000Z",
+      "created_at": "2 hours ago",
       "subject": {
         "type": "Task",
         "id": "task-uuid",
@@ -494,7 +494,7 @@ Endpoint ringkas untuk AI yang butuh “apa yang sedang terjadi sekarang”.
         "label": "Bangun AI read API",
         "description": "Kontrak JSON dan endpoint baca data",
         "meta": {
-          "due_date": "2026-04-21T02:00:00.000000Z"
+          "due_date": "in 1 day"
         },
         "links": {
           "api": "/api/tasks/task-uuid"

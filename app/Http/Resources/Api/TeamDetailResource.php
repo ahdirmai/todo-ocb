@@ -2,11 +2,14 @@
 
 namespace App\Http\Resources\Api;
 
+use App\Http\Resources\Api\Concerns\FormatsApiDates;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 class TeamDetailResource extends JsonResource
 {
+    use FormatsApiDates;
+
     public function toArray(Request $request): array
     {
         return [
@@ -16,8 +19,8 @@ class TeamDetailResource extends JsonResource
             'description' => $this->description,
             'grouping' => $this->grouping?->value ?? $this->grouping,
             'is_active' => $this->is_active,
-            'created_at' => $this->created_at?->toISOString(),
-            'updated_at' => $this->updated_at?->toISOString(),
+            'created_at' => $this->humanizeDate($this->created_at),
+            'updated_at' => $this->humanizeDate($this->updated_at),
             'tasks_count' => $this->whenCounted('tasks'),
             'members_count' => $this->whenCounted('users'),
             'documents_count' => $this->whenCounted('documents'),
