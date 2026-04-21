@@ -18,6 +18,7 @@ class DocumentDetailResource extends JsonResource
             'team_id' => $this->team_id,
             'parent_id' => $this->parent_id,
             'type' => $this->type,
+            'is_sop' => $this->is_sop,
             'name' => $this->name,
             'content' => $this->content,
             'created_at' => $this->humanizeDate($this->created_at),

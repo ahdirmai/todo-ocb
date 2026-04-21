@@ -13,6 +13,13 @@ class Document extends Model implements HasMedia
 
     protected $guarded = [];
 
+    protected function casts(): array
+    {
+        return [
+            'is_sop' => 'boolean',
+        ];
+    }
+
     public function team()
     {
         return $this->belongsTo(Team::class);

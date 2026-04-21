@@ -329,7 +329,10 @@ class TeamReadController extends Controller
                 'id' => $document->id,
                 'label' => $document->name,
                 'description' => $document->type,
-                'meta' => ['document_type' => $document->type],
+                'meta' => [
+                    'document_type' => $document->type,
+                    'is_sop' => $document->is_sop,
+                ],
                 'links' => ['api' => route('api.documents.show', $document)],
             ]);
 
@@ -409,13 +412,14 @@ class TeamReadController extends Controller
                 ->values()
                 ->all(),
             'documents' => $team->documents()
-                ->select('id', 'name')
+                ->select('id', 'name', 'is_sop')
                 ->orderBy('name')
                 ->limit(200)
                 ->get()
                 ->map(fn (Document $document) => [
                     'id' => $document->id,
                     'label' => $document->name,
+                    'is_sop' => $document->is_sop,
                 ])
                 ->values()
                 ->all(),
@@ -459,7 +463,10 @@ class TeamReadController extends Controller
                 'id' => $document->id,
                 'label' => $document->name,
                 'description' => $document->type,
-                'meta' => ['confidence' => 0.88],
+                'meta' => [
+                    'confidence' => 0.88,
+                    'is_sop' => $document->is_sop,
+                ],
                 'links' => ['api' => route('api.documents.show', $document)],
             ]);
 

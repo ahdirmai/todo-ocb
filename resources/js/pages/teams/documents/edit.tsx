@@ -2,10 +2,27 @@ import { Head, Link, useForm, setLayoutProps } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft, Loader2, UploadCloud, X, Paperclip, Bold, Italic, Heading2, Heading3, List, ListOrdered, Save } from 'lucide-react';
+import {
+    ArrowLeft,
+    Loader2,
+    UploadCloud,
+    X,
+    Paperclip,
+    Bold,
+    Italic,
+    Heading2,
+    Heading3,
+    List,
+    ListOrdered,
+    Save,
+} from 'lucide-react';
 import { EditorContent, useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
+import {
+    show as showDocument,
+    update as updateDocument,
+} from '@/routes/documents';
 
 export default function EditDocument({
     team,
@@ -26,6 +43,7 @@ export default function EditDocument({
         _method: 'put',
         name: document.name,
         content: document.content || '',
+        is_sop: Boolean(document.is_sop),
         removed_media_ids: [] as number[],
         new_attachments: [] as File[],
     });
@@ -55,7 +73,8 @@ export default function EditDocument({
             // Cap to 5 combined attachments
             const existingCount = document.media?.length || 0;
             const removedCount = data.removed_media_ids.length;
-            const currentTotal = existingCount - removedCount + data.new_attachments.length;
+            const currentTotal =
+                existingCount - removedCount + data.new_attachments.length;
 
             if (currentTotal + files.length > 5) {
                 alert('Maksimal 5 lampiran diperbolehkan untuk satu dokumen.');
@@ -76,12 +95,15 @@ export default function EditDocument({
     };
 
     const unmarkExistingMediaForRemoval = (mediaId: number) => {
-        setData('removed_media_ids', data.removed_media_ids.filter(id => id !== mediaId));
+        setData(
+            'removed_media_ids',
+            data.removed_media_ids.filter((id) => id !== mediaId),
+        );
     };
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
-        post(`/teams/${team.slug}/documents/${document.id}`, {
+        post(updateDocument.url({ team, document }), {
             forceFormData: true,
         });
     };
@@ -93,7 +115,7 @@ export default function EditDocument({
             <div className="flex h-full flex-col space-y-6 pt-2">
                 <div className="flex items-center justify-between border-b border-slate-100 px-4 pb-6 dark:border-slate-800">
                     <Link
-                        href={`/teams/${team.slug}/documents/${document.id}`}
+                        href={showDocument.url({ team, document })}
                         className="inline-flex w-fit items-center rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-500 shadow-sm transition-colors hover:bg-slate-50 hover:text-primary dark:border-zinc-800 dark:bg-zinc-900/50 dark:hover:bg-zinc-900"
                     >
                         <ArrowLeft className="mr-2 h-4 w-4" />
@@ -103,9 +125,18 @@ export default function EditDocument({
                         <Button
                             onClick={submit}
                             className="rounded-full px-6"
-                            disabled={processing || !data.name || !data.content || data.content === '<p></p>'}
+                            disabled={
+                                processing ||
+                                !data.name ||
+                                !data.content ||
+                                data.content === '<p></p>'
+                            }
                         >
-                            {processing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                            {processing ? (
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            ) : (
+                                <Save className="mr-2 h-4 w-4" />
+                            )}
                             Simpan Perubahan
                         </Button>
                     </div>
@@ -119,73 +150,164 @@ export default function EditDocument({
                             placeholder="Judul Dokumen..."
                             className="h-auto rounded-none border-0 bg-transparent px-0 text-4xl font-black tracking-tight shadow-none placeholder:text-slate-300 focus-visible:ring-0 sm:text-5xl md:text-6xl dark:placeholder:text-zinc-700/60"
                         />
-                        {errors.name && <p className="mt-2 text-sm text-red-500">{errors.name}</p>}
+                        {errors.name && (
+                            <p className="mt-2 text-sm text-red-500">
+                                {errors.name}
+                            </p>
+                        )}
                     </div>
 
-                    <div className="min-h-[400px] mt-8">
+                    <label className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50/70 p-4 text-sm text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-100">
+                        <input
+                            type="checkbox"
+                            checked={data.is_sop}
+                            onChange={(e) =>
+                                setData('is_sop', e.target.checked)
+                            }
+                            className="mt-1 h-4 w-4 rounded border-amber-300 text-primary focus:ring-primary"
+                        />
+                        <span>
+                            <span className="block font-semibold">
+                                Tandai sebagai SOP
+                            </span>
+                            <span className="mt-1 block text-xs text-amber-700 dark:text-amber-200/80">
+                                Dokumen SOP dapat dipilih sebagai referensi
+                                audit progres task.
+                            </span>
+                        </span>
+                    </label>
+
+                    <div className="mt-8 min-h-[400px]">
                         {/* Custom Toolbar */}
                         {editor && (
                             <div className="sticky top-4 z-10 mb-6 flex w-fit flex-wrap items-center gap-1 rounded-xl border border-slate-200 bg-slate-50/90 p-1 shadow-sm backdrop-blur-md dark:border-zinc-800 dark:bg-zinc-900/90">
                                 <Button
                                     type="button"
-                                    variant={editor.isActive('bold') ? 'default' : 'ghost'}
+                                    variant={
+                                        editor.isActive('bold')
+                                            ? 'default'
+                                            : 'ghost'
+                                    }
                                     size="icon"
                                     className={`h-8 w-8 rounded-lg ${editor.isActive('bold') ? '' : 'text-slate-600 dark:text-slate-400'}`}
-                                    onClick={() => editor.chain().focus().toggleBold().run()}
+                                    onClick={() =>
+                                        editor
+                                            .chain()
+                                            .focus()
+                                            .toggleBold()
+                                            .run()
+                                    }
                                 >
                                     <Bold className="h-4 w-4" />
                                 </Button>
                                 <Button
                                     type="button"
-                                    variant={editor.isActive('italic') ? 'default' : 'ghost'}
+                                    variant={
+                                        editor.isActive('italic')
+                                            ? 'default'
+                                            : 'ghost'
+                                    }
                                     size="icon"
                                     className={`h-8 w-8 rounded-lg ${editor.isActive('italic') ? '' : 'text-slate-600 dark:text-slate-400'}`}
-                                    onClick={() => editor.chain().focus().toggleItalic().run()}
+                                    onClick={() =>
+                                        editor
+                                            .chain()
+                                            .focus()
+                                            .toggleItalic()
+                                            .run()
+                                    }
                                 >
                                     <Italic className="h-4 w-4" />
                                 </Button>
                                 <div className="mx-1 h-5 w-px bg-slate-300 dark:bg-zinc-700"></div>
                                 <Button
                                     type="button"
-                                    variant={editor.isActive('heading', { level: 2 }) ? 'default' : 'ghost'}
+                                    variant={
+                                        editor.isActive('heading', { level: 2 })
+                                            ? 'default'
+                                            : 'ghost'
+                                    }
                                     size="icon"
                                     className={`h-8 w-8 rounded-lg ${editor.isActive('heading', { level: 2 }) ? '' : 'text-slate-600 dark:text-slate-400'}`}
-                                    onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+                                    onClick={() =>
+                                        editor
+                                            .chain()
+                                            .focus()
+                                            .toggleHeading({ level: 2 })
+                                            .run()
+                                    }
                                 >
                                     <Heading2 className="h-4 w-4" />
                                 </Button>
                                 <Button
                                     type="button"
-                                    variant={editor.isActive('heading', { level: 3 }) ? 'default' : 'ghost'}
+                                    variant={
+                                        editor.isActive('heading', { level: 3 })
+                                            ? 'default'
+                                            : 'ghost'
+                                    }
                                     size="icon"
                                     className={`h-8 w-8 rounded-lg ${editor.isActive('heading', { level: 3 }) ? '' : 'text-slate-600 dark:text-slate-400'}`}
-                                    onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+                                    onClick={() =>
+                                        editor
+                                            .chain()
+                                            .focus()
+                                            .toggleHeading({ level: 3 })
+                                            .run()
+                                    }
                                 >
                                     <Heading3 className="h-4 w-4" />
                                 </Button>
                                 <div className="mx-1 h-5 w-px bg-slate-300 dark:bg-zinc-700"></div>
                                 <Button
                                     type="button"
-                                    variant={editor.isActive('bulletList') ? 'default' : 'ghost'}
+                                    variant={
+                                        editor.isActive('bulletList')
+                                            ? 'default'
+                                            : 'ghost'
+                                    }
                                     size="icon"
                                     className={`h-8 w-8 rounded-lg ${editor.isActive('bulletList') ? '' : 'text-slate-600 dark:text-slate-400'}`}
-                                    onClick={() => editor.chain().focus().toggleBulletList().run()}
+                                    onClick={() =>
+                                        editor
+                                            .chain()
+                                            .focus()
+                                            .toggleBulletList()
+                                            .run()
+                                    }
                                 >
                                     <List className="h-4 w-4" />
                                 </Button>
                                 <Button
                                     type="button"
-                                    variant={editor.isActive('orderedList') ? 'default' : 'ghost'}
+                                    variant={
+                                        editor.isActive('orderedList')
+                                            ? 'default'
+                                            : 'ghost'
+                                    }
                                     size="icon"
                                     className={`h-8 w-8 rounded-lg ${editor.isActive('orderedList') ? '' : 'text-slate-600 dark:text-slate-400'}`}
-                                    onClick={() => editor.chain().focus().toggleOrderedList().run()}
+                                    onClick={() =>
+                                        editor
+                                            .chain()
+                                            .focus()
+                                            .toggleOrderedList()
+                                            .run()
+                                    }
                                 >
                                     <ListOrdered className="h-4 w-4" />
                                 </Button>
                             </div>
                         )}
-                        <EditorContent editor={editor} className="cursor-text" />
-                        {errors.content && <p className="mt-2 text-sm text-red-500">{errors.content}</p>}
+                        <EditorContent
+                            editor={editor}
+                            className="cursor-text"
+                        />
+                        {errors.content && (
+                            <p className="mt-2 text-sm text-red-500">
+                                {errors.content}
+                            </p>
+                        )}
                     </div>
 
                     <div className="mt-10 border-t border-slate-100 pt-10 dark:border-zinc-800">
@@ -200,7 +322,8 @@ export default function EditDocument({
                                 </div>
                                 <div className="text-center">
                                     <span className="block font-semibold text-slate-700 transition-colors group-hover:text-primary dark:text-slate-200">
-                                        Pilih file atau drag & drop ke sini untuk menambah lampiran baru
+                                        Pilih file atau drag & drop ke sini
+                                        untuk menambah lampiran baru
                                     </span>
                                 </div>
                                 <input
@@ -215,13 +338,16 @@ export default function EditDocument({
                             <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
                                 {/* Display Existing Media */}
                                 {document.media?.map((media: any) => {
-                                    const isRemoved = data.removed_media_ids.includes(media.id);
+                                    const isRemoved =
+                                        data.removed_media_ids.includes(
+                                            media.id,
+                                        );
                                     return (
                                         <div
                                             key={`media-${media.id}`}
                                             className={`flex items-center justify-between rounded-xl border p-3 transition-opacity ${
-                                                isRemoved 
-                                                    ? 'border-red-200 bg-red-50 opacity-50 dark:border-red-900/30 dark:bg-red-950/20' 
+                                                isRemoved
+                                                    ? 'border-red-200 bg-red-50 opacity-50 dark:border-red-900/30 dark:bg-red-950/20'
                                                     : 'border-slate-200 bg-slate-50 dark:border-zinc-800 dark:bg-zinc-900/50'
                                             }`}
                                         >
@@ -230,7 +356,9 @@ export default function EditDocument({
                                                     <Paperclip className="h-4 w-4 text-slate-500" />
                                                 </div>
                                                 <div className="truncate text-sm font-medium">
-                                                    {media.file_name} {isRemoved && '(Akan Dihapus)'}
+                                                    {media.file_name}{' '}
+                                                    {isRemoved &&
+                                                        '(Akan Dihapus)'}
                                                 </div>
                                             </div>
                                             {isRemoved ? (
@@ -238,7 +366,11 @@ export default function EditDocument({
                                                     type="button"
                                                     variant="ghost"
                                                     size="sm"
-                                                    onClick={() => unmarkExistingMediaForRemoval(media.id)}
+                                                    onClick={() =>
+                                                        unmarkExistingMediaForRemoval(
+                                                            media.id,
+                                                        )
+                                                    }
                                                     className="shrink-0 text-slate-500"
                                                 >
                                                     Batal Hapus
@@ -246,7 +378,11 @@ export default function EditDocument({
                                             ) : (
                                                 <button
                                                     type="button"
-                                                    onClick={() => markExistingMediaForRemoval(media.id)}
+                                                    onClick={() =>
+                                                        markExistingMediaForRemoval(
+                                                            media.id,
+                                                        )
+                                                    }
                                                     className="shrink-0 rounded-md p-1 text-slate-400 transition-colors hover:bg-red-100 hover:text-red-500"
                                                 >
                                                     <X className="h-4 w-4" />

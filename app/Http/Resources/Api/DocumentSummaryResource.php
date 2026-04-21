@@ -18,6 +18,7 @@ class DocumentSummaryResource extends JsonResource
             'team_id' => $this->team_id,
             'parent_id' => $this->parent_id,
             'type' => $this->type,
+            'is_sop' => $this->is_sop,
             'name' => $this->name,
             'created_at' => $this->humanizeDate($this->created_at),
             'updated_at' => $this->humanizeDate($this->updated_at),

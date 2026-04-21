@@ -17,7 +17,7 @@ This application is a Kanban-based task management system built with Laravel. Mo
 | **Task** | `tasks` | `id` (UUID), `team_id`, `kanban_column_id`, `title`, `description`, `due_date` | Belongs to **Team** & **Column**, has many **Assignees** (Users) |
 | **Kanban** | `kanbans` | `id` (UUID), `team_id`, `name` | Belongs to **Team**, has many **Columns** |
 | **Column** | `kanban_columns` | `id` (UUID), `kanban_id`, `name`, `order_position` | Belongs to **Kanban**, has many **Tasks** |
-| **Document** | `documents` | `id` (UUID), `team_id`, `user_id`, `name`, `type` | Belongs to **Team** & **User**, can have `parent_id` (nested) |
+| **Document** | `documents` | `id` (UUID), `team_id`, `user_id`, `name`, `type`, `is_sop` | Belongs to **Team** & **User**, can have `parent_id` (nested) |
 | **Comment** | `comments` | `id` (UUID), `user_id`, `task_id`, `announcement_id`, `document_id`, `content` | Polymorphic-like (belongs to Task, Announcement, or Document) |
 
 ## Common Data Access Queries
@@ -43,6 +43,7 @@ Use `database-query` or `php artisan tinker --execute '...'` to fetch data.
 - **List root documents/folders**: `Document::where('team_id', $team_id)->whereNull('parent_id')->get();`
 - **List contents of a folder**: `Document::where('parent_id', $folder_id)->get();`
 - **Search documents by name**: `Document::where('team_id', $team_id)->where('name', 'like', '%keyword%')->get();`
+- **Find SOP documents**: `Document::where('team_id', $team_id)->where('is_sop', true)->get();`
 
 ### Comments (Polymorphic-like filtering)
 - **Comments for a specific Document**: `Comment::where('document_id', $document_id)->get();`

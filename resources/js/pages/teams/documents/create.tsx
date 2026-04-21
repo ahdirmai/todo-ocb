@@ -3,10 +3,23 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { ArrowLeft, Loader2, UploadCloud, X, Paperclip, Bold, Italic, Heading2, Heading3, List, ListOrdered } from 'lucide-react';
+import {
+    ArrowLeft,
+    Loader2,
+    UploadCloud,
+    X,
+    Paperclip,
+    Bold,
+    Italic,
+    Heading2,
+    Heading3,
+    List,
+    ListOrdered,
+} from 'lucide-react';
 import { EditorContent, useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
+import { store as storeDocument } from '@/routes/documents/document';
 
 export default function CreateDocument({
     team,
@@ -27,13 +40,17 @@ export default function CreateDocument({
         name: '',
         recipients: [] as number[],
         content: '',
+        is_sop: false,
         parent_id: parentId,
         attachments: [] as File[],
     });
 
     const toggleRecipient = (userId: number) => {
         if (data.recipients.includes(userId)) {
-            setData('recipients', data.recipients.filter(id => id !== userId));
+            setData(
+                'recipients',
+                data.recipients.filter((id) => id !== userId),
+            );
         } else {
             setData('recipients', [...data.recipients, userId]);
         }
@@ -85,7 +102,7 @@ export default function CreateDocument({
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
-        post(`/teams/${team.slug}/documents/document`, {
+        post(storeDocument.url(team), {
             forceFormData: true,
         });
     };
@@ -104,15 +121,28 @@ export default function CreateDocument({
                         Kembali
                     </Link>
                     <div className="flex items-center gap-3">
-                        <Button variant="outline" className="rounded-full" onClick={() => window.history.back()}>
+                        <Button
+                            variant="outline"
+                            className="rounded-full"
+                            onClick={() => window.history.back()}
+                        >
                             Batal
                         </Button>
                         <Button
                             onClick={submit}
                             className="rounded-full px-6"
-                            disabled={processing || !data.name || !data.content || data.content === '<p></p>'}
+                            disabled={
+                                processing ||
+                                !data.name ||
+                                !data.content ||
+                                data.content === '<p></p>'
+                            }
                         >
-                            {processing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UploadCloud className="mr-2 h-4 w-4" />}
+                            {processing ? (
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            ) : (
+                                <UploadCloud className="mr-2 h-4 w-4" />
+                            )}
                             Terbitkan Dokumen
                         </Button>
                     </div>
@@ -126,10 +156,35 @@ export default function CreateDocument({
                             placeholder="Judul Dokumen..."
                             className="h-auto rounded-none border-0 bg-transparent px-0 text-4xl font-black tracking-tight shadow-none placeholder:text-slate-300 focus-visible:ring-0 sm:text-5xl md:text-6xl dark:placeholder:text-zinc-700/60"
                         />
-                        {errors.name && <p className="mt-2 text-sm text-red-500">{errors.name}</p>}
+                        {errors.name && (
+                            <p className="mt-2 text-sm text-red-500">
+                                {errors.name}
+                            </p>
+                        )}
                     </div>
 
                     <div className="flex flex-col gap-3 py-4">
+                        <label className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50/70 p-4 text-sm text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-100">
+                            <input
+                                type="checkbox"
+                                checked={data.is_sop}
+                                onChange={(e) =>
+                                    setData('is_sop', e.target.checked)
+                                }
+                                className="mt-1 h-4 w-4 rounded border-amber-300 text-primary focus:ring-primary"
+                            />
+                            <span>
+                                <span className="block font-semibold">
+                                    Tandai sebagai SOP
+                                </span>
+                                <span className="mt-1 block text-xs text-amber-700 dark:text-amber-200/80">
+                                    Gunakan ini jika dokumen berisi standar
+                                    kerja atau prosedur yang akan dipakai untuk
+                                    audit progres task.
+                                </span>
+                            </span>
+                        </label>
+
                         <div className="flex items-center justify-between">
                             <Label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
                                 Penerima:
@@ -139,29 +194,42 @@ export default function CreateDocument({
                                 onClick={toggleSelectAll}
                                 className="text-xs font-semibold text-primary transition-colors hover:text-primary/80"
                             >
-                                {data.recipients.length === (team.users?.length || 0) && data.recipients.length > 0
+                                {data.recipients.length ===
+                                    (team.users?.length || 0) &&
+                                data.recipients.length > 0
                                     ? 'Batal Pilih Semua'
                                     : 'Pilih Semua'}
                             </button>
                         </div>
                         <div className="flex flex-wrap gap-2">
                             {team.users?.map((user: any) => {
-                                const isSelected = data.recipients.includes(user.id);
+                                const isSelected = data.recipients.includes(
+                                    user.id,
+                                );
                                 return (
                                     <button
                                         type="button"
                                         key={user.id}
                                         onClick={() => toggleRecipient(user.id)}
-                                        className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm transition-all focus:outline-none ${isSelected
-                                            ? 'border-primary bg-primary/10 text-primary dark:bg-primary/20'
-                                            : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50 dark:border-zinc-800 dark:bg-zinc-950 dark:text-slate-400 dark:hover:bg-zinc-900'
-                                            }`}
+                                        className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm transition-all focus:outline-none ${
+                                            isSelected
+                                                ? 'border-primary bg-primary/10 text-primary dark:bg-primary/20'
+                                                : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50 dark:border-zinc-800 dark:bg-zinc-950 dark:text-slate-400 dark:hover:bg-zinc-900'
+                                        }`}
                                     >
                                         <Avatar className="h-5 w-5">
-                                            <AvatarImage src={user.avatar_url ?? undefined} />
-                                            <AvatarFallback className="text-[10px]">{user.name.charAt(0)}</AvatarFallback>
+                                            <AvatarImage
+                                                src={
+                                                    user.avatar_url ?? undefined
+                                                }
+                                            />
+                                            <AvatarFallback className="text-[10px]">
+                                                {user.name.charAt(0)}
+                                            </AvatarFallback>
                                         </Avatar>
-                                        <span className="font-medium">{user.name}</span>
+                                        <span className="font-medium">
+                                            {user.name}
+                                        </span>
                                     </button>
                                 );
                             })}
@@ -174,64 +242,131 @@ export default function CreateDocument({
                             <div className="sticky top-4 z-10 mb-6 flex w-fit flex-wrap items-center gap-1 rounded-xl border border-slate-200 bg-slate-50/90 p-1 shadow-sm backdrop-blur-md dark:border-zinc-800 dark:bg-zinc-900/90">
                                 <Button
                                     type="button"
-                                    variant={editor.isActive('bold') ? 'default' : 'ghost'}
+                                    variant={
+                                        editor.isActive('bold')
+                                            ? 'default'
+                                            : 'ghost'
+                                    }
                                     size="icon"
                                     className={`h-8 w-8 rounded-lg ${editor.isActive('bold') ? '' : 'text-slate-600 dark:text-slate-400'}`}
-                                    onClick={() => editor.chain().focus().toggleBold().run()}
+                                    onClick={() =>
+                                        editor
+                                            .chain()
+                                            .focus()
+                                            .toggleBold()
+                                            .run()
+                                    }
                                 >
                                     <Bold className="h-4 w-4" />
                                 </Button>
                                 <Button
                                     type="button"
-                                    variant={editor.isActive('italic') ? 'default' : 'ghost'}
+                                    variant={
+                                        editor.isActive('italic')
+                                            ? 'default'
+                                            : 'ghost'
+                                    }
                                     size="icon"
                                     className={`h-8 w-8 rounded-lg ${editor.isActive('italic') ? '' : 'text-slate-600 dark:text-slate-400'}`}
-                                    onClick={() => editor.chain().focus().toggleItalic().run()}
+                                    onClick={() =>
+                                        editor
+                                            .chain()
+                                            .focus()
+                                            .toggleItalic()
+                                            .run()
+                                    }
                                 >
                                     <Italic className="h-4 w-4" />
                                 </Button>
                                 <div className="mx-1 h-5 w-px bg-slate-300 dark:bg-zinc-700"></div>
                                 <Button
                                     type="button"
-                                    variant={editor.isActive('heading', { level: 2 }) ? 'default' : 'ghost'}
+                                    variant={
+                                        editor.isActive('heading', { level: 2 })
+                                            ? 'default'
+                                            : 'ghost'
+                                    }
                                     size="icon"
                                     className={`h-8 w-8 rounded-lg ${editor.isActive('heading', { level: 2 }) ? '' : 'text-slate-600 dark:text-slate-400'}`}
-                                    onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+                                    onClick={() =>
+                                        editor
+                                            .chain()
+                                            .focus()
+                                            .toggleHeading({ level: 2 })
+                                            .run()
+                                    }
                                 >
                                     <Heading2 className="h-4 w-4" />
                                 </Button>
                                 <Button
                                     type="button"
-                                    variant={editor.isActive('heading', { level: 3 }) ? 'default' : 'ghost'}
+                                    variant={
+                                        editor.isActive('heading', { level: 3 })
+                                            ? 'default'
+                                            : 'ghost'
+                                    }
                                     size="icon"
                                     className={`h-8 w-8 rounded-lg ${editor.isActive('heading', { level: 3 }) ? '' : 'text-slate-600 dark:text-slate-400'}`}
-                                    onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+                                    onClick={() =>
+                                        editor
+                                            .chain()
+                                            .focus()
+                                            .toggleHeading({ level: 3 })
+                                            .run()
+                                    }
                                 >
                                     <Heading3 className="h-4 w-4" />
                                 </Button>
                                 <div className="mx-1 h-5 w-px bg-slate-300 dark:bg-zinc-700"></div>
                                 <Button
                                     type="button"
-                                    variant={editor.isActive('bulletList') ? 'default' : 'ghost'}
+                                    variant={
+                                        editor.isActive('bulletList')
+                                            ? 'default'
+                                            : 'ghost'
+                                    }
                                     size="icon"
                                     className={`h-8 w-8 rounded-lg ${editor.isActive('bulletList') ? '' : 'text-slate-600 dark:text-slate-400'}`}
-                                    onClick={() => editor.chain().focus().toggleBulletList().run()}
+                                    onClick={() =>
+                                        editor
+                                            .chain()
+                                            .focus()
+                                            .toggleBulletList()
+                                            .run()
+                                    }
                                 >
                                     <List className="h-4 w-4" />
                                 </Button>
                                 <Button
                                     type="button"
-                                    variant={editor.isActive('orderedList') ? 'default' : 'ghost'}
+                                    variant={
+                                        editor.isActive('orderedList')
+                                            ? 'default'
+                                            : 'ghost'
+                                    }
                                     size="icon"
                                     className={`h-8 w-8 rounded-lg ${editor.isActive('orderedList') ? '' : 'text-slate-600 dark:text-slate-400'}`}
-                                    onClick={() => editor.chain().focus().toggleOrderedList().run()}
+                                    onClick={() =>
+                                        editor
+                                            .chain()
+                                            .focus()
+                                            .toggleOrderedList()
+                                            .run()
+                                    }
                                 >
                                     <ListOrdered className="h-4 w-4" />
                                 </Button>
                             </div>
                         )}
-                        <EditorContent editor={editor} className="cursor-text" />
-                        {errors.content && <p className="mt-2 text-sm text-red-500">{errors.content}</p>}
+                        <EditorContent
+                            editor={editor}
+                            className="cursor-text"
+                        />
+                        {errors.content && (
+                            <p className="mt-2 text-sm text-red-500">
+                                {errors.content}
+                            </p>
+                        )}
                     </div>
 
                     <div className="mt-10 border-t border-slate-100 pt-10 dark:border-zinc-800">
@@ -248,7 +383,8 @@ export default function CreateDocument({
                                         Pilih file atau drag & drop ke sini
                                     </span>
                                     <span className="mt-1 block text-sm text-slate-500">
-                                        Tepat untuk lampiran referensi (PDF, Excel, Gambar) Maks. 10MB
+                                        Tepat untuk lampiran referensi (PDF,
+                                        Excel, Gambar) Maks. 10MB
                                     </span>
                                 </div>
                                 <input

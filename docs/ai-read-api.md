@@ -336,6 +336,7 @@ Endpoint ringkas untuk AI yang butuh “apa yang sedang terjadi sekarang”.
       "team_id": "team-uuid",
       "parent_id": null,
       "type": "document",
+      "is_sop": true,
       "name": "API Contract",
       "created_at": "2 hours ago",
       "updated_at": "2 hours ago",
@@ -364,6 +365,7 @@ Endpoint ringkas untuk AI yang butuh “apa yang sedang terjadi sekarang”.
     "team_id": "team-uuid",
     "parent_id": null,
     "type": "document",
+    "is_sop": true,
     "name": "API Contract",
     "content": "Draft kontrak JSON",
     "owner": {

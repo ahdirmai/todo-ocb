@@ -78,6 +78,7 @@ class TeamDocumentController extends Controller
         $validated = $request->validate([
             'parent_id' => 'nullable|exists:documents,id',
             'file' => 'required|file|max:10240|mimes:pdf,doc,docx,xls,xlsx',
+            'is_sop' => 'nullable|boolean',
         ]);
 
         $file = $request->file('file');
@@ -86,6 +87,7 @@ class TeamDocumentController extends Controller
             'user_id' => $request->user()->id,
             'name' => $file->getClientOriginalName(),
             'type' => 'file',
+            'is_sop' => $request->boolean('is_sop'),
             'parent_id' => $validated['parent_id'] ?? null,
         ]);
 
@@ -107,6 +109,7 @@ class TeamDocumentController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'content' => 'required|string',
+            'is_sop' => 'nullable|boolean',
             'parent_id' => 'nullable|exists:documents,id',
             'attachments' => 'nullable|array|max:5',
             'attachments.*' => 'file|max:10240|mimes:pdf,doc,docx,xls,xlsx,png,jpg,jpeg,webp',
@@ -117,6 +120,7 @@ class TeamDocumentController extends Controller
             'name' => $validated['name'],
             'type' => 'document',
             'content' => $validated['content'],
+            'is_sop' => $request->boolean('is_sop'),
             'parent_id' => $validated['parent_id'] ?? null,
         ]);
 
@@ -172,6 +176,7 @@ class TeamDocumentController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'content' => 'nullable|string',
+            'is_sop' => 'nullable|boolean',
             'removed_media_ids' => 'nullable|array',
             'removed_media_ids.*' => 'integer',
             'new_attachments' => 'nullable|array|max:5',
@@ -183,6 +188,7 @@ class TeamDocumentController extends Controller
         $document->update([
             'name' => $validated['name'],
             'content' => $validated['content'] ?? $document->content,
+            'is_sop' => $request->has('is_sop') ? $request->boolean('is_sop') : $document->is_sop,
         ]);
 
         if (! empty($validated['removed_media_ids'])) {
@@ -225,9 +231,13 @@ class TeamDocumentController extends Controller
 
         $validated = $request->validate([
             'file' => 'required|file|max:10240|mimes:pdf,doc,docx,xls,xlsx',
+            'is_sop' => 'nullable|boolean',
         ]);
 
         $file = $request->file('file');
+        if ($request->has('is_sop')) {
+            $document->update(['is_sop' => $request->boolean('is_sop')]);
+        }
 
         // Spatie Media Library allows multiple files in a collection.
         // We just add a new one, and it will be part of the history.
