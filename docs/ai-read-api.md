@@ -161,12 +161,62 @@ Dokumen ini menjelaskan AI Read API yang ditujukan untuk agent/AI. Fokus utamany
 
 Endpoint ini adalah snapshot utama untuk AI.
 
+Blok `sop` disediakan khusus agar agent bisa cepat mendeteksi apakah tim memiliki dokumen SOP tanpa harus memanggil endpoint dokumen terpisah terlebih dahulu.
+
 ```json
 {
   "data": {
     "team": {
       "id": "team-uuid",
       "name": "Platform"
+    },
+    "sop": {
+      "has_sop": true,
+      "count": 1,
+      "primary_document": {
+        "id": "document-uuid",
+        "entity_type": "document",
+        "team_id": "team-uuid",
+        "parent_id": null,
+        "type": "document",
+        "is_sop": true,
+        "name": "SOP Proyek Properti",
+        "created_at": "2 hours ago",
+        "updated_at": "2 hours ago",
+        "children_count": 0,
+        "comments_count": 0,
+        "owner": {
+          "id": 1,
+          "name": "Ayu",
+          "email": "[email protected]"
+        },
+        "links": {
+          "api": "/api/documents/document-uuid"
+        }
+      },
+      "documents": [
+        {
+          "id": "document-uuid",
+          "entity_type": "document",
+          "team_id": "team-uuid",
+          "parent_id": null,
+          "type": "document",
+          "is_sop": true,
+          "name": "SOP Proyek Properti",
+          "created_at": "2 hours ago",
+          "updated_at": "2 hours ago",
+          "children_count": 0,
+          "comments_count": 0,
+          "owner": {
+            "id": 1,
+            "name": "Ayu",
+            "email": "[email protected]"
+          },
+          "links": {
+            "api": "/api/documents/document-uuid"
+          }
+        }
+      ]
     },
     "members": [
       {
@@ -579,3 +629,4 @@ Endpoint ringkas untuk AI yang butuh “apa yang sedang terjadi sekarang”.
 - `resolve-references` memakai route `team-scoped` agar authorization tetap sederhana dan agent tidak perlu mengirim `team_id` terpisah di body.
 - `entity-map` ditujukan untuk lookup cepat nama ke ID, bukan untuk membaca detail entity.
 - `digest` cocok sebagai entry point ringan sebelum agent memutuskan endpoint detail mana yang perlu diambil berikutnya.
+- `context.sop` adalah shortcut untuk deteksi SOP tim. Jika `has_sop = true`, agent sebaiknya gunakan `primary_document` atau `documents` di blok ini sebelum melakukan analisis lebih lanjut.

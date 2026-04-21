@@ -81,6 +81,14 @@ class TeamReadController extends Controller
             ->limit(10)
             ->get());
 
+        $team->setRelation('sopDocuments', $team->documents()
+            ->where('is_sop', true)
+            ->with('user')
+            ->withCount(['children', 'comments'])
+            ->latest()
+            ->limit(10)
+            ->get());
+
         $team->setRelation('recentAnnouncements', Announcement::query()
             ->whereBelongsTo($team)
             ->with('user')

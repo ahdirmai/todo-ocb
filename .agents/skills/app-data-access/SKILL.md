@@ -2,11 +2,41 @@
 name: app-data-access
 description: >
   Guidance for AI agents to read and understand the core data of this application.
-  Includes schema overview, model relationships, and common queries for tasks, teams, and members.
-  Activate when needing to: list teams, see team members, read tasks, or find documents.
+  Includes schema overview, model relationships, AI Read API access patterns,
+  and common queries for tasks, teams, documents, SOP, and members.
+  Activate when needing to: list teams, inspect team context, detect SOP,
+  see team members, read tasks, or find documents.
 ---
 
 This application is a Kanban-based task management system built with Laravel. Most core entities use UUIDs and are scoped to a `Team`.
+
+## Preferred Access Strategy
+
+Prefer the public AI Read API first for agent-friendly reads, then fall back to direct database/model access only when:
+
+- the API does not expose the needed field yet
+- the agent needs lower-level relational detail
+- debugging requires schema-level validation
+
+### Recommended Read Order
+
+1. `GET /api/teams`
+2. `GET /api/teams/{team}/context`
+3. Inspect `context.sop`
+4. `GET /api/teams/{team}/tasks` or `GET /api/tasks/{task}` as needed
+5. `GET /api/teams/{team}/documents` or `GET /api/documents/{document}` as needed
+6. `GET /api/teams/{team}/activity-logs` for audit trail
+
+### SOP Fast Detection
+
+Treat `context.sop` as the fastest team-level SOP signal:
+
+- `has_sop`: whether the team has at least one SOP document
+- `count`: number of SOP documents in context
+- `primary_document`: the first SOP document to use as the default reference
+- `documents`: summary list of SOP documents for the team
+
+If `has_sop` is `false`, do not assume the team is non-compliant. It only means no document is currently flagged with `is_sop = true`.
 
 ## Core Entities & Relationships
 
@@ -19,6 +49,36 @@ This application is a Kanban-based task management system built with Laravel. Mo
 | **Column** | `kanban_columns` | `id` (UUID), `kanban_id`, `name`, `order_position` | Belongs to **Kanban**, has many **Tasks** |
 | **Document** | `documents` | `id` (UUID), `team_id`, `user_id`, `name`, `type`, `is_sop` | Belongs to **Team** & **User**, can have `parent_id` (nested) |
 | **Comment** | `comments` | `id` (UUID), `user_id`, `task_id`, `announcement_id`, `document_id`, `content` | Polymorphic-like (belongs to Task, Announcement, or Document) |
+
+## AI Read API Contracts
+
+Use these endpoints when the goal is fast AI consumption rather than raw schema traversal.
+
+### Team Snapshot
+
+- `GET /api/teams`
+- `GET /api/teams/{team}`
+- `GET /api/teams/{team}/context`
+- `GET /api/teams/{team}/digest`
+
+### Team Entities
+
+- `GET /api/teams/{team}/members`
+- `GET /api/teams/{team}/kanbans`
+- `GET /api/teams/{team}/tasks`
+- `GET /api/tasks/{task}`
+- `GET /api/teams/{team}/documents`
+- `GET /api/documents/{document}`
+- `GET /api/teams/{team}/announcements`
+- `GET /api/announcements/{announcement}`
+- `GET /api/teams/{team}/messages`
+- `GET /api/teams/{team}/activity-logs`
+
+### Lookup Utilities
+
+- `GET /api/teams/{team}/search`
+- `GET /api/teams/{team}/entity-map`
+- `POST /api/teams/{team}/resolve-references`
 
 ## Common Data Access Queries
 
@@ -44,6 +104,7 @@ Use `database-query` or `php artisan tinker --execute '...'` to fetch data.
 - **List contents of a folder**: `Document::where('parent_id', $folder_id)->get();`
 - **Search documents by name**: `Document::where('team_id', $team_id)->where('name', 'like', '%keyword%')->get();`
 - **Find SOP documents**: `Document::where('team_id', $team_id)->where('is_sop', true)->get();`
+- **Find primary SOP candidate**: `Document::where('team_id', $team_id)->where('is_sop', true)->latest()->first();`
 
 ### Comments (Polymorphic-like filtering)
 - **Comments for a specific Document**: `Comment::where('document_id', $document_id)->get();`
@@ -68,10 +129,12 @@ Use `database-query` or `php artisan tinker --execute '...'` to fetch data.
 
 ## Data Access Guidelines
 
-1. **Always use IDs (UUIDs)** for fetching specific records rather than names when possible.
-2. **Team Scoping**: Most data (tasks, kanbans, documents) MUST be filtered by `team_id` or accessed via a `Team` relationship to ensure correct context.
-3. **Soft Deletes**: Check if models use `SoftDeletes` (though not primary in migrations seen, always verify if `deleted_at` exists).
-4. **Media**: Attachments use Spatie Media Library. Check the `media` table filtered by `model_type` (e.g., `App\Models\Task`) and `model_id`.
+1. **Context first**: When possible, start from `/api/teams/{team}/context` before drilling into tasks or documents.
+2. **Always use IDs (UUIDs)** for fetching specific records rather than names when possible.
+3. **Team scoping**: Most data (tasks, kanbans, documents) MUST be filtered by `team_id` or accessed via a `Team` relationship to ensure correct context.
+4. **SOP-aware reads**: Use `context.sop.primary_document` first, then fall back to document search if needed.
+5. **Soft deletes**: Check if models use `SoftDeletes` (though not primary in migrations seen, always verify if `deleted_at` exists).
+6. **Media**: Attachments use Spatie Media Library. Check the `media` table filtered by `model_type` (e.g., `App\Models\Task`) and `model_id`.
 
 ## Database Schema Inspection
 

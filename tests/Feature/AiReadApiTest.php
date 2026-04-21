@@ -74,6 +74,15 @@ test('team context returns the ai-friendly snapshot payload', function () {
         'content' => 'Draft kontrak JSON',
     ]);
 
+    $sopDocument = Document::create([
+        'team_id' => $team->id,
+        'user_id' => $user->id,
+        'name' => 'SOP Proyek Properti',
+        'type' => 'document',
+        'content' => 'Langkah wajib audit lapangan',
+        'is_sop' => true,
+    ]);
+
     TeamMessage::create([
         'team_id' => $team->id,
         'user_id' => $user->id,
@@ -97,12 +106,17 @@ test('team context returns the ai-friendly snapshot payload', function () {
         ->assertOk()
         ->assertJsonPath('data.team.name', 'Platform')
         ->assertJsonPath('data.members.0.name', 'Ayu')
+        ->assertJsonPath('data.sop.has_sop', true)
+        ->assertJsonPath('data.sop.count', 1)
+        ->assertJsonPath('data.sop.primary_document.name', 'SOP Proyek Properti')
+        ->assertJsonPath('data.sop.documents.0.is_sop', true)
         ->assertJsonPath('data.recent_tasks.0.title', 'Bangun AI read API')
         ->assertJsonPath('data.recent_documents.0.name', 'API Contract')
         ->assertJsonPath('data.recent_messages.0.body', 'Spec awal siap direview')
         ->assertJsonPath('data.recent_activity.0.event', 'created');
 
     expect($document->id)->not->toBeNull();
+    expect($sopDocument->id)->not->toBeNull();
 });
 
 test('team task index applies filters and returns stable summary payloads', function () {
