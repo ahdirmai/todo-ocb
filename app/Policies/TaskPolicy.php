@@ -28,12 +28,37 @@ class TaskPolicy
 
     public function update(User $user, Task $task): bool
     {
-        return false;
+        if ($user->hasRole(['superadmin', 'admin'])) {
+            return true;
+        }
+
+        if ($task->creator_id === $user->id) {
+            return true;
+        }
+
+        return $task->team
+            ?->users()
+            ->whereKey($user->id)
+            ->wherePivot('role', 'admin')
+            ->exists()
+            || $task->assignees()->whereKey($user->id)->exists();
     }
 
     public function delete(User $user, Task $task): bool
     {
-        return false;
+        if ($user->hasRole(['superadmin', 'admin'])) {
+            return true;
+        }
+
+        if ($task->creator_id === $user->id) {
+            return true;
+        }
+
+        return $task->team
+            ?->users()
+            ->whereKey($user->id)
+            ->wherePivot('role', 'admin')
+            ->exists() ?? false;
     }
 
     public function restore(User $user, Task $task): bool

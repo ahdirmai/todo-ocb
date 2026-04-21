@@ -20,9 +20,8 @@ export function KanbanCard({ task, index, onClick }: KanbanCardProps) {
         team?.users?.find((u: any) => u.id === auth?.user?.id)?.pivot?.role ===
         'admin';
     const isAssignee = task.assignees?.some(
-        (a: any) => a.id === auth?.user?.id,
+        (assignee: any) => assignee.id === auth?.user?.id,
     );
-
     const canModify = Boolean(
         isGlobalAdmin || isTaskCreator || isTeamAdmin || isAssignee,
     );

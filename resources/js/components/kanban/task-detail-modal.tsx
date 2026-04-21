@@ -124,12 +124,16 @@ export function TaskDetailModal({ task, open, onClose }: TaskDetailModalProps) {
         team?.users?.find((u: any) => u.id === auth?.user?.id)?.pivot?.role ===
         'admin';
     const isAssignee = task?.assignees?.some(
-        (a: any) => a.id === auth?.user?.id,
+        (assignee: any) => assignee.id === auth?.user?.id,
     );
-    const canModify = Boolean(
+    const canEditTask = Boolean(
         isGlobalAdmin || isTaskCreator || isTeamAdmin || isAssignee,
     );
+    const canDeleteTask = Boolean(isGlobalAdmin || isTaskCreator || isTeamAdmin);
 
+    const currentTaskStateKey = task ? `${task.id}:${open ? 'open' : 'closed'}` : 'empty';
+    const [syncedTaskStateKey, setSyncedTaskStateKey] =
+        useState(currentTaskStateKey);
     const [title, setTitle] = useState(task?.title || '');
     const [description, setDescription] = useState(task?.description || '');
     const [dueDate, setDueDate] = useState(task?.due_date?.split('T')[0] || '');
@@ -149,6 +153,16 @@ export function TaskDetailModal({ task, open, onClose }: TaskDetailModalProps) {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const taskFileInputRef = useRef<HTMLInputElement>(null);
 
+    if (syncedTaskStateKey !== currentTaskStateKey) {
+        setSyncedTaskStateKey(currentTaskStateKey);
+        setTitle(task?.title || '');
+        setDescription(task?.description || '');
+        setDueDate(task?.due_date?.split('T')[0] || '');
+        setSelectedTagIds(task?.tags?.map((t: any) => t.id) ?? []);
+        setSelectedAssigneeIds(task?.assignees?.map((a: any) => a.id) ?? []);
+        setTaskAttachments([]);
+    }
+
     // Realtime polling
     useEffect(() => {
         if (!open) {
@@ -163,15 +177,6 @@ return;
 
         return () => clearInterval(interval);
     }, [open]);
-
-    // Sync state when task changes
-    if (task && task.title !== title && !saving) {
-        setTitle(task.title);
-        setDescription(task.description || '');
-        setDueDate(task.due_date?.split('T')[0] || '');
-        setSelectedTagIds(task.tags?.map((t: any) => t.id) ?? []);
-        setSelectedAssigneeIds(task.assignees?.map((a: any) => a.id) ?? []);
-    }
 
     const toggleTag = (id: string) => {
         setSelectedTagIds((prev) =>
@@ -327,9 +332,9 @@ return;
                                     <button
                                         key={tag.id}
                                         onClick={() =>
-                                            canModify && toggleTag(tag.id)
+                                            canEditTask && toggleTag(tag.id)
                                         }
-                                        className={`rounded-full px-3 py-0.5 text-xs font-semibold text-white transition-all ${canModify ? 'cursor-pointer' : 'cursor-default opacity-80'}`}
+                                        className={`rounded-full px-3 py-0.5 text-xs font-semibold text-white transition-all ${canEditTask ? 'cursor-pointer' : 'cursor-default opacity-80'}`}
                                         style={{
                                             backgroundColor: tag.color,
                                             opacity: selected ? 1 : 0.35,
@@ -366,13 +371,13 @@ return;
                                         type="button"
                                         onClick={() => {
                                             if (
-                                                canModify &&
+                                                canEditTask &&
                                                 user.id !== task?.creator_id
                                             ) {
 toggleAssignee(user.id);
 }
                                         }}
-                                        className={`flex items-center gap-1.5 rounded-full px-2 py-1 text-xs font-medium transition-all ${!canModify || user.id === task?.creator_id ? 'cursor-default opacity-80' : 'cursor-pointer hover:ring-1'} ${selected ? 'bg-primary text-primary-foreground shadow-sm ring-2 ring-primary ring-offset-1 dark:ring-offset-zinc-950' : 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-zinc-800 dark:text-slate-300 dark:hover:bg-zinc-700'}`}
+                                        className={`flex items-center gap-1.5 rounded-full px-2 py-1 text-xs font-medium transition-all ${!canEditTask || user.id === task?.creator_id ? 'cursor-default opacity-80' : 'cursor-pointer hover:ring-1'} ${selected ? 'bg-primary text-primary-foreground shadow-sm ring-2 ring-primary ring-offset-1 dark:ring-offset-zinc-950' : 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-zinc-800 dark:text-slate-300 dark:hover:bg-zinc-700'}`}
                                         title={
                                             user.id === task?.creator_id
                                                 ? 'Pembuat tugas tidak dapat diunselect'
@@ -404,7 +409,7 @@ toggleAssignee(user.id);
                         </label>
                         <Input
                             value={title}
-                            readOnly={!canModify}
+                            readOnly={!canEditTask}
                             onChange={(e) => setTitle(e.target.value)}
                             className="text-base font-semibold"
                             placeholder="Judul tugas..."
@@ -418,7 +423,7 @@ toggleAssignee(user.id);
                         </label>
                         <Textarea
                             value={description}
-                            readOnly={!canModify}
+                            readOnly={!canEditTask}
                             onChange={(e) => setDescription(e.target.value)}
                             rows={4}
                             placeholder="Tambahkan deskripsi tugas..."
@@ -432,7 +437,7 @@ toggleAssignee(user.id);
                             <label className="text-xs font-medium text-muted-foreground">
                                 Lampiran Tugas
                             </label>
-                            {canModify && (
+                            {canEditTask && (
                                 <>
                                     <input
                                         type="file"
@@ -541,7 +546,7 @@ setTaskAttachments([
                         <Input
                             type="date"
                             value={dueDate}
-                            readOnly={!canModify}
+                            readOnly={!canEditTask}
                             onChange={(e) => setDueDate(e.target.value)}
                             className="w-48 text-sm"
                         />
@@ -1032,16 +1037,20 @@ setTaskAttachments([
 
                     {/* Actions */}
                     <div className="flex items-center justify-between border-t border-sidebar-border/70 pt-2">
-                        {canModify ? (
+                        {canEditTask ? (
                             <>
-                                <Button
-                                    variant="destructive"
-                                    size="sm"
-                                    onClick={handleDelete}
-                                    className="text-xs"
-                                >
-                                    Hapus Tugas
-                                </Button>
+                                <div>
+                                    {canDeleteTask && (
+                                        <Button
+                                            variant="destructive"
+                                            size="sm"
+                                            onClick={handleDelete}
+                                            className="text-xs"
+                                        >
+                                            Hapus Tugas
+                                        </Button>
+                                    )}
+                                </div>
                                 <div className="flex gap-2">
                                     <Button
                                         variant="outline"

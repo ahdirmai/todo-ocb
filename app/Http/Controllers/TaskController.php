@@ -6,6 +6,7 @@ use App\Models\KanbanColumn;
 use App\Models\Task;
 use App\Services\ActivityLogger;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 
 class TaskController extends Controller
 {
@@ -56,6 +57,8 @@ class TaskController extends Controller
 
     public function show(Task $task)
     {
+        Gate::authorize('view', $task);
+
         $task->load(['tags', 'comments.user', 'media', 'assignees']);
 
         return response()->json($task);
@@ -63,6 +66,8 @@ class TaskController extends Controller
 
     public function update(Request $request, Task $task)
     {
+        Gate::authorize('update', $task);
+
         $validated = $request->validate([
             'title' => 'sometimes|string|max:255',
             'description' => 'nullable|string',
@@ -111,7 +116,7 @@ class TaskController extends Controller
             $newAssignees = $request->input('assignee_ids') ?? [];
 
             // Ensure creator is always included
-            if ($task->creator_id && !in_array($task->creator_id, $newAssignees)) {
+            if ($task->creator_id && ! in_array($task->creator_id, $newAssignees)) {
                 $newAssignees[] = $task->creator_id;
             }
 
@@ -171,6 +176,8 @@ class TaskController extends Controller
 
     public function destroy(Task $task)
     {
+        Gate::authorize('delete', $task);
+
         // Deletion is logged by TaskObserver
         $task->delete();
 

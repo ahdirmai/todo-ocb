@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\KanbanColumn;
 use App\Models\Task;
+use App\Services\ActivityLogger;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 
 class KanbanBoardController extends Controller
 {
@@ -34,13 +36,17 @@ class KanbanBoardController extends Controller
 
         foreach ($validated['tasks'] as $taskData) {
             $task = Task::find($taskData['id']);
-            if (!$task) continue;
+            if (! $task) {
+                continue;
+            }
+
+            Gate::authorize('update', $task);
 
             if ($task->kanban_column_id !== $taskData['kanban_column_id']) {
                 $oldColumn = KanbanColumn::find($task->kanban_column_id);
                 $newColumn = KanbanColumn::find($taskData['kanban_column_id']);
 
-                \App\Services\ActivityLogger::log(
+                ActivityLogger::log(
                     event: 'moved',
                     logName: 'task',
                     description: "Task \"{$task->title}\" dipindah ke kolom \"{$newColumn?->title}\"",
