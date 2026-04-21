@@ -1,16 +1,17 @@
-import { useState } from 'react';
 import { Head, router, usePage, setLayoutProps } from '@inertiajs/react';
-import AppLayout from '@/layouts/app-layout';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
+import { Plus, Pencil, Trash2, ShieldCheck, Shield, User } from 'lucide-react';
+import { useState } from 'react';
+import * as MemberActions from '@/actions/App/Http/Controllers/MemberController';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
     Dialog,
     DialogContent,
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 import {
     Select,
     SelectContent,
@@ -18,8 +19,6 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { Plus, Pencil, Trash2, ShieldCheck, Shield, User } from 'lucide-react';
-import * as MemberActions from '@/actions/App/Http/Controllers/MemberController';
 
 interface Member {
     id: number;
@@ -86,7 +85,10 @@ export default function MembersIndex({
     };
 
     const handleChangeRole = () => {
-        if (!editMember) return;
+        if (!editMember) {
+return;
+}
+
         router.put(
             MemberActions.update.url(editMember.id),
             editForm,
@@ -97,7 +99,10 @@ export default function MembersIndex({
     };
 
     const handleDelete = (member: Member) => {
-        if (!confirm(`Hapus anggota ${member.name}?`)) return;
+        if (!confirm(`Hapus anggota ${member.name}?`)) {
+return;
+}
+
         router.delete(MemberActions.destroy.url(member.id));
     };
 
@@ -153,6 +158,7 @@ export default function MembersIndex({
                                         ROLE_CONFIG[m.role] ??
                                         ROLE_CONFIG.member;
                                     const Icon = cfg.icon;
+
                                     return (
                                         <tr
                                             key={m.id}

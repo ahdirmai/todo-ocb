@@ -1,7 +1,7 @@
 import { Head, Link, useForm, setLayoutProps } from '@inertiajs/react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import Placeholder from '@tiptap/extension-placeholder';
+import { EditorContent, useEditor } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
 import {
     ArrowLeft,
     Loader2,
@@ -16,9 +16,9 @@ import {
     ListOrdered,
     Save,
 } from 'lucide-react';
-import { EditorContent, useEditor } from '@tiptap/react';
-import StarterKit from '@tiptap/starter-kit';
-import Placeholder from '@tiptap/extension-placeholder';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
     show as showDocument,
     update as updateDocument,
@@ -78,8 +78,10 @@ export default function EditDocument({
 
             if (currentTotal + files.length > 5) {
                 alert('Maksimal 5 lampiran diperbolehkan untuk satu dokumen.');
+
                 return;
             }
+
             setData('new_attachments', [...data.new_attachments, ...files]);
         }
     };
@@ -342,6 +344,7 @@ export default function EditDocument({
                                         data.removed_media_ids.includes(
                                             media.id,
                                         );
+
                                     return (
                                         <div
                                             key={`media-${media.id}`}

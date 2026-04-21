@@ -1,16 +1,18 @@
 import { Head, router, usePage, Link } from '@inertiajs/react';
-import AppLayout from '@/layouts/app-layout';
+import { useState } from 'react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { useState } from 'react';
+import { Input } from '@/components/ui/input';
+import AppLayout from '@/layouts/app-layout';
 
 type ActivityLog = {
     id: number;
     log_name: string;
     event: string;
     description: string;
+    subject_id: string | number | null;
+    subject_type: string | null;
     causer: { id: number; name: string } | null;
     properties: Record<string, any> | null;
     team_id: number | null;
@@ -63,12 +65,27 @@ const FILTER_TABS = [
 function timeAgo(dateStr: string): string {
     const diff = Date.now() - new Date(dateStr).getTime();
     const minutes = Math.floor(diff / 60000);
-    if (minutes < 1) return 'baru saja';
-    if (minutes < 60) return `${minutes} menit lalu`;
+
+    if (minutes < 1) {
+return 'baru saja';
+}
+
+    if (minutes < 60) {
+return `${minutes} menit lalu`;
+}
+
     const hours = Math.floor(minutes / 60);
-    if (hours < 24) return `${hours} jam lalu`;
+
+    if (hours < 24) {
+return `${hours} jam lalu`;
+}
+
     const days = Math.floor(hours / 24);
-    if (days < 30) return `${days} hari lalu`;
+
+    if (days < 30) {
+return `${days} hari lalu`;
+}
+
     return new Date(dateStr).toLocaleDateString('id-ID', {
         day: 'numeric',
         month: 'short',

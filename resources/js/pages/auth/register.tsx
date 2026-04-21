@@ -1,6 +1,6 @@
 import { Head } from '@inertiajs/react';
-import { useEffect } from 'react';
 import { router } from '@inertiajs/react';
+import { useEffect } from 'react';
 import { login } from '@/routes';
 
 export default function Register() {

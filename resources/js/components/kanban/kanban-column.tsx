@@ -1,9 +1,9 @@
-import { useState, useRef } from 'react';
 import { Droppable } from '@hello-pangea/dnd';
-import { KanbanCard } from './kanban-card';
-import { MoreHorizontal, Plus, Pencil, Trash2, Check, X } from 'lucide-react';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { router } from '@inertiajs/react';
+import { MoreHorizontal, Plus, Pencil, Trash2, Check, X } from 'lucide-react';
+import { useState, useRef } from 'react';
+import * as ColumnActions from '@/actions/App/Http/Controllers/KanbanColumnController';
+import * as TaskActions from '@/actions/App/Http/Controllers/TaskController';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -11,8 +11,8 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
-import * as ColumnActions from '@/actions/App/Http/Controllers/KanbanColumnController';
-import * as TaskActions from '@/actions/App/Http/Controllers/TaskController';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { KanbanCard } from './kanban-card';
 
 interface Props {
     column: any;
@@ -41,8 +41,10 @@ export function KanbanColumn({
         if (!title.trim() || title === column.title) {
             setEditing(false);
             setTitle(column.title);
+
             return;
         }
+
         router.put(
             ColumnActions.update.url(column.id),
             { title: title.trim() },
@@ -62,15 +64,20 @@ export function KanbanColumn({
             !confirm(
                 `Hapus kolom "${column.title}"? Semua task di dalamnya akan ikut terhapus.`,
             )
-        )
-            return;
+        ) {
+return;
+}
+
         router.delete(ColumnActions.destroy.url(column.id), {
             preserveScroll: true,
         });
     };
 
     const handleAddTask = () => {
-        if (!newTaskTitle.trim() || savingTask) return;
+        if (!newTaskTitle.trim() || savingTask) {
+return;
+}
+
         setSavingTask(true);
 
         const formData = new FormData();
@@ -97,8 +104,10 @@ export function KanbanColumn({
                 setNewTaskTitle('');
                 setNewTaskAttachments([]);
                 setAddingTask(false);
-                if (taskFileInputRef.current)
-                    taskFileInputRef.current.value = '';
+
+                if (taskFileInputRef.current) {
+taskFileInputRef.current.value = '';
+}
 
                 if (newTask) {
                     onTaskCreated(newTask);
@@ -122,7 +131,10 @@ export function KanbanColumn({
                                 value={title}
                                 onChange={(e) => setTitle(e.target.value)}
                                 onKeyDown={(e) => {
-                                    if (e.key === 'Enter') handleRenameColumn();
+                                    if (e.key === 'Enter') {
+handleRenameColumn();
+}
+
                                     if (e.key === 'Escape') {
                                         setTitle(column.title);
                                         setEditing(false);
@@ -213,10 +225,13 @@ export function KanbanColumn({
                                             setNewTaskTitle(e.target.value)
                                         }
                                         onKeyDown={(e) => {
-                                            if (e.key === 'Enter')
-                                                handleAddTask();
-                                            if (e.key === 'Escape')
-                                                setAddingTask(false);
+                                            if (e.key === 'Enter') {
+handleAddTask();
+}
+
+                                            if (e.key === 'Escape') {
+setAddingTask(false);
+}
                                         }}
                                         placeholder="Judul task baru..."
                                         className="h-8 text-sm"
@@ -256,13 +271,14 @@ export function KanbanColumn({
                                             className="hidden"
                                             ref={taskFileInputRef}
                                             onChange={(e) => {
-                                                if (e.target.files?.length)
-                                                    setNewTaskAttachments([
+                                                if (e.target.files?.length) {
+setNewTaskAttachments([
                                                         ...newTaskAttachments,
                                                         ...Array.from(
                                                             e.target.files,
                                                         ),
                                                     ]);
+}
                                             }}
                                         />
                                         <button

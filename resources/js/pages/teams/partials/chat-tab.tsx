@@ -1,15 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
 import { usePage } from '@inertiajs/react';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import {
-    Sheet,
-    SheetContent,
-    SheetHeader,
-    SheetTitle,
-} from '@/components/ui/sheet';
 import {
     Paperclip,
     Send,
@@ -21,6 +10,17 @@ import {
     MessageSquare,
     Users,
 } from 'lucide-react';
+import { useEffect, useRef, useState, useCallback } from 'react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import {
+    Sheet,
+    SheetContent,
+    SheetHeader,
+    SheetTitle,
+} from '@/components/ui/sheet';
+import { Textarea } from '@/components/ui/textarea';
 
 /* ─── Types ──────────────────────────────────────────────── */
 
@@ -61,20 +61,35 @@ function formatTime(iso: string): string {
     const diffMs = now.getTime() - date.getTime();
     const diffMin = Math.floor(diffMs / 60000);
 
-    if (diffMin < 1) return 'baru saja';
-    if (diffMin < 60) return `${diffMin} mnt lalu`;
+    if (diffMin < 1) {
+return 'baru saja';
+}
+
+    if (diffMin < 60) {
+return `${diffMin} mnt lalu`;
+}
+
     const diffH = Math.floor(diffMin / 60);
-    if (diffH < 24)
-        return date.toLocaleTimeString('id-ID', {
+
+    if (diffH < 24) {
+return date.toLocaleTimeString('id-ID', {
             hour: '2-digit',
             minute: '2-digit',
         });
+}
+
     return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
 }
 
 function formatFileSize(bytes: number): string {
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    if (bytes < 1024) {
+return `${bytes} B`;
+}
+
+    if (bytes < 1024 * 1024) {
+return `${(bytes / 1024).toFixed(1)} KB`;
+}
+
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
@@ -209,6 +224,7 @@ function MemberList({ team }: { team: any }) {
         <div className="flex-1 overflow-y-auto py-2">
             {members.map((user) => {
                 const role = user.pivot?.role ?? 'member';
+
                 return (
                     <div
                         key={user.id}
@@ -292,8 +308,10 @@ export function ChatTab({ team }: { team: any }) {
     /* Laravel Echo subscription to private team channel */
     useEffect(() => {
         const echoInstance = (window as any).Echo;
+
         if (!echoInstance) {
             console.warn('[Chat] window.Echo tidak tersedia.');
+
             return;
         }
 
@@ -303,7 +321,10 @@ export function ChatTab({ team }: { team: any }) {
             .listen('.TeamMessageSent', (e: { message: ChatMessage }) => {
                 setMessages((prev) => {
                     // Avoid duplicate (our own optimistic message)
-                    if (prev.some((m) => m.id === e.message.id)) return prev;
+                    if (prev.some((m) => m.id === e.message.id)) {
+return prev;
+}
+
                     return [...prev, e.message];
                 });
             })
@@ -319,14 +340,26 @@ export function ChatTab({ team }: { team: any }) {
     /* Send message */
     const sendMessage = useCallback(async () => {
         const trimmed = text.trim();
-        if (!trimmed && !file) return;
-        if (sending) return;
+
+        if (!trimmed && !file) {
+return;
+}
+
+        if (sending) {
+return;
+}
 
         setSending(true);
 
         const formData = new FormData();
-        if (trimmed) formData.append('body', trimmed);
-        if (file) formData.append('attachment', file);
+
+        if (trimmed) {
+formData.append('body', trimmed);
+}
+
+        if (file) {
+formData.append('attachment', file);
+}
 
         // Get CSRF token from meta tag
         const csrfToken =
@@ -353,6 +386,7 @@ export function ChatTab({ team }: { team: any }) {
             if (!res.ok) {
                 const err = await res.json().catch(() => ({}));
                 console.error('[Chat] send error', err);
+
                 return;
             }
 
@@ -362,7 +396,10 @@ export function ChatTab({ team }: { team: any }) {
             setMessages((prev) => [...prev, newMsg]);
             setText('');
             setFile(null);
-            if (fileInputRef.current) fileInputRef.current.value = '';
+
+            if (fileInputRef.current) {
+fileInputRef.current.value = '';
+}
         } finally {
             setSending(false);
             textareaRef.current?.focus();
@@ -503,8 +540,10 @@ export function ChatTab({ team }: { team: any }) {
                             <button
                                 onClick={() => {
                                     setFile(null);
-                                    if (fileInputRef.current)
-                                        fileInputRef.current.value = '';
+
+                                    if (fileInputRef.current) {
+fileInputRef.current.value = '';
+}
                                 }}
                                 className="shrink-0 rounded-md p-0.5 text-muted-foreground transition-colors hover:bg-slate-100 hover:text-slate-800 dark:hover:bg-zinc-700 dark:hover:text-slate-200"
                                 title="Hapus lampiran"

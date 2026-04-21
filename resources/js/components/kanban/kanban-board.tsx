@@ -1,78 +1,81 @@
-import { useState, useEffect } from 'react';
-import { DragDropContext, DropResult } from '@hello-pangea/dnd';
-import { KanbanColumn } from './kanban-column';
-import { TaskDetailModal } from './task-detail-modal';
+import type { DropResult } from '@hello-pangea/dnd';
+import { DragDropContext } from '@hello-pangea/dnd';
 import { router } from '@inertiajs/react';
 import { Plus } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import * as BoardActions from '@/actions/App/Http/Controllers/KanbanBoardController';
+import * as ColumnActions from '@/actions/App/Http/Controllers/KanbanColumnController';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import * as ColumnActions from '@/actions/App/Http/Controllers/KanbanColumnController';
-import * as BoardActions from '@/actions/App/Http/Controllers/KanbanBoardController';
+import { KanbanColumn } from './kanban-column';
+import { TaskDetailModal } from './task-detail-modal';
 
 export function KanbanBoard({ kanban }: { kanban: any }) {
-    const [columns, setColumns] = useState(kanban?.columns || []);
+    const [optimisticColumns, setOptimisticColumns] = useState<any[] | null>(
+        null,
+    );
     const [addingColumn, setAddingColumn] = useState(false);
     const [newColumnTitle, setNewColumnTitle] = useState('');
     const [saving, setSaving] = useState(false);
 
     // Task Detail Modal state
-    const [selectedTask, setSelectedTask] = useState<any | null>(null);
-    const [modalOpen, setModalOpen] = useState(false);
+    const [selectedTaskId, setSelectedTaskId] = useState<string | null>(() => {
+        if (typeof window === 'undefined') {
+            return null;
+        }
 
-    useEffect(() => {
-        const newColumns = kanban?.columns || [];
-        setColumns(newColumns);
+        return new URLSearchParams(window.location.search).get('taskId');
+    });
+    const [modalOpen, setModalOpen] = useState(() => {
+        if (typeof window === 'undefined') {
+            return false;
+        }
 
-        // Parse URL params for taskId
-        const urlParams = new URLSearchParams(window.location.search);
-        const taskIdParam = urlParams.get('taskId');
-        const targetTaskId = taskIdParam || selectedTask?.id;
+        return new URLSearchParams(window.location.search).has('taskId');
+    });
+    const columns = useMemo(
+        () => optimisticColumns ?? kanban?.columns ?? [],
+        [kanban?.columns, optimisticColumns],
+    );
+    const selectedTask = useMemo(() => {
+        if (!selectedTaskId) {
+            return null;
+        }
 
-        if (targetTaskId) {
-            let updatedTask = null;
-            for (const col of newColumns) {
-                const found = col.tasks?.find(
-                    (t: any) => t.id === targetTaskId,
-                );
-                if (found) {
-                    updatedTask = found;
-                    break;
-                }
-            }
-            if (updatedTask) {
-                setSelectedTask(updatedTask);
-                if (taskIdParam && !modalOpen) {
-                    setModalOpen(true);
+        for (const col of columns) {
+            const found = col.tasks?.find((task: any) => task.id === selectedTaskId);
 
-                    // Cleanup URL purely cosmetically so refreshing doesn't keep opening it if user closed it
-                    // The standard way in Inertia without causing a visit is History API:
-                    const url = new URL(window.location.href);
-                    url.searchParams.delete('taskId');
-                    window.history.replaceState({}, '', url);
-                }
+            if (found) {
+                return found;
             }
         }
-    }, [kanban]);
+
+        return null;
+    }, [columns, selectedTaskId]);
 
     const handleCardClick = (task: any) => {
-        setSelectedTask(task);
+        setSelectedTaskId(task.id);
         setModalOpen(true);
     };
 
     const handleTaskCreated = (task: any) => {
-        setSelectedTask(task);
+        setSelectedTaskId(task.id);
         setModalOpen(true);
     };
 
     const onDragEnd = (result: DropResult) => {
         const { destination, source } = result;
 
-        if (!destination) return;
+        if (!destination) {
+            return;
+        }
+
         if (
             destination.droppableId === source.droppableId &&
             destination.index === source.index
-        )
+        ) {
             return;
+        }
 
         const sourceColIndex = columns.findIndex(
             (c: any) => c.id === source.droppableId,
@@ -81,7 +84,9 @@ export function KanbanBoard({ kanban }: { kanban: any }) {
             (c: any) => c.id === destination.droppableId,
         );
 
-        if (sourceColIndex === -1 || destColIndex === -1) return;
+        if (sourceColIndex === -1 || destColIndex === -1) {
+            return;
+        }
 
         const newColumns = Array.from(columns) as any[];
         const sourceCol = newColumns[sourceColIndex];
@@ -115,7 +120,7 @@ export function KanbanBoard({ kanban }: { kanban: any }) {
             newColumns[destColIndex] = { ...destCol, tasks: updatedTasks };
         }
 
-        setColumns(newColumns);
+        setOptimisticColumns(newColumns);
 
         router.put(
             BoardActions.reorderTasks.url(),
@@ -126,12 +131,20 @@ export function KanbanBoard({ kanban }: { kanban: any }) {
                     order_position: t.order_position,
                 })),
             },
-            { preserveScroll: true, preserveState: true },
+            {
+                preserveScroll: true,
+                preserveState: true,
+                onSuccess: () => setOptimisticColumns(null),
+                onError: () => setOptimisticColumns(null),
+            },
         );
     };
 
     const handleAddColumn = () => {
-        if (!newColumnTitle.trim() || saving) return;
+        if (!newColumnTitle.trim() || saving) {
+            return;
+        }
+
         setSaving(true);
         router.post(
             ColumnActions.store.url(kanban.id),
@@ -150,12 +163,13 @@ export function KanbanBoard({ kanban }: { kanban: any }) {
         );
     };
 
-    if (!kanban)
+    if (!kanban) {
         return (
             <div className="p-8 text-muted-foreground">
                 No Kanban Board Found
             </div>
         );
+    }
 
     const columnColors = [
         'border-slate-300',
@@ -195,10 +209,13 @@ export function KanbanBoard({ kanban }: { kanban: any }) {
                                         setNewColumnTitle(e.target.value)
                                     }
                                     onKeyDown={(e) => {
-                                        if (e.key === 'Enter')
+                                        if (e.key === 'Enter') {
                                             handleAddColumn();
-                                        if (e.key === 'Escape')
+                                        }
+
+                                        if (e.key === 'Escape') {
                                             setAddingColumn(false);
+                                        }
                                     }}
                                     placeholder="Contoh: In Review"
                                     className="h-8 text-sm"
@@ -240,7 +257,7 @@ export function KanbanBoard({ kanban }: { kanban: any }) {
                 open={modalOpen}
                 onClose={() => {
                     setModalOpen(false);
-                    setSelectedTask(null);
+                    setSelectedTaskId(null);
                 }}
             />
         </>

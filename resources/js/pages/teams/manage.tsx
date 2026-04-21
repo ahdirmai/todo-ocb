@@ -1,28 +1,4 @@
-import { useState } from 'react';
 import { Head, router, usePage, setLayoutProps } from '@inertiajs/react';
-import AppLayout from '@/layouts/app-layout';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import {
     Plus,
     MoreHorizontal,
@@ -34,7 +10,30 @@ import {
     Users,
     CheckSquare,
 } from 'lucide-react';
+import { useState } from 'react';
 import * as TeamActions from '@/actions/App/Http/Controllers/TeamController';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Input } from '@/components/ui/input';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 
 const GROUPING_CONFIG = {
     hq: { label: 'HQ', icon: Building, color: 'bg-blue-100 text-blue-700' },
@@ -119,8 +118,10 @@ export default function TeamsManage() {
             !confirm(
                 `Hapus permanen "${team.name}"? Semua data di dalamnya akan hilang.`,
             )
-        )
+        ) {
             return;
+        }
+
         router.delete(TeamActions.destroy.url(team.id));
     };
 
@@ -132,6 +133,7 @@ export default function TeamsManage() {
                 : filter === 'active'
                   ? t.is_active
                   : !t.is_active;
+
         return matchSearch && matchFilter;
     });
 
@@ -223,6 +225,7 @@ export default function TeamsManage() {
                                         const cfg =
                                             GROUPING_CONFIG[team.grouping];
                                         const Icon = cfg.icon;
+
                                         return (
                                             <tr
                                                 key={team.id}

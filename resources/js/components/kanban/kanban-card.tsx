@@ -1,7 +1,7 @@
 import { Draggable } from '@hello-pangea/dnd';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { usePage } from '@inertiajs/react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 
 interface KanbanCardProps {
     task: any;
@@ -28,7 +28,10 @@ export function KanbanCard({ task, index, onClick }: KanbanCardProps) {
     );
 
     const formatDate = (dateStr: string) => {
-        if (!dateStr) return '';
+        if (!dateStr) {
+return '';
+}
+
         return new Date(dateStr).toLocaleDateString('id-ID', {
             day: 'numeric',
             month: 'short',

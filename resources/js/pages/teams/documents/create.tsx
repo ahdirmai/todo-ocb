@@ -1,8 +1,7 @@
 import { Head, Link, useForm, setLayoutProps } from '@inertiajs/react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import Placeholder from '@tiptap/extension-placeholder';
+import { EditorContent, useEditor } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
 import {
     ArrowLeft,
     Loader2,
@@ -16,9 +15,10 @@ import {
     List,
     ListOrdered,
 } from 'lucide-react';
-import { EditorContent, useEditor } from '@tiptap/react';
-import StarterKit from '@tiptap/starter-kit';
-import Placeholder from '@tiptap/extension-placeholder';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { store as storeDocument } from '@/routes/documents/document';
 
 export default function CreateDocument({
@@ -86,10 +86,13 @@ export default function CreateDocument({
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files) {
             const files = Array.from(e.target.files);
+
             if (data.attachments.length + files.length > 5) {
                 alert('Maksimal 5 lampiran diperbolehkan.');
+
                 return;
             }
+
             setData('attachments', [...data.attachments, ...files]);
         }
     };
@@ -206,6 +209,7 @@ export default function CreateDocument({
                                 const isSelected = data.recipients.includes(
                                     user.id,
                                 );
+
                                 return (
                                     <button
                                         type="button"

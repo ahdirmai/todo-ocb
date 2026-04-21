@@ -46,12 +46,27 @@ const LOG_LABELS: Record<string, string> = {
 function timeAgo(dateStr: string): string {
     const diff = Date.now() - new Date(dateStr).getTime();
     const minutes = Math.floor(diff / 60000);
-    if (minutes < 1) return 'baru saja';
-    if (minutes < 60) return `${minutes} menit lalu`;
+
+    if (minutes < 1) {
+return 'baru saja';
+}
+
+    if (minutes < 60) {
+return `${minutes} menit lalu`;
+}
+
     const hours = Math.floor(minutes / 60);
-    if (hours < 24) return `${hours} jam lalu`;
+
+    if (hours < 24) {
+return `${hours} jam lalu`;
+}
+
     const days = Math.floor(hours / 24);
-    if (days < 30) return `${days} hari lalu`;
+
+    if (days < 30) {
+return `${days} hari lalu`;
+}
+
     return new Date(dateStr).toLocaleDateString('id-ID', {
         day: 'numeric',
         month: 'short',

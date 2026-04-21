@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Link, router, usePage } from '@inertiajs/react';
 import {
     ChevronRight,
@@ -7,11 +6,27 @@ import {
     Pencil,
     Archive,
 } from 'lucide-react';
+import { useState } from 'react';
+import * as TeamActions from '@/actions/App/Http/Controllers/TeamController';
+import { Button } from '@/components/ui/button';
 import {
     Collapsible,
     CollapsibleContent,
     CollapsibleTrigger,
 } from '@/components/ui/collapsible';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Input } from '@/components/ui/input';
 import {
     SidebarGroup,
     SidebarMenu,
@@ -22,23 +37,8 @@ import {
     SidebarMenuSubItem,
     SidebarMenuAction,
 } from '@/components/ui/sidebar';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
 import { useCurrentUrl } from '@/hooks/use-current-url';
 import type { NavGroup } from '@/types';
-import * as TeamActions from '@/actions/App/Http/Controllers/TeamController';
 
 export function NavMain({ groups = [] }: { groups: NavGroup[] }) {
     const { isCurrentUrl } = useCurrentUrl();
@@ -68,7 +68,10 @@ export function NavMain({ groups = [] }: { groups: NavGroup[] }) {
     const [editName, setEditName] = useState('');
 
     const handleCreate = () => {
-        if (!newTeamName.trim() || saving) return;
+        if (!newTeamName.trim() || saving) {
+return;
+}
+
         setSaving(true);
         router.post(
             TeamActions.store.url(),
@@ -89,7 +92,10 @@ export function NavMain({ groups = [] }: { groups: NavGroup[] }) {
     };
 
     const handleEdit = () => {
-        if (!editName.trim() || !editModal.team || saving) return;
+        if (!editName.trim() || !editModal.team || saving) {
+return;
+}
+
         setSaving(true);
         router.put(
             TeamActions.update.url(editModal.team.id),
@@ -268,12 +274,16 @@ export function NavMain({ groups = [] }: { groups: NavGroup[] }) {
                             value={newTeamName}
                             onChange={(e) => setNewTeamName(e.target.value)}
                             onKeyDown={(e) => {
-                                if (e.key === 'Enter') handleCreate();
-                                if (e.key === 'Escape')
-                                    setCreateModal({
+                                if (e.key === 'Enter') {
+handleCreate();
+}
+
+                                if (e.key === 'Escape') {
+setCreateModal({
                                         ...createModal,
                                         open: false,
                                     });
+}
                             }}
                             placeholder="Nama tim..."
                             className="h-8 text-sm"
@@ -324,9 +334,13 @@ export function NavMain({ groups = [] }: { groups: NavGroup[] }) {
                             value={editName}
                             onChange={(e) => setEditName(e.target.value)}
                             onKeyDown={(e) => {
-                                if (e.key === 'Enter') handleEdit();
-                                if (e.key === 'Escape')
-                                    setEditModal({ open: false, team: null });
+                                if (e.key === 'Enter') {
+handleEdit();
+}
+
+                                if (e.key === 'Escape') {
+setEditModal({ open: false, team: null });
+}
                             }}
                             placeholder="Nama baru..."
                             className="h-8 text-sm"

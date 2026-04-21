@@ -1,8 +1,5 @@
-import { useState } from 'react';
 import { Link, router, usePage } from '@inertiajs/react';
 import {
-    BookOpen,
-    FolderGit2,
     Shield,
     Tag,
     Users2,
@@ -11,22 +8,13 @@ import {
     Sun,
     Activity,
 } from 'lucide-react';
+import { useState } from 'react';
+import * as TeamActions from '@/actions/App/Http/Controllers/TeamController';
 import AppLogo from '@/components/app-logo';
-import { useAppearance } from '@/hooks/use-appearance';
 import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
-import {
-    Sidebar,
-    SidebarContent,
-    SidebarFooter,
-    SidebarHeader,
-    SidebarMenu,
-    SidebarMenuButton,
-    SidebarMenuItem,
-    SidebarGroup,
-    SidebarGroupLabel,
-} from '@/components/ui/sidebar';
+import { Button } from '@/components/ui/button';
 import {
     Dialog,
     DialogContent,
@@ -41,11 +29,21 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { Button } from '@/components/ui/button';
+import {
+    Sidebar,
+    SidebarContent,
+    SidebarFooter,
+    SidebarHeader,
+    SidebarMenu,
+    SidebarMenuButton,
+    SidebarMenuItem,
+    SidebarGroup,
+    SidebarGroupLabel,
+} from '@/components/ui/sidebar';
+import { useAppearance } from '@/hooks/use-appearance';
+import { useMainNav } from '@/hooks/use-main-nav';
 import { dashboard } from '@/routes';
 import type { NavItem } from '@/types';
-import { useMainNav } from '@/hooks/use-main-nav';
-import * as TeamActions from '@/actions/App/Http/Controllers/TeamController';
 
 const footerNavItems: NavItem[] = [];
 
@@ -64,7 +62,10 @@ export function AppSidebar() {
     const [saving, setSaving] = useState(false);
 
     const handleCreate = () => {
-        if (!form.name.trim() || saving) return;
+        if (!form.name.trim() || saving) {
+            return;
+        }
+
         setSaving(true);
         router.post(TeamActions.store.url(), form, {
             preserveScroll: true,
@@ -244,8 +245,13 @@ export function AppSidebar() {
                                     setForm({ ...form, name: e.target.value })
                                 }
                                 onKeyDown={(e) => {
-                                    if (e.key === 'Enter') handleCreate();
-                                    if (e.key === 'Escape') setOpen(false);
+                                    if (e.key === 'Enter') {
+handleCreate();
+}
+
+                                    if (e.key === 'Escape') {
+setOpen(false);
+}
                                 }}
                                 placeholder="Nama tim..."
                             />

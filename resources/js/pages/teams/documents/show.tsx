@@ -1,7 +1,7 @@
 import { Head, Link, useForm, setLayoutProps } from '@inertiajs/react';
-import { Button } from '@/components/ui/button';
 import { ArrowLeft, Send, Paperclip, Download } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 
 export default function DocumentShow({

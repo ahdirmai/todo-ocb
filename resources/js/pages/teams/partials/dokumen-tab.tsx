@@ -1,4 +1,3 @@
-import { useState, useEffect, useCallback } from 'react';
 import { useForm, router, Link, usePage } from '@inertiajs/react';
 import {
     Folder,
@@ -19,14 +18,9 @@ import {
     UploadCloud,
     ShieldCheck,
 } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import {
     Dialog,
     DialogContent,
@@ -34,9 +28,15 @@ import {
     DialogTitle,
     DialogFooter,
 } from '@/components/ui/dialog';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
     create as createDocument,
     destroy as destroyDocument,
@@ -70,6 +70,7 @@ function FileIcon2({ type, name }: { type: DocType; name: string }) {
             </div>
         );
     }
+
     if (type === 'document') {
         return (
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-500 dark:bg-blue-500/10">
@@ -77,7 +78,9 @@ function FileIcon2({ type, name }: { type: DocType; name: string }) {
             </div>
         );
     }
+
     const ext = name.split('.').pop()?.toLowerCase() ?? '';
+
     if (ext === 'pdf') {
         return (
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-red-50 text-red-500 dark:bg-red-500/10">
@@ -85,6 +88,7 @@ function FileIcon2({ type, name }: { type: DocType; name: string }) {
             </div>
         );
     }
+
     if (['xls', 'xlsx'].includes(ext)) {
         return (
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-green-50 text-green-600 dark:bg-green-500/10">
@@ -92,6 +96,7 @@ function FileIcon2({ type, name }: { type: DocType; name: string }) {
             </div>
         );
     }
+
     if (['doc', 'docx'].includes(ext)) {
         return (
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-sky-50 text-sky-500 dark:bg-sky-500/10">
@@ -99,6 +104,7 @@ function FileIcon2({ type, name }: { type: DocType; name: string }) {
             </div>
         );
     }
+
     if (['png', 'jpg', 'jpeg', 'webp', 'gif'].includes(ext)) {
         return (
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-purple-50 text-purple-500 dark:bg-purple-500/10">
@@ -106,6 +112,7 @@ function FileIcon2({ type, name }: { type: DocType; name: string }) {
             </div>
         );
     }
+
     return (
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-400 dark:bg-slate-800">
             <FileIcon className="h-5 w-5" />
@@ -121,6 +128,7 @@ function TypeBadge({ type }: { type: DocType }) {
             </span>
         );
     }
+
     if (type === 'document') {
         return (
             <span className="text-xs font-medium text-blue-600 dark:text-blue-400">
@@ -128,6 +136,7 @@ function TypeBadge({ type }: { type: DocType }) {
             </span>
         );
     }
+
     return <span className="text-xs font-medium text-slate-400">File</span>;
 }
 
@@ -141,13 +150,22 @@ function SopBadge() {
 }
 
 function formatSize(bytes: number) {
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1048576) return `${(bytes / 1024).toFixed(1)} KB`;
+    if (bytes < 1024) {
+return `${bytes} B`;
+}
+
+    if (bytes < 1048576) {
+return `${(bytes / 1024).toFixed(1)} KB`;
+}
+
     return `${(bytes / 1048576).toFixed(2)} MB`;
 }
 
 function formatDate(dateStr?: string) {
-    if (!dateStr) return '—';
+    if (!dateStr) {
+return '—';
+}
+
     return new Date(dateStr).toLocaleDateString('id-ID', {
         day: 'numeric',
         month: 'short',
@@ -190,6 +208,7 @@ export function DokumenTab({ team }: { team: any }) {
     const fetchDocuments = useCallback(
         async (parentId: string | null = null) => {
             setIsLoading(true);
+
             try {
                 const response = await fetch(
                     documentsIndex.url(team, {
@@ -197,6 +216,7 @@ export function DokumenTab({ team }: { team: any }) {
                     }),
                     { headers: { Accept: 'application/json' } },
                 );
+
                 if (response.ok) {
                     const res = await response.json();
                     setDocuments(res.documents);
@@ -209,7 +229,7 @@ export function DokumenTab({ team }: { team: any }) {
                 setIsLoading(false);
             }
         },
-        [team.slug],
+        [team],
     );
 
     useEffect(() => {

@@ -1,24 +1,20 @@
-import { Head, router, usePage, setLayoutProps } from '@inertiajs/react';
-import AppLayout from '@/layouts/app-layout';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
-
-import { OverviewTab } from './partials/overview-tab';
-import { ChatTab } from './partials/chat-tab';
-import { PengumumanTab } from './partials/pengumuman-tab';
-import { PertanyaanTab } from './partials/pertanyaan-tab';
-import { DokumenTab } from './partials/dokumen-tab';
-import { TugasTab } from './partials/tugas-tab';
-import { ActivityTab } from './partials/activity-tab';
+import { Head, router, setLayoutProps } from '@inertiajs/react';
 import { useState } from 'react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
     Dialog,
     DialogContent,
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
+import { ActivityTab } from './partials/activity-tab';
+import { ChatTab } from './partials/chat-tab';
+import { DokumenTab } from './partials/dokumen-tab';
+import { OverviewTab } from './partials/overview-tab';
+import { PengumumanTab } from './partials/pengumuman-tab';
+import { TugasTab } from './partials/tugas-tab';
 
 type Tab =
     | 'overview'
@@ -40,11 +36,9 @@ const TAB_LABELS: Record<Tab, string> = {
 export default function TeamShow({
     team,
     tab,
-    item,
 }: {
     team: any;
     tab: Tab;
-    item?: string;
 }) {
     const [showMembersModal, setShowMembersModal] = useState(false);
 
@@ -75,7 +69,7 @@ export default function TeamShow({
                         >
                             {team.users
                                 ?.slice(0, 3)
-                                .map((u: any, i: number) => (
+                                .map((u: any) => (
                                     <Avatar
                                         key={u.id}
                                         className="h-8 w-8 border-2 border-white dark:border-zinc-950"
@@ -129,7 +123,7 @@ export default function TeamShow({
                             value="task"
                             className="m-0 flex h-full flex-col p-0"
                         >
-                            <TugasTab team={team} item={item} />
+                            <TugasTab team={team} />
                         </TabsContent>
                         <TabsContent
                             value="chat"

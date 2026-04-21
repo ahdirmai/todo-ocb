@@ -6,7 +6,9 @@ import type { NavGroup } from '@/types';
 export function useMainNav(): NavGroup[] {
     const { teamsData } = usePage().props as any;
 
-    if (!teamsData) return [];
+    if (!teamsData) {
+return [];
+}
 
     return [
         {

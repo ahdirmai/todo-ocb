@@ -1,5 +1,6 @@
-import { useRef, useState } from 'react';
 import { Form, Head, Link, router, usePage } from '@inertiajs/react';
+import { Camera, Trash2 } from 'lucide-react';
+import { useRef, useState } from 'react';
 import AvatarController from '@/actions/App/Http/Controllers/Settings/AvatarController';
 import ProfileController from '@/actions/App/Http/Controllers/Settings/ProfileController';
 import DeleteUser from '@/components/delete-user';
@@ -11,7 +12,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { edit } from '@/routes/profile';
 import { send } from '@/routes/verification';
-import { Camera, Trash2 } from 'lucide-react';
 
 export default function Profile({
     mustVerifyEmail,
@@ -44,6 +44,7 @@ export default function Profile({
 
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
+
         if (!file) {
             return;
         }
@@ -64,6 +65,7 @@ export default function Profile({
             onFinish: () => {
                 setIsUploading(false);
                 setPreviewUrl(null);
+
                 if (fileInputRef.current) {
                     fileInputRef.current.value = '';
                 }
@@ -189,7 +191,7 @@ export default function Profile({
                 </div>
 
                 <Form
-                    {...ProfileController.update.form()}
+                    {...ProfileController.update()}
                     options={{
                         preserveScroll: true,
                     }}

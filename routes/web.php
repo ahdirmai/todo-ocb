@@ -74,9 +74,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('teams/{team:slug}/documents/document', [TeamDocumentController::class, 'storeDocument'])->name('documents.document.store');
     Route::get('teams/{team:slug}/documents/{document}', [TeamDocumentController::class, 'show'])->name('documents.show');
     Route::get('teams/{team:slug}/documents/{document}/edit', [TeamDocumentController::class, 'edit'])->name('documents.edit');
-    // Using multipart/form-data for update requires POST with _method=PUT
-    Route::post('teams/{team:slug}/documents/{document}', [TeamDocumentController::class, 'update'])->name('documents.update');
-    Route::put('teams/{team:slug}/documents/{document}', [TeamDocumentController::class, 'update']);
+    // Multipart form submissions still resolve here via Laravel's _method=PUT spoofing.
+    Route::put('teams/{team:slug}/documents/{document}', [TeamDocumentController::class, 'update'])->name('documents.update');
     Route::post('teams/{team:slug}/documents/{document}/update-file', [TeamDocumentController::class, 'updateFile'])->name('documents.update-file');
     Route::delete('teams/{team:slug}/documents/{document}', [TeamDocumentController::class, 'destroy'])->name('documents.destroy');
     Route::post('documents/{document}/comments', [DocumentCommentController::class, 'store'])->name('documents.comments.store');

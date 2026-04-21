@@ -1,25 +1,11 @@
-import { useState, useMemo } from 'react';
 import { router, usePage } from '@inertiajs/react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Checkbox } from '@/components/ui/checkbox';
-import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
     UserPlus,
-    MoreHorizontal,
-    Trash2,
-    Building,
     UsersRound,
     Kanban,
     CheckSquare,
 } from 'lucide-react';
+import { useState, useMemo } from 'react';
 import {
     BarChart,
     Bar,
@@ -30,6 +16,17 @@ import {
     ResponsiveContainer,
 } from 'recharts';
 import * as TeamMemberActions from '@/actions/App/Http/Controllers/TeamMemberController';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 
 const ROLE_STYLE: Record<string, string> = {
     admin: 'bg-amber-100 text-amber-700',
@@ -58,6 +55,7 @@ export function OverviewTab({ team }: { team: any }) {
                 stats[col.title] = (stats[col.title] || 0) + (col.tasks_count || 0);
             });
         });
+
         return Object.entries(stats).map(([name, tasks]) => ({ name, tasks }));
     }, [team.kanbans]);
 

@@ -1,8 +1,4 @@
-import React, { useState, useRef } from 'react';
 import { usePage, router } from '@inertiajs/react';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import {
     Loader2,
     MessageSquare,
@@ -14,17 +10,27 @@ import {
     Trash2,
     X,
 } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { RichTextEditor } from '@/components/rich-text-editor';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { RichTextEditor } from '@/components/rich-text-editor';
+import { Input } from '@/components/ui/input';
 
 function formatFileSize(bytes: number) {
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    if (bytes < 1024) {
+return `${bytes} B`;
+}
+
+    if (bytes < 1024 * 1024) {
+return `${(bytes / 1024).toFixed(1)} KB`;
+}
+
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
@@ -43,14 +49,17 @@ function getInitials(name: string) {
     );
 }
 
-function CommentItem({ comment, team, auth, onReply }: any) {
+function CommentItem({ comment, auth, onReply }: any) {
     const isGlobalAdmin = auth?.roles?.some((r: string) =>
         ['superadmin', 'admin'].includes(r),
     );
     const canDelete = comment.user_id === auth?.user?.id || isGlobalAdmin;
 
     const handleDelete = () => {
-        if (!confirm('Hapus komentar ini?')) return;
+        if (!confirm('Hapus komentar ini?')) {
+return;
+}
+
         router.delete(`/comments/${comment.id}`, { preserveScroll: true });
     };
 
@@ -170,13 +179,14 @@ function CommentItem({ comment, team, auth, onReply }: any) {
                                                             confirm(
                                                                 'Hapus balasan ini?',
                                                             )
-                                                        )
-                                                            router.delete(
+                                                        ) {
+router.delete(
                                                                 `/comments/${reply.id}`,
                                                                 {
                                                                     preserveScroll: true,
                                                                 },
                                                             );
+}
                                                     }}
                                                     className="transition-colors hover:text-red-500"
                                                 >
@@ -286,7 +296,10 @@ function AnnouncementItem({ announcement, team, auth }: any) {
 
     const handleComment = () => {
         const cleanContent = commentContent.replace(/<p><\/p>/g, '').trim();
-        if ((!cleanContent && attachments.length === 0) || sending) return;
+
+        if ((!cleanContent && attachments.length === 0) || sending) {
+return;
+}
 
         setSending(true);
         router.post(
@@ -304,7 +317,10 @@ function AnnouncementItem({ announcement, team, auth }: any) {
                     setCommentContent('');
                     setAttachments([]);
                     setReplyingTo(null);
-                    if (fileRef.current) fileRef.current.value = '';
+
+                    if (fileRef.current) {
+fileRef.current.value = '';
+}
                 },
                 onError: () => setSending(false),
             },
@@ -559,11 +575,12 @@ function AnnouncementItem({ announcement, team, auth }: any) {
                                 multiple
                                 className="hidden"
                                 onChange={(e) => {
-                                    if (e.target.files)
-                                        setAttachments([
+                                    if (e.target.files) {
+setAttachments([
                                             ...attachments,
                                             ...Array.from(e.target.files),
                                         ]);
+}
                                 }}
                             />
                             <Button
@@ -621,7 +638,10 @@ export function PengumumanTab({ team }: { team: any }) {
 
     const handleCreate = () => {
         const cleanContent = content.replace(/<p><\/p>/g, '').trim();
-        if (!cleanContent) return;
+
+        if (!cleanContent) {
+return;
+}
 
         setCreating(true);
         router.post(
@@ -640,7 +660,10 @@ export function PengumumanTab({ team }: { team: any }) {
                     setContent('');
                     setAttachments([]);
                     setShowForm(false);
-                    if (fileRef.current) fileRef.current.value = '';
+
+                    if (fileRef.current) {
+fileRef.current.value = '';
+}
                 },
                 onError: () => setCreating(false),
             },
@@ -735,11 +758,12 @@ export function PengumumanTab({ team }: { team: any }) {
                                     multiple
                                     className="hidden"
                                     onChange={(e) => {
-                                        if (e.target.files)
-                                            setAttachments([
+                                        if (e.target.files) {
+setAttachments([
                                                 ...attachments,
                                                 ...Array.from(e.target.files),
                                             ]);
+}
                                     }}
                                 />
                                 <Button

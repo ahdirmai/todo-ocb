@@ -1,7 +1,23 @@
-import { useState, useEffect, useRef } from 'react';
 import { router, usePage } from '@inertiajs/react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
+import {
+    Calendar,
+    Loader2,
+    MessageSquare,
+    Reply,
+    Trash2,
+    X,
+    Paperclip,
+    Bold,
+    Italic,
+    List,
+    ListOrdered,
+} from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import * as TaskActions from '@/actions/App/Http/Controllers/TaskController';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
 import {
     Dialog,
     DialogContent,
@@ -10,25 +26,8 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import {
-    Calendar,
-    Loader2,
-    MessageSquare,
-    Reply,
-    Trash2,
-    X,
-    Send,
-    Paperclip,
-    Bold,
-    Italic,
-    List,
-    ListOrdered,
-} from 'lucide-react';
-import * as TaskActions from '@/actions/App/Http/Controllers/TaskController';
 
-const RichTextEditor = ({ content, onChange, disabled, onSubmit }: any) => {
+const RichTextEditor = ({ content, onChange, disabled }: any) => {
     const editor = useEditor({
         extensions: [StarterKit],
         content: content,
@@ -49,7 +48,9 @@ const RichTextEditor = ({ content, onChange, disabled, onSubmit }: any) => {
         }
     }, [content, editor]);
 
-    if (!editor) return null;
+    if (!editor) {
+        return null;
+    }
 
     return (
         <div
@@ -150,14 +151,16 @@ export function TaskDetailModal({ task, open, onClose }: TaskDetailModalProps) {
 
     // Realtime polling
     useEffect(() => {
-        if (!open) return;
+        if (!open) {
+return;
+}
+
         const interval = setInterval(() => {
             router.reload({
                 only: ['team'],
-                preserveScroll: true,
-                preserveState: true,
             });
         }, 5000);
+
         return () => clearInterval(interval);
     }, [open]);
 
@@ -183,7 +186,10 @@ export function TaskDetailModal({ task, open, onClose }: TaskDetailModalProps) {
     };
 
     const handleSave = () => {
-        if (!task) return;
+        if (!task) {
+return;
+}
+
         setSaving(true);
         router.post(
             TaskActions.update.url(task.id),
@@ -202,8 +208,11 @@ export function TaskDetailModal({ task, open, onClose }: TaskDetailModalProps) {
                 onSuccess: () => {
                     setSaving(false);
                     setTaskAttachments([]);
-                    if (taskFileInputRef.current)
-                        taskFileInputRef.current.value = '';
+
+                    if (taskFileInputRef.current) {
+taskFileInputRef.current.value = '';
+}
+
                     onClose();
                 },
                 onError: () => setSaving(false),
@@ -212,7 +221,10 @@ export function TaskDetailModal({ task, open, onClose }: TaskDetailModalProps) {
     };
 
     const handleDelete = () => {
-        if (!task || !confirm(`Hapus task "${task.title}"?`)) return;
+        if (!task || !confirm(`Hapus task "${task.title}"?`)) {
+return;
+}
+
         router.delete(TaskActions.destroy.url(task.id), {
             preserveScroll: true,
             onSuccess: onClose,
@@ -220,15 +232,19 @@ export function TaskDetailModal({ task, open, onClose }: TaskDetailModalProps) {
     };
 
     const handleAddComment = (e?: React.FormEvent) => {
-        if (e) e.preventDefault();
+        if (e) {
+e.preventDefault();
+}
 
         const cleanContent = commentText.replace(/<p><\/p>/g, '').trim();
+
         if (
             (!cleanContent && attachments.length === 0) ||
             sendingComment ||
             !task
-        )
-            return;
+        ) {
+return;
+}
 
         setSendingComment(true);
         router.post(
@@ -240,14 +256,16 @@ export function TaskDetailModal({ task, open, onClose }: TaskDetailModalProps) {
             },
             {
                 preserveScroll: true,
-                preserveState: true,
                 forceFormData: true,
                 onSuccess: () => {
                     setCommentText('');
                     setAttachments([]);
                     setReplyingTo(null);
                     setSendingComment(false);
-                    if (fileInputRef.current) fileInputRef.current.value = '';
+
+                    if (fileInputRef.current) {
+fileInputRef.current.value = '';
+}
                 },
                 onError: () => setSendingComment(false),
             },
@@ -255,7 +273,10 @@ export function TaskDetailModal({ task, open, onClose }: TaskDetailModalProps) {
     };
 
     const handleDeleteComment = (commentId: string) => {
-        if (!confirm('Hapus komentar ini?')) return;
+        if (!confirm('Hapus komentar ini?')) {
+return;
+}
+
         router.delete(`/comments/${commentId}`, {
             preserveScroll: true,
             preserveState: true,
@@ -301,6 +322,7 @@ export function TaskDetailModal({ task, open, onClose }: TaskDetailModalProps) {
                                 const selected = selectedTagIds.includes(
                                     tag.id,
                                 );
+
                                 return (
                                     <button
                                         key={tag.id}
@@ -337,6 +359,7 @@ export function TaskDetailModal({ task, open, onClose }: TaskDetailModalProps) {
                                 const selected = selectedAssigneeIds.includes(
                                     user.id,
                                 );
+
                                 return (
                                     <button
                                         key={user.id}
@@ -345,8 +368,9 @@ export function TaskDetailModal({ task, open, onClose }: TaskDetailModalProps) {
                                             if (
                                                 canModify &&
                                                 user.id !== task?.creator_id
-                                            )
-                                                toggleAssignee(user.id);
+                                            ) {
+toggleAssignee(user.id);
+}
                                         }}
                                         className={`flex items-center gap-1.5 rounded-full px-2 py-1 text-xs font-medium transition-all ${!canModify || user.id === task?.creator_id ? 'cursor-default opacity-80' : 'cursor-pointer hover:ring-1'} ${selected ? 'bg-primary text-primary-foreground shadow-sm ring-2 ring-primary ring-offset-1 dark:ring-offset-zinc-950' : 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-zinc-800 dark:text-slate-300 dark:hover:bg-zinc-700'}`}
                                         title={
@@ -416,13 +440,14 @@ export function TaskDetailModal({ task, open, onClose }: TaskDetailModalProps) {
                                         className="hidden"
                                         ref={taskFileInputRef}
                                         onChange={(e) => {
-                                            if (e.target.files?.length)
-                                                setTaskAttachments([
+                                            if (e.target.files?.length) {
+setTaskAttachments([
                                                     ...taskAttachments,
                                                     ...Array.from(
                                                         e.target.files,
                                                     ),
                                                 ]);
+}
                                         }}
                                     />
                                     <Button

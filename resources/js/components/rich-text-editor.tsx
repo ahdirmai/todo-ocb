@@ -1,21 +1,25 @@
+import Mention from '@tiptap/extension-mention';
+import { useEditor, EditorContent, ReactRenderer } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import { Bold, Italic, List, ListOrdered } from 'lucide-react';
 import React, {
     useEffect,
     useState,
-    useRef,
     forwardRef,
     useImperativeHandle,
 } from 'react';
-import { useEditor, EditorContent, ReactRenderer } from '@tiptap/react';
-import StarterKit from '@tiptap/starter-kit';
-import Mention from '@tiptap/extension-mention';
 import { Button } from '@/components/ui/button';
-import { Bold, Italic, List, ListOrdered, Loader2, Send } from 'lucide-react';
 
 const MentionList = forwardRef((props: any, ref) => {
     const [selectedIndex, setSelectedIndex] = useState(0);
+    const activeIndex =
+        props.items.length === 0 || selectedIndex >= props.items.length
+            ? 0
+            : selectedIndex;
 
     const selectItem = (index: number) => {
         const item = props.items[index];
+
         if (item) {
             props.command({ id: item.id, label: item.name });
         }
@@ -28,29 +32,33 @@ const MentionList = forwardRef((props: any, ref) => {
     };
 
     const downHandler = () => {
-        setSelectedIndex((selectedIndex + 1) % props.items.length);
+        setSelectedIndex((activeIndex + 1) % props.items.length);
     };
 
     const enterHandler = () => {
-        selectItem(selectedIndex);
+        selectItem(activeIndex);
     };
-
-    useEffect(() => setSelectedIndex(0), [props.items]);
 
     useImperativeHandle(ref, () => ({
         onKeyDown: ({ event }: any) => {
             if (event.key === 'ArrowUp') {
                 upHandler();
+
                 return true;
             }
+
             if (event.key === 'ArrowDown') {
                 downHandler();
+
                 return true;
             }
+
             if (event.key === 'Enter') {
                 enterHandler();
+
                 return true;
             }
+
             return false;
         },
     }));
@@ -64,7 +72,7 @@ const MentionList = forwardRef((props: any, ref) => {
             {props.items.map((item: any, index: number) => (
                 <button
                     className={`flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm ${
-                        index === selectedIndex
+                        index === activeIndex
                             ? 'bg-primary text-primary-foreground'
                             : 'text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-zinc-700'
                     }`}
@@ -129,8 +137,13 @@ export function RichTextEditor({
                                 popup.appendChild(reactRenderer.element);
                                 document.body.appendChild(popup);
 
-                                const { left, top, bottom } =
-                                    props.clientRect();
+                                const clientRect = props.clientRect?.();
+
+                                if (!clientRect) {
+                                    return;
+                                }
+
+                                const { left, bottom } = clientRect;
                                 popup.style.position = 'absolute';
                                 popup.style.left = `${left}px`;
                                 popup.style.top = `${bottom + window.scrollY}px`;
@@ -138,8 +151,14 @@ export function RichTextEditor({
                             },
                             onUpdate(props) {
                                 reactRenderer.updateProps(props);
-                                const { left, top, bottom } =
-                                    props.clientRect();
+                                const clientRect = props.clientRect?.();
+
+                                if (!clientRect || !popup) {
+                                    return;
+                                }
+
+                                const { left, bottom } = clientRect;
+
                                 if (popup) {
                                     popup.style.left = `${left}px`;
                                     popup.style.top = `${bottom + window.scrollY}px`;
@@ -151,15 +170,18 @@ export function RichTextEditor({
                                         popup.remove();
                                         popup = null;
                                     }
+
                                     return true;
                                 }
-                                return reactRenderer.ref?.onKeyDown(props);
+
+                                return reactRenderer.ref?.onKeyDown(props) ?? false;
                             },
                             onExit() {
                                 if (popup) {
                                     popup.remove();
                                     popup = null;
                                 }
+
                                 reactRenderer.destroy();
                             },
                         };
@@ -186,7 +208,9 @@ export function RichTextEditor({
         }
     }, [content, editor]);
 
-    if (!editor) return null;
+    if (!editor) {
+return null;
+}
 
     return (
         <div

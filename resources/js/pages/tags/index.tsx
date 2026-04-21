@@ -1,16 +1,15 @@
-import { useState } from 'react';
 import { Head, router, usePage, setLayoutProps } from '@inertiajs/react';
-import AppLayout from '@/layouts/app-layout';
+import { Plus, Pencil, Trash2 } from 'lucide-react';
+import { useState } from 'react';
+import * as TagActions from '@/actions/App/Http/Controllers/TagController';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import {
     Dialog,
     DialogContent,
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import { Plus, Pencil, Trash2 } from 'lucide-react';
-import * as TagActions from '@/actions/App/Http/Controllers/TagController';
+import { Input } from '@/components/ui/input';
 
 interface Tag {
     id: string;
@@ -76,7 +75,10 @@ export default function TagsIndex() {
     };
 
     const handleDelete = (tag: Tag) => {
-        if (!confirm(`Hapus tag "${tag.name}"?`)) return;
+        if (!confirm(`Hapus tag "${tag.name}"?`)) {
+            return;
+        }
+
         router.delete(TagActions.destroy.url(tag.id));
     };
 

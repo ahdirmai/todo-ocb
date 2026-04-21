@@ -2,10 +2,9 @@ import { KanbanBoard } from '@/components/kanban/kanban-board';
 
 interface Props {
     team: any;
-    item?: string;
 }
 
-export function TugasTab({ team, item }: Props) {
+export function TugasTab({ team }: Props) {
     const kanban = team.kanbans?.[0];
 
     if (!kanban) {
