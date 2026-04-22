@@ -54,6 +54,16 @@ class ProcessRecurringAnnouncementReminder implements ShouldBeUnique, ShouldQueu
                     'title' => $announcement->title,
                     'content' => $announcement->content,
                     'is_recurring' => false,
+                    'recurrence_frequency' => null,
+                    'recurrence_interval' => null,
+                    'recurrence_time' => null,
+                    'recurrence_weekday' => null,
+                    'recurrence_month_day' => null,
+                    'recurrence_limit_unit' => null,
+                    'recurrence_limit_value' => null,
+                    'recurrence_ends_at' => null,
+                    'next_occurrence_at' => null,
+                    'last_generated_at' => null,
                 ]);
 
                 foreach ($announcement->getMedia('attachments') as $media) {

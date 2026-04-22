@@ -1,4 +1,4 @@
-import { Head, Link, useForm, setLayoutProps } from '@inertiajs/react';
+import { Head, Link, useForm, usePage, setLayoutProps } from '@inertiajs/react';
 import Placeholder from '@tiptap/extension-placeholder';
 import { EditorContent, useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
@@ -41,6 +41,13 @@ export default function CreateDocument({
     team: any;
     parentId: string | null;
 }) {
+    const { uploads } = usePage().props;
+    const documentUploads = uploads.documents;
+    const maxFileLabel = formatFileSize(documentUploads.maxFileKb * 1024);
+    const acceptedFileTypes = documentUploads.allowedMimes
+        .map((mime) => `.${mime}`)
+        .join(',');
+
     setLayoutProps({
         breadcrumbs: [
             { title: team.name, href: `/teams/${team.slug}` },
@@ -99,9 +106,26 @@ export default function CreateDocument({
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files) {
             const files = Array.from(e.target.files);
+            const invalidFiles = files.filter(
+                (file) => file.size > documentUploads.maxFileKb * 1024,
+            );
 
-            if (data.attachments.length + files.length > 5) {
-                alert('Maksimal 5 lampiran diperbolehkan.');
+            if (invalidFiles.length > 0) {
+                alert(
+                    `Ukuran file melebihi batas ${maxFileLabel}: ${invalidFiles.map((file) => file.name).join(', ')}`,
+                );
+                e.target.value = '';
+
+                return;
+            }
+
+            if (
+                data.attachments.length + files.length >
+                documentUploads.maxAttachments
+            ) {
+                alert(
+                    `Maksimal ${documentUploads.maxAttachments} lampiran diperbolehkan.`,
+                );
 
                 return;
             }
@@ -401,7 +425,10 @@ export default function CreateDocument({
                                     </span>
                                     <span className="mt-1 block text-sm text-slate-500">
                                         Tepat untuk lampiran referensi (PDF,
-                                        Excel, Gambar) Maks. 10MB
+                                        Excel, Gambar) Maks. {maxFileLabel} per
+                                        file, hingga{' '}
+                                        {documentUploads.maxAttachments}{' '}
+                                        lampiran
                                     </span>
                                 </div>
                                 <input
@@ -409,7 +436,7 @@ export default function CreateDocument({
                                     className="hidden"
                                     multiple
                                     onChange={handleFileSelect}
-                                    accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.webp"
+                                    accept={acceptedFileTypes}
                                 />
                             </label>
 

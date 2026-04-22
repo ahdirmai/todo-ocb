@@ -75,6 +75,13 @@ class HandleInertiaRequests extends Middleware
             ],
             'tags' => rescue(fn () => Tag::orderBy('name')->get(['id', 'name', 'color']), []),
             'allUsers' => $allUsers,
+            'uploads' => [
+                'documents' => [
+                    'maxFileKb' => (int) config('uploads.documents.max_file_kb'),
+                    'maxAttachments' => (int) config('uploads.documents.max_attachments'),
+                    'allowedMimes' => config('uploads.documents.allowed_mimes', []),
+                ],
+            ],
         ];
     }
 }

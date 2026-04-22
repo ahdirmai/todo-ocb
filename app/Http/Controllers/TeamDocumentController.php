@@ -9,6 +9,18 @@ use Illuminate\Http\Request;
 
 class TeamDocumentController extends Controller
 {
+    /**
+     * @return array<int, string>
+     */
+    private function documentAttachmentRules(?array $allowedMimes = null): array
+    {
+        return [
+            'file',
+            'max:'.config('uploads.documents.max_file_kb'),
+            'mimes:'.implode(',', $allowedMimes ?? config('uploads.documents.allowed_mimes', [])),
+        ];
+    }
+
     public function index(Team $team, Request $request)
     {
         $parentId = $request->query('parent_id');
@@ -78,7 +90,7 @@ class TeamDocumentController extends Controller
         $validated = $request->validate([
             'parent_id' => 'nullable|exists:documents,id',
             'files' => 'required|array|min:1',
-            'files.*' => 'file|max:10240|mimes:pdf,doc,docx,xls,xlsx,png,jpg,jpeg,webp',
+            'files.*' => $this->documentAttachmentRules(),
             'is_sop' => 'nullable|boolean',
         ]);
 
@@ -112,8 +124,8 @@ class TeamDocumentController extends Controller
             'content' => 'required|string',
             'is_sop' => 'nullable|boolean',
             'parent_id' => 'nullable|exists:documents,id',
-            'attachments' => 'nullable|array|max:5',
-            'attachments.*' => 'file|max:10240|mimes:pdf,doc,docx,xls,xlsx,png,jpg,jpeg,webp',
+            'attachments' => 'nullable|array|max:'.config('uploads.documents.max_attachments'),
+            'attachments.*' => $this->documentAttachmentRules(),
         ]);
 
         $document = $team->documents()->create([
@@ -180,8 +192,8 @@ class TeamDocumentController extends Controller
             'is_sop' => 'nullable|boolean',
             'removed_media_ids' => 'nullable|array',
             'removed_media_ids.*' => 'integer',
-            'new_attachments' => 'nullable|array|max:5',
-            'new_attachments.*' => 'file|max:10240|mimes:pdf,doc,docx,xls,xlsx,png,jpg,jpeg,webp',
+            'new_attachments' => 'nullable|array|max:'.config('uploads.documents.max_attachments'),
+            'new_attachments.*' => $this->documentAttachmentRules(),
         ]);
 
         $oldName = $document->name;
@@ -231,7 +243,10 @@ class TeamDocumentController extends Controller
         abort_unless($canModify, 403, 'Hanya pemilik atau admin yang dapat memperbarui file ini.');
 
         $validated = $request->validate([
-            'file' => 'required|file|max:10240|mimes:pdf,doc,docx,xls,xlsx',
+            'file' => [
+                'required',
+                ...$this->documentAttachmentRules(['pdf', 'doc', 'docx', 'xls', 'xlsx']),
+            ],
             'is_sop' => 'nullable|boolean',
         ]);
 

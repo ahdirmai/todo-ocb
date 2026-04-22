@@ -88,6 +88,7 @@ function formatRecurrenceLabel(
         limitValue?: number;
     },
 ) {
+    const usesClockTime = !['second', 'minute', 'hour'].includes(frequency);
     const base = `Setiap ${Math.max(1, interval)} ${
         frequency === 'second'
             ? 'detik'
@@ -113,7 +114,7 @@ function formatRecurrenceLabel(
               : '';
 
     return `${base}${detail}${
-        options?.time ? ` jam ${options.time.slice(0, 5)}` : ''
+        usesClockTime && options?.time ? ` jam ${options.time.slice(0, 5)}` : ''
     }${
         options?.limitUnit && options?.limitValue
             ? `, batas ${options.limitValue} ${
@@ -394,19 +395,23 @@ function RecurrenceFields({
                             </label>
                         )}
 
-                        <label className="space-y-1">
-                            <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
-                                Jam
-                            </span>
-                            <Input
-                                type="time"
-                                value={time}
-                                onChange={(event) =>
-                                    onTimeChange(event.target.value || '09:00')
-                                }
-                                disabled={disabled}
-                            />
-                        </label>
+                        {!['second', 'minute', 'hour'].includes(frequency) && (
+                            <label className="space-y-1">
+                                <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                                    Jam
+                                </span>
+                                <Input
+                                    type="time"
+                                    value={time}
+                                    onChange={(event) =>
+                                        onTimeChange(
+                                            event.target.value || '09:00',
+                                        )
+                                    }
+                                    disabled={disabled}
+                                />
+                            </label>
+                        )}
 
                         <label className="space-y-1">
                             <span className="text-xs font-medium text-slate-700 dark:text-slate-300">

@@ -86,8 +86,11 @@ class Announcement extends Model implements HasMedia
             return null;
         }
 
-        $time = $this->recurrence_time ?: '09:00:00';
-        $base = $from->copy()->setTimeFromTimeString($time);
+        $base = $from->copy();
+
+        if (in_array($this->recurrence_frequency, ['day', 'week', 'month'], true)) {
+            $base->setTimeFromTimeString($this->recurrence_time ?: '09:00:00');
+        }
         $interval = max(1, (int) $this->recurrence_limit_value);
 
         return match ($this->recurrence_limit_unit) {
@@ -107,9 +110,9 @@ class Announcement extends Model implements HasMedia
         $base = $anchor->copy();
 
         return match ($this->recurrence_frequency) {
-            'second' => $base->setTimeFromTimeString($time),
-            'minute' => $base->setTimeFromTimeString($time),
-            'hour' => $base->setTimeFromTimeString($time),
+            'second' => $base,
+            'minute' => $base,
+            'hour' => $base,
             'day' => $base->setTimeFromTimeString($time),
             'week' => $base
                 ->startOfWeek(Carbon::MONDAY)

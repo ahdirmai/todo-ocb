@@ -19,6 +19,7 @@ class AnnouncementController extends Controller
         $allowedRecurrenceUnits = $isSuperadmin
             ? ['second', 'minute', 'hour', 'day', 'week', 'month']
             : ['day', 'week', 'month'];
+        $requiresClockTime = in_array($request->input('recurrence_frequency'), ['day', 'week', 'month'], true);
 
         $validated = $request->validate([
             'title' => 'nullable|string|max:255',
@@ -40,7 +41,7 @@ class AnnouncementController extends Controller
                 'max:365',
             ],
             'recurrence_time' => [
-                Rule::requiredIf($request->boolean('is_recurring')),
+                Rule::requiredIf($request->boolean('is_recurring') && $requiresClockTime),
                 'nullable',
                 'date_format:H:i',
             ],
@@ -86,7 +87,9 @@ class AnnouncementController extends Controller
             'is_recurring' => $isRecurring,
             'recurrence_frequency' => $isRecurring ? $validated['recurrence_frequency'] : null,
             'recurrence_interval' => $isRecurring ? $validated['recurrence_interval'] : null,
-            'recurrence_time' => $isRecurring ? "{$validated['recurrence_time']}:00" : null,
+            'recurrence_time' => $isRecurring && $requiresClockTime
+                ? "{$validated['recurrence_time']}:00"
+                : null,
             'recurrence_weekday' => $isRecurring && $validated['recurrence_frequency'] === 'week'
                 ? $validated['recurrence_weekday']
                 : null,
@@ -134,6 +137,7 @@ class AnnouncementController extends Controller
         $allowedRecurrenceUnits = $isSuperadmin
             ? ['second', 'minute', 'hour', 'day', 'week', 'month']
             : ['day', 'week', 'month'];
+        $requiresClockTime = in_array($request->input('recurrence_frequency'), ['day', 'week', 'month'], true);
 
         $validated = $request->validate([
             'title' => 'nullable|string|max:255',
@@ -157,7 +161,7 @@ class AnnouncementController extends Controller
                 'max:365',
             ],
             'recurrence_time' => [
-                Rule::requiredIf($request->boolean('is_recurring')),
+                Rule::requiredIf($request->boolean('is_recurring') && $requiresClockTime),
                 'nullable',
                 'date_format:H:i',
             ],
@@ -202,7 +206,9 @@ class AnnouncementController extends Controller
         $recurrenceMonthDay = $isRecurring && $recurrenceFrequency === 'month'
             ? $validated['recurrence_month_day']
             : null;
-        $recurrenceTime = $isRecurring ? "{$validated['recurrence_time']}:00" : null;
+        $recurrenceTime = $isRecurring && $requiresClockTime
+            ? "{$validated['recurrence_time']}:00"
+            : null;
         $recurrenceLimitUnit = $isRecurring ? $validated['recurrence_limit_unit'] : null;
         $recurrenceLimitValue = $isRecurring ? $validated['recurrence_limit_value'] : null;
         $recurrenceChanged = $announcement->is_recurring !== $isRecurring

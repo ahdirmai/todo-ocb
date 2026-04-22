@@ -77,6 +77,28 @@ test('renaming a sop document preserves its sop flag when the field is omitted',
     expect($document->fresh()->is_sop)->toBeTrue();
 });
 
+test('document uploads respect configured max file size', function () {
+    config()->set('uploads.documents.max_file_kb', 128);
+
+    $user = User::factory()->create();
+    $team = createDocumentSopTeam();
+    $team->users()->attach($user->id, ['role' => 'admin']);
+
+    $response = $this->actingAs($user)->post(route('documents.document.store', ['team' => $team->slug]), [
+        'name' => 'Dokumen Besar',
+        'content' => '<p>Konten</p>',
+        'attachments' => [
+            UploadedFile::fake()->create('terlalu-besar.pdf', 129, 'application/pdf'),
+        ],
+    ]);
+
+    $response->assertSessionHasErrors('attachments.0');
+    $this->assertDatabaseMissing('documents', [
+        'team_id' => $team->id,
+        'name' => 'Dokumen Besar',
+    ]);
+});
+
 function createDocumentSopTeam(): Team
 {
     return Team::create([

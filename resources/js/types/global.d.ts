@@ -6,6 +6,13 @@ declare module '@inertiajs/core' {
             name: string;
             auth: Auth;
             sidebarOpen: boolean;
+            uploads: {
+                documents: {
+                    maxFileKb: number;
+                    maxAttachments: number;
+                    allowedMimes: string[];
+                };
+            };
             [key: string]: unknown;
         };
     }

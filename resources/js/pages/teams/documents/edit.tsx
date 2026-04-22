@@ -1,4 +1,4 @@
-import { Head, Link, useForm, setLayoutProps } from '@inertiajs/react';
+import { Head, Link, useForm, usePage, setLayoutProps } from '@inertiajs/react';
 import Placeholder from '@tiptap/extension-placeholder';
 import { EditorContent, useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
@@ -43,6 +43,13 @@ export default function EditDocument({
     team: any;
     document: any;
 }) {
+    const { uploads } = usePage().props;
+    const documentUploads = uploads.documents;
+    const maxFileLabel = formatFileSize(documentUploads.maxFileKb * 1024);
+    const acceptedFileTypes = documentUploads.allowedMimes
+        .map((mime) => `.${mime}`)
+        .join(',');
+
     setLayoutProps({
         breadcrumbs: [
             { title: team.name, href: `/teams/${team.slug}` },
@@ -82,14 +89,29 @@ export default function EditDocument({
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files) {
             const files = Array.from(e.target.files);
+            const invalidFiles = files.filter(
+                (file) => file.size > documentUploads.maxFileKb * 1024,
+            );
+
+            if (invalidFiles.length > 0) {
+                alert(
+                    `Ukuran file melebihi batas ${maxFileLabel}: ${invalidFiles.map((file) => file.name).join(', ')}`,
+                );
+                e.target.value = '';
+
+                return;
+            }
+
             // Cap to 5 combined attachments
             const existingCount = document.media?.length || 0;
             const removedCount = data.removed_media_ids.length;
             const currentTotal =
                 existingCount - removedCount + data.new_attachments.length;
 
-            if (currentTotal + files.length > 5) {
-                alert('Maksimal 5 lampiran diperbolehkan untuk satu dokumen.');
+            if (currentTotal + files.length > documentUploads.maxAttachments) {
+                alert(
+                    `Maksimal ${documentUploads.maxAttachments} lampiran diperbolehkan untuk satu dokumen.`,
+                );
 
                 return;
             }
@@ -339,13 +361,18 @@ export default function EditDocument({
                                         Pilih file atau drag & drop ke sini
                                         untuk menambah lampiran baru
                                     </span>
+                                    <span className="mt-1 block text-sm text-slate-500">
+                                        Maks. {maxFileLabel} per file, hingga{' '}
+                                        {documentUploads.maxAttachments}{' '}
+                                        lampiran
+                                    </span>
                                 </div>
                                 <input
                                     type="file"
                                     className="hidden"
                                     multiple
                                     onChange={handleFileSelect}
-                                    accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.webp"
+                                    accept={acceptedFileTypes}
                                 />
                             </label>
 

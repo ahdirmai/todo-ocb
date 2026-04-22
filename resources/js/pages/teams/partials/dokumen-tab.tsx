@@ -63,6 +63,10 @@ interface DocItem {
     updated_at?: string;
 }
 
+function formatUploadLimit(kilobytes: number): string {
+    return formatSize(kilobytes * 1024);
+}
+
 function FileIcon2({ type, name }: { type: DocType; name: string }) {
     if (type === 'folder') {
         return (
@@ -152,20 +156,20 @@ function SopBadge() {
 
 function formatSize(bytes: number) {
     if (bytes < 1024) {
-return `${bytes} B`;
-}
+        return `${bytes} B`;
+    }
 
     if (bytes < 1048576) {
-return `${(bytes / 1024).toFixed(1)} KB`;
-}
+        return `${(bytes / 1024).toFixed(1)} KB`;
+    }
 
     return `${(bytes / 1048576).toFixed(2)} MB`;
 }
 
 function formatDate(dateStr?: string) {
     if (!dateStr) {
-return '—';
-}
+        return '—';
+    }
 
     return new Date(dateStr).toLocaleDateString('id-ID', {
         day: 'numeric',
@@ -175,13 +179,42 @@ return '—';
 }
 
 export function DokumenTab({ team }: { team: any }) {
-    const { auth } = usePage<{
+    const { auth, uploads } = usePage<{
         auth: { user: { id: number }; roles: string[] };
+        uploads: {
+            documents: {
+                maxFileKb: number;
+                maxAttachments: number;
+                allowedMimes: string[];
+            };
+        };
     }>().props;
     const currentUserId = auth?.user?.id;
     const isAdmin = auth?.roles?.some((r) =>
         ['superadmin', 'admin'].includes(r),
     );
+    const documentUploads = uploads.documents;
+    const maxFileLabel = formatUploadLimit(documentUploads.maxFileKb);
+    const allowedTypesLabel = documentUploads.allowedMimes.join(', ');
+    const acceptedFileTypes = documentUploads.allowedMimes
+        .map((mime) => `.${mime}`)
+        .join(',');
+
+    const validateFiles = (files: File[]): boolean => {
+        const invalidFiles = files.filter(
+            (file) => file.size > documentUploads.maxFileKb * 1024,
+        );
+
+        if (invalidFiles.length > 0) {
+            alert(
+                `Ukuran file melebihi batas ${maxFileLabel}: ${invalidFiles.map((file) => file.name).join(', ')}`,
+            );
+
+            return false;
+        }
+
+        return true;
+    };
 
     const [documents, setDocuments] = useState<DocItem[]>([]);
     const [breadcrumbs, setBreadcrumbs] = useState<any[]>([]);
@@ -714,18 +747,29 @@ export function DokumenTab({ team }: { team: any }) {
                                 multiple
                                 onChange={(e) => {
                                     if (e.target.files) {
+                                        const files = Array.from(
+                                            e.target.files,
+                                        );
+
+                                        if (!validateFiles(files)) {
+                                            e.target.value = '';
+
+                                            return;
+                                        }
+
                                         setUploadFiles((prev) => [
                                             ...prev,
-                                            ...Array.from(e.target.files!),
+                                            ...files,
                                         ]);
                                         e.target.value = '';
                                     }
                                 }}
                                 className="mt-2"
+                                accept={acceptedFileTypes}
                             />
                             <p className="mt-1 text-xs text-muted-foreground">
-                                Maks 10MB per file. Format: pdf, doc, docx,
-                                xls, xlsx, png, jpg, jpeg.
+                                Maks {maxFileLabel} per file. Format:{' '}
+                                {allowedTypesLabel}.
                             </p>
 
                             {/* Selected files list */}
@@ -899,15 +943,26 @@ export function DokumenTab({ team }: { team: any }) {
                             <Input
                                 id="update_file_upload"
                                 type="file"
-                                onChange={(e) =>
-                                    updateFileForm.setData(
-                                        'file',
-                                        e.target.files?.[0] || null,
-                                    )
-                                }
+                                onChange={(e) => {
+                                    const file = e.target.files?.[0] || null;
+
+                                    if (file && !validateFiles([file])) {
+                                        e.target.value = '';
+                                        updateFileForm.setData('file', null);
+
+                                        return;
+                                    }
+
+                                    updateFileForm.setData('file', file);
+                                }}
                                 required
                                 className="mt-2"
+                                accept=".pdf,.doc,.docx,.xls,.xlsx"
                             />
+                            <p className="mt-1 text-xs text-muted-foreground">
+                                Maks {maxFileLabel} per file. Format:{' '}
+                                {allowedTypesLabel}.
+                            </p>
                             <label className="mt-4 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50/70 p-3 text-sm text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-100">
                                 <input
                                     type="checkbox"
