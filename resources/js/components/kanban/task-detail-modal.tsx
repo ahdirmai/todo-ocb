@@ -108,6 +108,18 @@ const RichTextEditor = ({ content, onChange, disabled }: any) => {
     );
 };
 
+function formatFileSize(bytes: number): string {
+    if (bytes < 1024) {
+        return `${bytes} B`;
+    }
+
+    if (bytes < 1024 * 1024) {
+        return `${(bytes / 1024).toFixed(1)} KB`;
+    }
+
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 interface TaskDetailModalProps {
     task: any | null;
     open: boolean;
@@ -661,7 +673,8 @@ setTaskAttachments([
                                                     className="flex items-center gap-1 rounded bg-slate-100 px-2 py-1 text-[10px] dark:bg-zinc-800"
                                                 >
                                                     <Paperclip className="h-3 w-3" />{' '}
-                                                    {file.name}
+                                                    {file.name} (
+                                                    {formatFileSize(file.size)})
                                                     <button
                                                         onClick={() =>
                                                             setAttachments(
@@ -1330,7 +1343,11 @@ setTaskAttachments([
                                                                 className="flex items-center gap-1 rounded bg-slate-100 px-2 py-1 text-[10px] dark:bg-zinc-800"
                                                             >
                                                                 <Paperclip className="h-3 w-3" />{' '}
-                                                                {file.name}
+                                                                {file.name} (
+                                                                {formatFileSize(
+                                                                    file.size,
+                                                                )}
+                                                                )
                                                                 <button
                                                                     onClick={() =>
                                                                         setAttachments(

@@ -21,6 +21,7 @@ import {
     SheetTitle,
 } from '@/components/ui/sheet';
 import { Textarea } from '@/components/ui/textarea';
+import { getEcho } from '@/echo';
 
 /* ─── Types ──────────────────────────────────────────────── */
 
@@ -307,7 +308,7 @@ export function ChatTab({ team }: { team: any }) {
 
     /* Laravel Echo subscription to private team channel */
     useEffect(() => {
-        const echoInstance = (window as any).Echo;
+        const echoInstance = getEcho();
 
         if (!echoInstance) {
             console.warn('[Chat] window.Echo tidak tersedia.');
@@ -369,7 +370,7 @@ formData.append('body', trimmed);
                 ) as HTMLMetaElement
             )?.content ?? '';
 
-        const echoInstance = (window as any).Echo;
+        const echoInstance = getEcho();
         const socketId = echoInstance ? echoInstance.socketId() : '';
 
         try {
@@ -417,6 +418,7 @@ fileInputRef.current.value = '';
         if (e.target.files) {
             setFiles((prev) => [...prev, ...Array.from(e.target.files!)]);
         }
+
         // Reset input so the same file can be re-selected
         e.target.value = '';
     };

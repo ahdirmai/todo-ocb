@@ -8,6 +8,7 @@ use App\Http\Controllers\DocumentCommentController;
 use App\Http\Controllers\KanbanBoardController;
 use App\Http\Controllers\KanbanColumnController;
 use App\Http\Controllers\MemberController;
+use App\Http\Controllers\NightwatchController;
 use App\Http\Controllers\TagController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\TeamController;
@@ -27,6 +28,9 @@ Route::get('/', function () {
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', DashboardController::class)->name('dashboard');
+    Route::get('nightwatch', [NightwatchController::class, '__invoke'])
+        ->middleware('role:superadmin')
+        ->name('nightwatch');
 
     // Team management page (admin)
     Route::get('teams/manage', function () {

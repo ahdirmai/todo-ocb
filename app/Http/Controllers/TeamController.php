@@ -9,6 +9,7 @@ use App\Models\Kanban;
 use App\Models\KanbanColumn;
 use App\Models\Team;
 use App\Models\TeamMessage;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
@@ -141,6 +142,8 @@ class TeamController extends Controller
 
     public function update(Request $request, Team $team)
     {
+        $originalSlug = $team->slug;
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'grouping' => 'sometimes|required|string|in:hq,team,project',
@@ -150,10 +153,10 @@ class TeamController extends Controller
         // Regenerate slug only if name changed
         if ($validated['name'] !== $team->name) {
             $slug = Str::slug($validated['name']);
-            $originalSlug = $slug;
+            $baseSlug = $slug;
             $counter = 1;
             while (Team::where('slug', $slug)->where('id', '!=', $team->id)->exists()) {
-                $slug = "{$originalSlug}-{$counter}";
+                $slug = "{$baseSlug}-{$counter}";
                 $counter++;
             }
             $validated['slug'] = $slug;
@@ -165,7 +168,38 @@ class TeamController extends Controller
 
         $team->update($validated);
 
+        if (($validated['slug'] ?? null) && $validated['slug'] !== $originalSlug) {
+            return $this->redirectToUpdatedTeamLocation($request, $team, $originalSlug);
+        }
+
         return back();
+    }
+
+    protected function redirectToUpdatedTeamLocation(Request $request, Team $team, string $originalSlug): RedirectResponse
+    {
+        $previousUrl = $request->headers->get('referer') ?? url()->previous();
+        $previousPath = parse_url($previousUrl, PHP_URL_PATH);
+
+        if (! is_string($previousPath)) {
+            return back();
+        }
+
+        $originalPrefix = "/teams/{$originalSlug}";
+        $matchesTeamPrefix = $previousPath === $originalPrefix
+            || Str::startsWith($previousPath, "{$originalPrefix}/");
+
+        if (! $matchesTeamPrefix) {
+            return back();
+        }
+
+        $updatedPath = "/teams/{$team->slug}".Str::after($previousPath, $originalPrefix);
+        $previousQuery = parse_url($previousUrl, PHP_URL_QUERY);
+
+        if (is_string($previousQuery) && $previousQuery !== '') {
+            $updatedPath .= "?{$previousQuery}";
+        }
+
+        return redirect($updatedPath);
     }
 
     public function archive(Team $team)

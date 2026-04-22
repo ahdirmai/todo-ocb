@@ -24,6 +24,18 @@ import {
     update as updateDocument,
 } from '@/routes/documents';
 
+function formatFileSize(bytes: number): string {
+    if (bytes < 1024) {
+        return `${bytes} B`;
+    }
+
+    if (bytes < 1024 * 1024) {
+        return `${(bytes / 1024).toFixed(1)} KB`;
+    }
+
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 export default function EditDocument({
     team,
     document,
@@ -405,8 +417,13 @@ export default function EditDocument({
                                             <div className="shrink-0 rounded-lg border bg-white p-2 shadow-sm dark:bg-zinc-950">
                                                 <Paperclip className="h-4 w-4 text-primary" />
                                             </div>
-                                            <div className="truncate text-sm font-medium">
-                                                {file.name} (Baru)
+                                            <div className="min-w-0 overflow-hidden">
+                                                <div className="truncate text-sm font-medium">
+                                                    {file.name} (Baru)
+                                                </div>
+                                                <div className="text-xs text-slate-400">
+                                                    {formatFileSize(file.size)}
+                                                </div>
                                             </div>
                                         </div>
                                         <button

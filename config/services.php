@@ -35,4 +35,8 @@ return [
         ],
     ],
 
+    'nightwatch' => [
+        'dashboard_url' => env('NIGHTWATCH_DASHBOARD_URL', 'https://nightwatch.laravel.com'),
+    ],
+
 ];

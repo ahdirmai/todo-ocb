@@ -7,6 +7,7 @@ import {
     Moon,
     Sun,
     Activity,
+    Binoculars,
 } from 'lucide-react';
 import { useState } from 'react';
 import * as TeamActions from '@/actions/App/Http/Controllers/TeamController';
@@ -43,6 +44,7 @@ import {
 import { useAppearance } from '@/hooks/use-appearance';
 import { useMainNav } from '@/hooks/use-main-nav';
 import { dashboard } from '@/routes';
+import { nightwatch } from '@/routes';
 import type { NavItem } from '@/types';
 
 const footerNavItems: NavItem[] = [];
@@ -52,6 +54,7 @@ export function AppSidebar() {
     const { auth } = usePage<any>().props;
     const isAdmin =
         auth?.roles?.includes('superadmin') || auth?.roles?.includes('admin');
+    const isSuperadmin = auth?.roles?.includes('superadmin');
     const { appearance, updateAppearance } = useAppearance();
 
     const [open, setOpen] = useState(false);
@@ -144,6 +147,16 @@ export function AppSidebar() {
                                         </Link>
                                     </SidebarMenuButton>
                                 </SidebarMenuItem>
+                                {isSuperadmin && (
+                                    <SidebarMenuItem>
+                                        <SidebarMenuButton asChild>
+                                            <Link href={nightwatch()}>
+                                                <Binoculars className="h-4 w-4" />
+                                                <span>Nightwatch</span>
+                                            </Link>
+                                        </SidebarMenuButton>
+                                    </SidebarMenuItem>
+                                )}
                                 <SidebarMenuItem>
                                     <SidebarMenuButton asChild>
                                         <Link href="/activity">
