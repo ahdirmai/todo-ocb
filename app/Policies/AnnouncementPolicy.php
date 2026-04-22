@@ -4,51 +4,41 @@ namespace App\Policies;
 
 use App\Models\Announcement;
 use App\Models\User;
-use Illuminate\Auth\Access\Response;
 
 class AnnouncementPolicy
 {
-    /**
-     * Determine whether the user can view any models.
-     */
     public function viewAny(User $user): bool
     {
-        return true; // We check team membership in controller/middleware
+        return true;
     }
 
-    /**
-     * Determine whether the user can view the model.
-     */
     public function view(User $user, Announcement $announcement): bool
     {
         return $announcement->team->users()->where('user_id', $user->id)->exists();
     }
 
-    /**
-     * Determine whether the user can create models.
-     */
     public function create(User $user): bool
     {
-        return true; // Will be verified in controller that they belong to the team
+        return true;
     }
 
-    /**
-     * Determine whether the user can update the model.
-     */
     public function update(User $user, Announcement $announcement): bool
     {
-        // Only owner/admin/superadmin can edit
-        // Wait, "owner/admin/superadmin". They have a role check.
         if ($user->hasRole(['superadmin', 'admin'])) {
             return true;
         }
 
-        return false;
+        if ($announcement->user_id === $user->id) {
+            return true;
+        }
+
+        return $announcement->team
+            ?->users()
+            ->whereKey($user->id)
+            ->wherePivot('role', 'admin')
+            ->exists() ?? false;
     }
 
-    /**
-     * Determine whether the user can delete the model.
-     */
     public function delete(User $user, Announcement $announcement): bool
     {
         return $this->update($user, $announcement);

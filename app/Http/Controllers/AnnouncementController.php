@@ -2,31 +2,88 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-
 use App\Models\Announcement;
 use App\Models\Team;
-use Illuminate\Support\Facades\Gate;
 use App\Services\ActivityLogger;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\Rule;
 
 class AnnouncementController extends Controller
 {
-    public function store(Request $request, Team $team)
+    public function store(Request $request, Team $team): RedirectResponse
     {
-        // Must be a team member
         abort_unless($team->users()->where('user_id', request()->user()->id)->exists(), 403);
 
         $validated = $request->validate([
             'title' => 'nullable|string|max:255',
             'content' => 'required|string',
-            'attachments.*' => 'nullable|file',
+            'attachments' => 'nullable|array',
+            'attachments.*' => 'nullable|file|max:10240',
+            'is_recurring' => 'nullable|boolean',
+            'recurrence_frequency' => [
+                Rule::requiredIf($request->boolean('is_recurring')),
+                'nullable',
+                'string',
+                Rule::in(['day', 'week', 'month']),
+            ],
+            'recurrence_interval' => [
+                Rule::requiredIf($request->boolean('is_recurring')),
+                'nullable',
+                'integer',
+                'min:1',
+                'max:365',
+            ],
+            'recurrence_time' => [
+                Rule::requiredIf($request->boolean('is_recurring')),
+                'nullable',
+                'date_format:H:i',
+            ],
+            'recurrence_weekday' => [
+                Rule::requiredIf(
+                    $request->boolean('is_recurring')
+                    && $request->input('recurrence_frequency') === 'week'
+                ),
+                'nullable',
+                'integer',
+                'between:1,7',
+            ],
+            'recurrence_month_day' => [
+                Rule::requiredIf(
+                    $request->boolean('is_recurring')
+                    && $request->input('recurrence_frequency') === 'month'
+                ),
+                'nullable',
+                'integer',
+                'between:1,31',
+            ],
         ]);
+
+        $isRecurring = $request->boolean('is_recurring');
 
         $announcement = $team->announcements()->create([
             'user_id' => $request->user()->id,
             'title' => $validated['title'] ?? null,
             'content' => $validated['content'],
+            'is_recurring' => $isRecurring,
+            'recurrence_frequency' => $isRecurring ? $validated['recurrence_frequency'] : null,
+            'recurrence_interval' => $isRecurring ? $validated['recurrence_interval'] : null,
+            'recurrence_time' => $isRecurring ? "{$validated['recurrence_time']}:00" : null,
+            'recurrence_weekday' => $isRecurring && $validated['recurrence_frequency'] === 'week'
+                ? $validated['recurrence_weekday']
+                : null,
+            'recurrence_month_day' => $isRecurring && $validated['recurrence_frequency'] === 'month'
+                ? $validated['recurrence_month_day']
+                : null,
+            'next_occurrence_at' => null,
         ]);
+
+        if ($announcement->is_recurring) {
+            $announcement->update([
+                'next_occurrence_at' => $announcement->calculateNextOccurrence(now()),
+            ]);
+        }
 
         if ($request->hasFile('attachments')) {
             foreach ($request->file('attachments') as $file) {
@@ -37,36 +94,113 @@ class AnnouncementController extends Controller
         ActivityLogger::log(
             event: 'created',
             logName: 'announcement',
-            description: "Membuat pengumuman baru",
+            description: 'Membuat pengumuman baru',
             subject: $announcement,
             teamId: $team->id,
             properties: ['title' => $announcement->title]
         );
 
-        // Feature placeholder for notifications
-        // event(new \App\Events\AnnouncementCreated($announcement));
-
         return back();
     }
 
-    public function update(Request $request, Announcement $announcement)
+    public function update(Request $request, Announcement $announcement): RedirectResponse
     {
         Gate::authorize('update', $announcement);
 
         $validated = $request->validate([
             'title' => 'nullable|string|max:255',
             'content' => 'required|string',
+            'new_attachments' => 'nullable|array',
+            'new_attachments.*' => 'file|max:10240',
+            'removed_media_ids' => 'nullable|array',
+            'removed_media_ids.*' => 'integer',
+            'is_recurring' => 'nullable|boolean',
+            'recurrence_frequency' => [
+                Rule::requiredIf($request->boolean('is_recurring')),
+                'nullable',
+                'string',
+                Rule::in(['day', 'week', 'month']),
+            ],
+            'recurrence_interval' => [
+                Rule::requiredIf($request->boolean('is_recurring')),
+                'nullable',
+                'integer',
+                'min:1',
+                'max:365',
+            ],
+            'recurrence_time' => [
+                Rule::requiredIf($request->boolean('is_recurring')),
+                'nullable',
+                'date_format:H:i',
+            ],
+            'recurrence_weekday' => [
+                Rule::requiredIf(
+                    $request->boolean('is_recurring')
+                    && $request->input('recurrence_frequency') === 'week'
+                ),
+                'nullable',
+                'integer',
+                'between:1,7',
+            ],
+            'recurrence_month_day' => [
+                Rule::requiredIf(
+                    $request->boolean('is_recurring')
+                    && $request->input('recurrence_frequency') === 'month'
+                ),
+                'nullable',
+                'integer',
+                'between:1,31',
+            ],
         ]);
+
+        $isRecurring = $request->boolean('is_recurring');
+        $recurrenceFrequency = $isRecurring ? $validated['recurrence_frequency'] : null;
+        $recurrenceWeekday = $isRecurring && $recurrenceFrequency === 'week'
+            ? $validated['recurrence_weekday']
+            : null;
+        $recurrenceMonthDay = $isRecurring && $recurrenceFrequency === 'month'
+            ? $validated['recurrence_month_day']
+            : null;
+        $recurrenceTime = $isRecurring ? "{$validated['recurrence_time']}:00" : null;
+        $recurrenceChanged = $announcement->is_recurring !== $isRecurring
+            || $announcement->recurrence_frequency !== $recurrenceFrequency
+            || (int) $announcement->recurrence_interval !== (int) ($validated['recurrence_interval'] ?? 0)
+            || $announcement->recurrence_time !== $recurrenceTime
+            || (int) $announcement->recurrence_weekday !== (int) ($recurrenceWeekday ?? 0)
+            || (int) $announcement->recurrence_month_day !== (int) ($recurrenceMonthDay ?? 0);
 
         $announcement->update([
             'title' => $validated['title'] ?? null,
             'content' => $validated['content'],
+            'is_recurring' => $isRecurring,
+            'recurrence_frequency' => $recurrenceFrequency,
+            'recurrence_interval' => $isRecurring ? $validated['recurrence_interval'] : null,
+            'recurrence_time' => $recurrenceTime,
+            'recurrence_weekday' => $recurrenceWeekday,
+            'recurrence_month_day' => $recurrenceMonthDay,
+            'next_occurrence_at' => $isRecurring ? $announcement->next_occurrence_at : null,
         ]);
+
+        if ($isRecurring && ($recurrenceChanged || ! $announcement->next_occurrence_at)) {
+            $announcement->update([
+                'next_occurrence_at' => $announcement->calculateNextOccurrence(now()),
+            ]);
+        }
+
+        if (! empty($validated['removed_media_ids'])) {
+            $announcement->media()->whereIn('id', $validated['removed_media_ids'])->delete();
+        }
+
+        if ($request->hasFile('new_attachments')) {
+            foreach ($request->file('new_attachments') as $file) {
+                $announcement->addMedia($file)->toMediaCollection('attachments');
+            }
+        }
 
         ActivityLogger::log(
             event: 'updated',
             logName: 'announcement',
-            description: "Memperbarui pengumuman",
+            description: 'Memperbarui pengumuman',
             subject: $announcement,
             teamId: $announcement->team_id,
             properties: ['title' => $announcement->title]
@@ -78,16 +212,16 @@ class AnnouncementController extends Controller
     public function destroy(Announcement $announcement)
     {
         Gate::authorize('delete', $announcement);
-        
+
         $teamId = $announcement->team_id;
         $title = $announcement->title;
-        
+
         $announcement->delete();
 
         ActivityLogger::log(
             event: 'deleted',
             logName: 'announcement',
-            description: "Menghapus pengumuman",
+            description: 'Menghapus pengumuman',
             subject: null,
             teamId: $teamId,
             properties: ['title' => $title]

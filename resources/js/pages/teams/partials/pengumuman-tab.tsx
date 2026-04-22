@@ -10,7 +10,7 @@ import {
     Trash2,
     X,
 } from 'lucide-react';
-import React, { useState, useRef } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { RichTextEditor } from '@/components/rich-text-editor';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -21,15 +21,37 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
+import {
+    destroy as destroyAnnouncement,
+    update as updateAnnouncement,
+} from '@/routes/announcements';
+import { store as storeAnnouncementComment } from '@/routes/announcements/comments';
+import {
+    destroy as destroyComment,
+    update as updateComment,
+} from '@/routes/comments';
+import { store as storeTeamAnnouncement } from '@/routes/teams/announcements';
+
+type RecurrenceFrequency = 'day' | 'week' | 'month';
+
+const WEEKDAY_OPTIONS = [
+    { value: 1, label: 'Senin' },
+    { value: 2, label: 'Selasa' },
+    { value: 3, label: 'Rabu' },
+    { value: 4, label: 'Kamis' },
+    { value: 5, label: 'Jumat' },
+    { value: 6, label: 'Sabtu' },
+    { value: 7, label: 'Minggu' },
+];
 
 function formatFileSize(bytes: number) {
     if (bytes < 1024) {
-return `${bytes} B`;
-}
+        return `${bytes} B`;
+    }
 
     if (bytes < 1024 * 1024) {
-return `${(bytes / 1024).toFixed(1)} KB`;
-}
+        return `${(bytes / 1024).toFixed(1)} KB`;
+    }
 
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
@@ -49,6 +71,302 @@ function getInitials(name: string) {
     );
 }
 
+function formatRecurrenceLabel(
+    frequency: RecurrenceFrequency,
+    interval: number,
+    options?: {
+        weekday?: number;
+        monthDay?: number;
+        time?: string;
+    },
+) {
+    const base = `Setiap ${Math.max(1, interval)} ${
+        frequency === 'day' ? 'hari' : frequency === 'week' ? 'minggu' : 'bulan'
+    }`;
+    const detail =
+        frequency === 'week'
+            ? `, hari ${
+                  WEEKDAY_OPTIONS.find(
+                      ({ value }) => value === (options?.weekday ?? 1),
+                  )?.label ?? 'Senin'
+              }`
+            : frequency === 'month'
+              ? `, tanggal ${options?.monthDay ?? 1}`
+              : '';
+
+    return `${base}${detail}${
+        options?.time ? ` jam ${options.time.slice(0, 5)}` : ''
+    }`;
+}
+
+function AttachmentPreviewList({
+    files,
+    onRemove,
+}: {
+    files: File[];
+    onRemove: (index: number) => void;
+}) {
+    const previewUrls = useMemo(
+        () =>
+            files.map((file) =>
+                isImage(file.type) ? URL.createObjectURL(file) : '',
+            ),
+        [files],
+    );
+
+    useEffect(() => {
+        return () => {
+            previewUrls.forEach((url) => {
+                if (url) {
+                    URL.revokeObjectURL(url);
+                }
+            });
+        };
+    }, [previewUrls]);
+
+    if (files.length === 0) {
+        return null;
+    }
+
+    return (
+        <div className="flex flex-wrap gap-3 pt-2">
+            {files.map((file, index) => {
+                const previewUrl = previewUrls[index];
+
+                if (previewUrl) {
+                    return (
+                        <div
+                            key={`${file.name}-${index}`}
+                            className="relative w-full max-w-[220px] overflow-hidden rounded-xl border border-slate-200 bg-slate-50 dark:border-zinc-700 dark:bg-zinc-800"
+                        >
+                            <img
+                                src={previewUrl}
+                                alt={file.name}
+                                className="h-36 w-full object-cover"
+                            />
+                            <div className="space-y-1 p-3">
+                                <p className="truncate text-xs font-semibold text-slate-800 dark:text-slate-100">
+                                    {file.name}
+                                </p>
+                                <p className="text-[11px] text-muted-foreground">
+                                    {formatFileSize(file.size)}
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => onRemove(index)}
+                                className="absolute top-2 right-2 rounded-full bg-black/70 p-1 text-white transition hover:bg-black/80"
+                            >
+                                <X className="h-3.5 w-3.5" />
+                            </button>
+                        </div>
+                    );
+                }
+
+                return (
+                    <span
+                        key={`${file.name}-${index}`}
+                        className="flex items-center gap-1.5 rounded border border-slate-200 bg-slate-100 px-3 py-1.5 text-xs dark:border-zinc-700 dark:bg-zinc-800"
+                    >
+                        <Paperclip className="h-3.5 w-3.5 text-primary" />
+                        <span className="max-w-[150px] truncate">
+                            {file.name}
+                        </span>
+                        <span className="text-[11px] text-muted-foreground">
+                            {formatFileSize(file.size)}
+                        </span>
+                        <button
+                            type="button"
+                            onClick={() => onRemove(index)}
+                            className="ml-1 text-red-500 hover:text-red-700"
+                        >
+                            <X className="h-3.5 w-3.5" />
+                        </button>
+                    </span>
+                );
+            })}
+        </div>
+    );
+}
+
+function RecurrenceFields({
+    enabled,
+    onEnabledChange,
+    frequency,
+    onFrequencyChange,
+    interval,
+    onIntervalChange,
+    weekday,
+    onWeekdayChange,
+    monthDay,
+    onMonthDayChange,
+    time,
+    onTimeChange,
+    disabled = false,
+}: {
+    enabled: boolean;
+    onEnabledChange: (value: boolean) => void;
+    frequency: RecurrenceFrequency;
+    onFrequencyChange: (value: RecurrenceFrequency) => void;
+    interval: number;
+    onIntervalChange: (value: number) => void;
+    weekday: number;
+    onWeekdayChange: (value: number) => void;
+    monthDay: number;
+    onMonthDayChange: (value: number) => void;
+    time: string;
+    onTimeChange: (value: string) => void;
+    disabled?: boolean;
+}) {
+    return (
+        <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-4 dark:border-zinc-700 dark:bg-zinc-800/50">
+            <label className="flex items-start gap-3">
+                <input
+                    type="checkbox"
+                    checked={enabled}
+                    onChange={(event) => onEnabledChange(event.target.checked)}
+                    className="mt-1 h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary"
+                    disabled={disabled}
+                />
+                <div className="space-y-1">
+                    <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+                        Jadikan reminder berulang
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                        Sistem akan membuat pengumuman baru otomatis sesuai
+                        jadwal.
+                    </p>
+                </div>
+            </label>
+
+            {enabled && (
+                <>
+                    <div className="mt-4 grid gap-3 md:grid-cols-2">
+                        <label className="space-y-1">
+                            <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                                Frekuensi
+                            </span>
+                            <select
+                                value={frequency}
+                                onChange={(event) =>
+                                    onFrequencyChange(
+                                        event.target
+                                            .value as RecurrenceFrequency,
+                                    )
+                                }
+                                className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm shadow-xs transition outline-none focus:border-primary dark:border-zinc-700 dark:bg-zinc-900"
+                                disabled={disabled}
+                            >
+                                <option value="day">Per Hari</option>
+                                <option value="week">Per Minggu</option>
+                                <option value="month">Per Bulan</option>
+                            </select>
+                        </label>
+
+                        <label className="space-y-1">
+                            <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                                Interval
+                            </span>
+                            <Input
+                                type="number"
+                                min={1}
+                                max={365}
+                                value={interval}
+                                onChange={(event) =>
+                                    onIntervalChange(
+                                        Math.max(
+                                            1,
+                                            Number(event.target.value) || 1,
+                                        ),
+                                    )
+                                }
+                                disabled={disabled}
+                            />
+                        </label>
+
+                        {frequency === 'week' && (
+                            <label className="space-y-1">
+                                <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                                    Hari
+                                </span>
+                                <select
+                                    value={weekday}
+                                    onChange={(event) =>
+                                        onWeekdayChange(
+                                            Number(event.target.value),
+                                        )
+                                    }
+                                    className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm shadow-xs transition outline-none focus:border-primary dark:border-zinc-700 dark:bg-zinc-900"
+                                    disabled={disabled}
+                                >
+                                    {WEEKDAY_OPTIONS.map((option) => (
+                                        <option
+                                            key={option.value}
+                                            value={option.value}
+                                        >
+                                            {option.label}
+                                        </option>
+                                    ))}
+                                </select>
+                            </label>
+                        )}
+
+                        {frequency === 'month' && (
+                            <label className="space-y-1">
+                                <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                                    Tanggal
+                                </span>
+                                <Input
+                                    type="number"
+                                    min={1}
+                                    max={31}
+                                    value={monthDay}
+                                    onChange={(event) =>
+                                        onMonthDayChange(
+                                            Math.max(
+                                                1,
+                                                Math.min(
+                                                    31,
+                                                    Number(
+                                                        event.target.value,
+                                                    ) || 1,
+                                                ),
+                                            ),
+                                        )
+                                    }
+                                    disabled={disabled}
+                                />
+                            </label>
+                        )}
+
+                        <label className="space-y-1">
+                            <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                                Jam
+                            </span>
+                            <Input
+                                type="time"
+                                value={time}
+                                onChange={(event) =>
+                                    onTimeChange(event.target.value || '09:00')
+                                }
+                                disabled={disabled}
+                            />
+                        </label>
+                    </div>
+
+                    <p className="mt-3 text-xs font-medium text-primary">
+                        {formatRecurrenceLabel(frequency, interval, {
+                            weekday,
+                            monthDay,
+                            time,
+                        })}
+                    </p>
+                </>
+            )}
+        </div>
+    );
+}
+
 function CommentItem({ comment, auth, onReply }: any) {
     const isGlobalAdmin = auth?.roles?.some((r: string) =>
         ['superadmin', 'admin'].includes(r),
@@ -58,7 +376,9 @@ function CommentItem({ comment, auth, onReply }: any) {
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editContent, setEditContent] = useState('');
     const [editAttachments, setEditAttachments] = useState<File[]>([]);
-    const [editRemovedMediaIds, setEditRemovedMediaIds] = useState<number[]>([]);
+    const [editRemovedMediaIds, setEditRemovedMediaIds] = useState<number[]>(
+        [],
+    );
     const editFileInputRef = useRef<HTMLInputElement>(null);
 
     const startEditing = (c: any) => {
@@ -77,11 +397,11 @@ function CommentItem({ comment, auth, onReply }: any) {
 
     const saveEdit = (id: string) => {
         if (!editContent.replace(/<p><\/p>/g, '').trim()) {
-return;
-}
+            return;
+        }
 
         router.put(
-            `/comments/${id}`,
+            updateComment.url(id),
             {
                 content: editContent,
                 new_attachments: editAttachments,
@@ -97,10 +417,10 @@ return;
 
     const handleDelete = () => {
         if (!confirm('Hapus komentar ini?')) {
-return;
-}
+            return;
+        }
 
-        router.delete(`/comments/${comment.id}`, { preserveScroll: true });
+        router.delete(destroyComment.url(comment.id), { preserveScroll: true });
     };
 
     return (
@@ -182,7 +502,9 @@ return;
                         {comment.media && comment.media.length > 0 && (
                             <div className="flex flex-wrap gap-2">
                                 {comment.media.map((m: any) =>
-                                    editRemovedMediaIds.includes(m.id) ? null : (
+                                    editRemovedMediaIds.includes(
+                                        m.id,
+                                    ) ? null : (
                                         <span
                                             key={m.id}
                                             className="flex items-center gap-1 rounded bg-primary/10 px-2 py-1 text-[10px] font-medium text-primary"
@@ -235,8 +557,8 @@ return;
                                     editFileInputRef.current?.click()
                                 }
                             >
-                                <Paperclip className="h-3.5 w-3.5" />{' '}
-                                Lampirkan File
+                                <Paperclip className="h-3.5 w-3.5" /> Lampirkan
+                                File
                             </Button>
                             <div className="flex gap-2">
                                 <Button
@@ -354,13 +676,13 @@ return;
                                                                 'Hapus balasan ini?',
                                                             )
                                                         ) {
-router.delete(
+                                                            router.delete(
                                                                 `/comments/${reply.id}`,
                                                                 {
                                                                     preserveScroll: true,
                                                                 },
                                                             );
-}
+                                                        }
                                                     }}
                                                     className="transition-colors hover:text-red-500"
                                                 >
@@ -546,7 +868,8 @@ function AnnouncementItem({ announcement, team, auth }: any) {
     const isTeamAdmin =
         team?.users?.find((u: any) => u.id === auth?.user?.id)?.pivot?.role ===
         'admin';
-    const canEditDelete = isGlobalAdmin || isTeamAdmin;
+    const canEditDelete =
+        isGlobalAdmin || isTeamAdmin || announcement.user_id === auth?.user?.id;
 
     const [commentContent, setCommentContent] = useState('');
     const [attachments, setAttachments] = useState<File[]>([]);
@@ -557,13 +880,37 @@ function AnnouncementItem({ announcement, team, auth }: any) {
     // Edit state
     const [editTitle, setEditTitle] = useState(announcement.title || '');
     const [editContent, setEditContent] = useState(announcement.content || '');
+    const [editAttachments, setEditAttachments] = useState<File[]>([]);
+    const [editRemovedMediaIds, setEditRemovedMediaIds] = useState<number[]>(
+        [],
+    );
+    const [editIsRecurring, setEditIsRecurring] = useState(
+        announcement.is_recurring ?? false,
+    );
+    const [editRecurrenceFrequency, setEditRecurrenceFrequency] =
+        useState<RecurrenceFrequency>(
+            announcement.recurrence_frequency || 'week',
+        );
+    const [editRecurrenceInterval, setEditRecurrenceInterval] = useState(
+        announcement.recurrence_interval || 1,
+    );
+    const [editRecurrenceWeekday, setEditRecurrenceWeekday] = useState(
+        announcement.recurrence_weekday || 1,
+    );
+    const [editRecurrenceMonthDay, setEditRecurrenceMonthDay] = useState(
+        announcement.recurrence_month_day || 1,
+    );
+    const [editRecurrenceTime, setEditRecurrenceTime] = useState(
+        announcement.recurrence_time?.slice(0, 5) || '09:00',
+    );
     const [saving, setSaving] = useState(false);
 
     const fileRef = useRef<HTMLInputElement>(null);
+    const editFileRef = useRef<HTMLInputElement>(null);
 
     const handleDelete = () => {
         if (confirm('Hapus pengumuman ini secara permanen?')) {
-            router.delete(`/announcements/${announcement.id}`, {
+            router.delete(destroyAnnouncement.url(announcement.id), {
                 preserveScroll: true,
             });
         }
@@ -572,16 +919,37 @@ function AnnouncementItem({ announcement, team, auth }: any) {
     const handleSaveEdit = () => {
         setSaving(true);
         router.put(
-            `/announcements/${announcement.id}`,
+            updateAnnouncement.url(announcement.id),
             {
                 title: editTitle,
                 content: editContent,
+                new_attachments: editAttachments,
+                removed_media_ids: editRemovedMediaIds,
+                is_recurring: editIsRecurring,
+                recurrence_frequency: editIsRecurring
+                    ? editRecurrenceFrequency
+                    : null,
+                recurrence_interval: editIsRecurring
+                    ? editRecurrenceInterval
+                    : null,
+                recurrence_weekday:
+                    editIsRecurring && editRecurrenceFrequency === 'week'
+                        ? editRecurrenceWeekday
+                        : null,
+                recurrence_month_day:
+                    editIsRecurring && editRecurrenceFrequency === 'month'
+                        ? editRecurrenceMonthDay
+                        : null,
+                recurrence_time: editIsRecurring ? editRecurrenceTime : null,
             },
             {
                 preserveScroll: true,
+                forceFormData: true,
                 onSuccess: () => {
                     setSaving(false);
                     setIsEditing(false);
+                    setEditAttachments([]);
+                    setEditRemovedMediaIds([]);
                 },
                 onError: () => setSaving(false),
             },
@@ -592,12 +960,12 @@ function AnnouncementItem({ announcement, team, auth }: any) {
         const cleanContent = commentContent.replace(/<p><\/p>/g, '').trim();
 
         if ((!cleanContent && attachments.length === 0) || sending) {
-return;
-}
+            return;
+        }
 
         setSending(true);
         router.post(
-            `/announcements/${announcement.id}/comments`,
+            storeAnnouncementComment.url(announcement.id),
             {
                 content: cleanContent || '<p></p>',
                 parent_id: replyingTo,
@@ -613,8 +981,8 @@ return;
                     setReplyingTo(null);
 
                     if (fileRef.current) {
-fileRef.current.value = '';
-}
+                        fileRef.current.value = '';
+                    }
                 },
                 onError: () => setSending(false),
             },
@@ -648,6 +1016,30 @@ fileRef.current.value = '';
                                 minute: '2-digit',
                             })}
                         </div>
+                        <div className="mt-1 flex flex-wrap gap-2">
+                            {announcement.is_recurring &&
+                                !announcement.source_announcement_id && (
+                                    <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-500/15 dark:text-amber-300">
+                                        Reminder aktif:{' '}
+                                        {formatRecurrenceLabel(
+                                            announcement.recurrence_frequency,
+                                            announcement.recurrence_interval,
+                                            {
+                                                weekday:
+                                                    announcement.recurrence_weekday,
+                                                monthDay:
+                                                    announcement.recurrence_month_day,
+                                                time: announcement.recurrence_time,
+                                            },
+                                        )}
+                                    </span>
+                                )}
+                            {announcement.source_announcement_id && (
+                                <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">
+                                    Reminder otomatis
+                                </span>
+                            )}
+                        </div>
                     </div>
                 </div>
                 {canEditDelete && (
@@ -668,6 +1060,30 @@ fileRef.current.value = '';
                                     setIsEditing(true);
                                     setEditTitle(announcement.title || '');
                                     setEditContent(announcement.content || '');
+                                    setEditAttachments([]);
+                                    setEditRemovedMediaIds([]);
+                                    setEditIsRecurring(
+                                        announcement.is_recurring ?? false,
+                                    );
+                                    setEditRecurrenceFrequency(
+                                        announcement.recurrence_frequency ||
+                                            'week',
+                                    );
+                                    setEditRecurrenceInterval(
+                                        announcement.recurrence_interval || 1,
+                                    );
+                                    setEditRecurrenceWeekday(
+                                        announcement.recurrence_weekday || 1,
+                                    );
+                                    setEditRecurrenceMonthDay(
+                                        announcement.recurrence_month_day || 1,
+                                    );
+                                    setEditRecurrenceTime(
+                                        announcement.recurrence_time?.slice(
+                                            0,
+                                            5,
+                                        ) || '09:00',
+                                    );
                                 }}
                             >
                                 <Pencil className="mr-2 h-4 w-4" /> Edit
@@ -699,11 +1115,129 @@ fileRef.current.value = '';
                         users={team?.users}
                         disabled={saving}
                     />
+                    <RecurrenceFields
+                        enabled={editIsRecurring}
+                        onEnabledChange={setEditIsRecurring}
+                        frequency={editRecurrenceFrequency}
+                        onFrequencyChange={setEditRecurrenceFrequency}
+                        interval={editRecurrenceInterval}
+                        onIntervalChange={setEditRecurrenceInterval}
+                        weekday={editRecurrenceWeekday}
+                        onWeekdayChange={setEditRecurrenceWeekday}
+                        monthDay={editRecurrenceMonthDay}
+                        onMonthDayChange={setEditRecurrenceMonthDay}
+                        time={editRecurrenceTime}
+                        onTimeChange={setEditRecurrenceTime}
+                        disabled={saving}
+                    />
+                    {announcement.media && announcement.media.length > 0 && (
+                        <div className="flex flex-wrap gap-3">
+                            {announcement.media.map((media: any) =>
+                                editRemovedMediaIds.includes(
+                                    media.id,
+                                ) ? null : isImage(media.mime_type) ? (
+                                    <div
+                                        key={media.id}
+                                        className="relative w-full max-w-[220px] overflow-hidden rounded-xl border border-slate-200 bg-slate-50 dark:border-zinc-700 dark:bg-zinc-800"
+                                    >
+                                        <img
+                                            src={media.original_url}
+                                            alt={media.file_name}
+                                            className="h-36 w-full object-cover"
+                                        />
+                                        <div className="p-3">
+                                            <p className="truncate text-xs font-semibold text-slate-800 dark:text-slate-100">
+                                                {media.file_name}
+                                            </p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                setEditRemovedMediaIds(
+                                                    (current) => [
+                                                        ...current,
+                                                        media.id,
+                                                    ],
+                                                )
+                                            }
+                                            className="absolute top-2 right-2 rounded-full bg-black/70 p-1 text-white transition hover:bg-black/80"
+                                        >
+                                            <X className="h-3.5 w-3.5" />
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <span
+                                        key={media.id}
+                                        className="flex items-center gap-1.5 rounded border border-slate-200 bg-slate-100 px-3 py-1.5 text-xs dark:border-zinc-700 dark:bg-zinc-800"
+                                    >
+                                        <Paperclip className="h-3.5 w-3.5 text-primary" />
+                                        <span className="max-w-[150px] truncate">
+                                            {media.file_name}
+                                        </span>
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                setEditRemovedMediaIds(
+                                                    (current) => [
+                                                        ...current,
+                                                        media.id,
+                                                    ],
+                                                )
+                                            }
+                                            className="ml-1 text-red-500 hover:text-red-700"
+                                        >
+                                            <X className="h-3.5 w-3.5" />
+                                        </button>
+                                    </span>
+                                ),
+                            )}
+                        </div>
+                    )}
+                    <AttachmentPreviewList
+                        files={editAttachments}
+                        onRemove={(index) =>
+                            setEditAttachments((current) =>
+                                current.filter(
+                                    (_, itemIndex) => itemIndex !== index,
+                                ),
+                            )
+                        }
+                    />
+                    <input
+                        type="file"
+                        ref={editFileRef}
+                        multiple
+                        className="hidden"
+                        onChange={(event) => {
+                            const files = event.currentTarget.files;
+
+                            if (files) {
+                                setEditAttachments((current) => [
+                                    ...current,
+                                    ...Array.from(files),
+                                ]);
+                                event.currentTarget.value = '';
+                            }
+                        }}
+                    />
                     <div className="flex justify-end gap-2 pt-2">
                         <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => setIsEditing(false)}
+                            onClick={() => editFileRef.current?.click()}
+                            type="button"
+                        >
+                            <Paperclip className="mr-1.5 h-3.5 w-3.5" />
+                            Lampirkan file
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                                setIsEditing(false);
+                                setEditAttachments([]);
+                                setEditRemovedMediaIds([]);
+                            }}
                         >
                             Batal
                         </Button>
@@ -869,12 +1403,14 @@ fileRef.current.value = '';
                                 multiple
                                 className="hidden"
                                 onChange={(e) => {
-                                    if (e.target.files) {
-setAttachments([
+                                    const files = e.currentTarget.files;
+
+                                    if (files) {
+                                        setAttachments([
                                             ...attachments,
-                                            ...Array.from(e.target.files),
+                                            ...Array.from(files),
                                         ]);
-}
+                                    }
                                 }}
                             />
                             <Button
@@ -928,22 +1464,41 @@ export function PengumumanTab({ team }: { team: any }) {
     const [attachments, setAttachments] = useState<File[]>([]);
     const [creating, setCreating] = useState(false);
     const [showForm, setShowForm] = useState(false);
+    const [isRecurring, setIsRecurring] = useState(false);
+    const [recurrenceFrequency, setRecurrenceFrequency] =
+        useState<RecurrenceFrequency>('week');
+    const [recurrenceInterval, setRecurrenceInterval] = useState(1);
+    const [recurrenceWeekday, setRecurrenceWeekday] = useState(1);
+    const [recurrenceMonthDay, setRecurrenceMonthDay] = useState(1);
+    const [recurrenceTime, setRecurrenceTime] = useState('09:00');
     const fileRef = useRef<HTMLInputElement>(null);
 
     const handleCreate = () => {
         const cleanContent = content.replace(/<p><\/p>/g, '').trim();
 
         if (!cleanContent) {
-return;
-}
+            return;
+        }
 
         setCreating(true);
         router.post(
-            `/teams/${team.id}/announcements`,
+            storeTeamAnnouncement.url(team.id),
             {
                 title,
                 content: cleanContent,
                 attachments,
+                is_recurring: isRecurring,
+                recurrence_frequency: isRecurring ? recurrenceFrequency : null,
+                recurrence_interval: isRecurring ? recurrenceInterval : null,
+                recurrence_weekday:
+                    isRecurring && recurrenceFrequency === 'week'
+                        ? recurrenceWeekday
+                        : null,
+                recurrence_month_day:
+                    isRecurring && recurrenceFrequency === 'month'
+                        ? recurrenceMonthDay
+                        : null,
+                recurrence_time: isRecurring ? recurrenceTime : null,
             },
             {
                 preserveScroll: true,
@@ -953,11 +1508,17 @@ return;
                     setTitle('');
                     setContent('');
                     setAttachments([]);
+                    setIsRecurring(false);
+                    setRecurrenceFrequency('week');
+                    setRecurrenceInterval(1);
+                    setRecurrenceWeekday(1);
+                    setRecurrenceMonthDay(1);
+                    setRecurrenceTime('09:00');
                     setShowForm(false);
 
                     if (fileRef.current) {
-fileRef.current.value = '';
-}
+                        fileRef.current.value = '';
+                    }
                 },
                 onError: () => setCreating(false),
             },
@@ -1015,35 +1576,32 @@ fileRef.current.value = '';
                                 disabled={creating}
                                 placeholder="Isi pengumuman Anda di sini... ketik @ untuk tag anggota"
                             />
-
-                            {attachments.length > 0 && (
-                                <div className="flex flex-wrap gap-2 pt-2">
-                                    {attachments.map((f, i) => (
-                                        <span
-                                            key={i}
-                                            className="flex items-center gap-1.5 rounded border border-slate-200 bg-slate-100 px-3 py-1.5 text-xs dark:border-zinc-700 dark:bg-zinc-800"
-                                        >
-                                            <Paperclip className="h-3.5 w-3.5 text-primary" />{' '}
-                                            <span className="max-w-[150px] truncate">
-                                                {f.name}
-                                            </span>
-                                            <button
-                                                onClick={() =>
-                                                    setAttachments(
-                                                        attachments.filter(
-                                                            (_, idx) =>
-                                                                idx !== i,
-                                                        ),
-                                                    )
-                                                }
-                                                className="ml-1 text-red-500 hover:text-red-700"
-                                            >
-                                                <X className="h-3.5 w-3.5" />
-                                            </button>
-                                        </span>
-                                    ))}
-                                </div>
-                            )}
+                            <RecurrenceFields
+                                enabled={isRecurring}
+                                onEnabledChange={setIsRecurring}
+                                frequency={recurrenceFrequency}
+                                onFrequencyChange={setRecurrenceFrequency}
+                                interval={recurrenceInterval}
+                                onIntervalChange={setRecurrenceInterval}
+                                weekday={recurrenceWeekday}
+                                onWeekdayChange={setRecurrenceWeekday}
+                                monthDay={recurrenceMonthDay}
+                                onMonthDayChange={setRecurrenceMonthDay}
+                                time={recurrenceTime}
+                                onTimeChange={setRecurrenceTime}
+                                disabled={creating}
+                            />
+                            <AttachmentPreviewList
+                                files={attachments}
+                                onRemove={(index) =>
+                                    setAttachments((current) =>
+                                        current.filter(
+                                            (_, itemIndex) =>
+                                                itemIndex !== index,
+                                        ),
+                                    )
+                                }
+                            />
 
                             <div className="flex items-center justify-between pt-2">
                                 <input
@@ -1052,12 +1610,14 @@ fileRef.current.value = '';
                                     multiple
                                     className="hidden"
                                     onChange={(e) => {
-                                        if (e.target.files) {
-setAttachments([
+                                        const files = e.currentTarget.files;
+
+                                        if (files) {
+                                            setAttachments([
                                                 ...attachments,
-                                                ...Array.from(e.target.files),
+                                                ...Array.from(files),
                                             ]);
-}
+                                        }
                                     }}
                                 />
                                 <Button
