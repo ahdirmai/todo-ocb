@@ -47,6 +47,8 @@ test('team member can create recurring announcement reminder', function () {
         'recurrence_interval' => 2,
         'recurrence_weekday' => 5,
         'recurrence_time' => '14:30',
+        'recurrence_limit_unit' => 'month',
+        'recurrence_limit_value' => 3,
     ]);
 
     $response->assertSessionHasNoErrors();
@@ -59,6 +61,10 @@ test('team member can create recurring announcement reminder', function () {
         ->and($announcement->recurrence_interval)->toBe(2)
         ->and($announcement->recurrence_weekday)->toBe(5)
         ->and($announcement->recurrence_time)->toBe('14:30:00')
+        ->and($announcement->recurrence_limit_unit)->toBe('month')
+        ->and($announcement->recurrence_limit_value)->toBe(3)
+        ->and($announcement->recurrence_ends_at?->toDateTimeString())
+        ->toBe('2026-07-22 14:30:00')
         ->and($announcement->next_occurrence_at?->toDateTimeString())
         ->toBe('2026-04-24 14:30:00');
 });
@@ -90,6 +96,8 @@ test('creator can edit recurring announcement and replace attachments', function
         'recurrence_interval' => 1,
         'recurrence_month_day' => 25,
         'recurrence_time' => '08:15',
+        'recurrence_limit_unit' => 'week',
+        'recurrence_limit_value' => 2,
         'removed_media_ids' => [$oldMedia?->id],
         'new_attachments' => [
             UploadedFile::fake()->image('baru.jpg'),
@@ -107,6 +115,10 @@ test('creator can edit recurring announcement and replace attachments', function
         ->and($announcement->recurrence_interval)->toBe(1)
         ->and($announcement->recurrence_month_day)->toBe(25)
         ->and($announcement->recurrence_time)->toBe('08:15:00')
+        ->and($announcement->recurrence_limit_unit)->toBe('week')
+        ->and($announcement->recurrence_limit_value)->toBe(2)
+        ->and($announcement->recurrence_ends_at?->toDateTimeString())
+        ->toBe('2026-05-06 08:15:00')
         ->and($announcement->next_occurrence_at?->toDateTimeString())
         ->toBe('2026-04-25 08:15:00')
         ->and($announcement->getMedia('attachments'))->toHaveCount(1)
@@ -129,6 +141,9 @@ test('dispatch recurring announcements command queues reminder jobs', function (
         'recurrence_interval' => 1,
         'recurrence_month_day' => 21,
         'recurrence_time' => '09:45:00',
+        'recurrence_limit_unit' => 'month',
+        'recurrence_limit_value' => 2,
+        'recurrence_ends_at' => Carbon::parse('2026-07-22 09:45:00'),
         'next_occurrence_at' => Carbon::parse('2026-05-21 09:45:00'),
     ]);
 
@@ -161,6 +176,9 @@ test('queued reminder job creates reminder copies', function () {
         'recurrence_interval' => 1,
         'recurrence_month_day' => 21,
         'recurrence_time' => '09:45:00',
+        'recurrence_limit_unit' => 'month',
+        'recurrence_limit_value' => 1,
+        'recurrence_ends_at' => Carbon::parse('2026-05-22 09:45:00'),
         'next_occurrence_at' => Carbon::parse('2026-05-21 09:45:00'),
     ]);
 
@@ -184,6 +202,5 @@ test('queued reminder job creates reminder copies', function () {
         ->and($reminder?->getMedia('attachments'))->toHaveCount(1)
         ->and($announcement->last_generated_at?->toDateTimeString())
         ->toBe(Carbon::now()->toDateTimeString())
-        ->and($announcement->next_occurrence_at?->toDateTimeString())
-        ->toBe('2026-06-21 09:45:00');
+        ->and($announcement->next_occurrence_at)->toBeNull();
 });

@@ -24,8 +24,10 @@ class Announcement extends Model implements HasMedia
             'is_recurring' => 'boolean',
             'recurrence_weekday' => 'integer',
             'recurrence_month_day' => 'integer',
+            'recurrence_limit_value' => 'integer',
             'next_occurrence_at' => 'datetime',
             'last_generated_at' => 'datetime',
+            'recurrence_ends_at' => 'datetime',
         ];
     }
 
@@ -68,10 +70,32 @@ class Announcement extends Model implements HasMedia
         $candidate = $this->candidateForAnchor($from);
 
         if ($candidate && $candidate->gt($from)) {
-            return $candidate;
+            return $this->withinRecurrenceBoundary($candidate) ? $candidate : null;
         }
 
-        return $this->candidateForAnchor($this->advanceRecurrenceAnchor($from));
+        $nextCandidate = $this->candidateForAnchor($this->advanceRecurrenceAnchor($from));
+
+        return $nextCandidate && $this->withinRecurrenceBoundary($nextCandidate)
+            ? $nextCandidate
+            : null;
+    }
+
+    public function calculateRecurrenceEndsAt(CarbonInterface $from): ?CarbonInterface
+    {
+        if (! $this->is_recurring || ! $this->recurrence_limit_unit || ! $this->recurrence_limit_value) {
+            return null;
+        }
+
+        $time = $this->recurrence_time ?: '09:00:00';
+        $base = $from->copy()->setTimeFromTimeString($time);
+        $interval = max(1, (int) $this->recurrence_limit_value);
+
+        return match ($this->recurrence_limit_unit) {
+            'day' => $base->addDays($interval),
+            'week' => $base->addWeeks($interval),
+            'month' => $base->addMonthsNoOverflow($interval),
+            default => null,
+        };
     }
 
     protected function candidateForAnchor(CarbonInterface $anchor): ?CarbonInterface
@@ -109,5 +133,10 @@ class Announcement extends Model implements HasMedia
             'month' => $base->addMonthsNoOverflow($interval),
             default => $base,
         };
+    }
+
+    protected function withinRecurrenceBoundary(CarbonInterface $candidate): bool
+    {
+        return ! $this->recurrence_ends_at || $candidate->lte($this->recurrence_ends_at);
     }
 }

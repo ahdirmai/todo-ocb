@@ -58,6 +58,19 @@ class AnnouncementController extends Controller
                 'integer',
                 'between:1,31',
             ],
+            'recurrence_limit_unit' => [
+                Rule::requiredIf($request->boolean('is_recurring')),
+                'nullable',
+                'string',
+                Rule::in(['day', 'week', 'month']),
+            ],
+            'recurrence_limit_value' => [
+                Rule::requiredIf($request->boolean('is_recurring')),
+                'nullable',
+                'integer',
+                'min:1',
+                'max:365',
+            ],
         ]);
 
         $isRecurring = $request->boolean('is_recurring');
@@ -76,11 +89,18 @@ class AnnouncementController extends Controller
             'recurrence_month_day' => $isRecurring && $validated['recurrence_frequency'] === 'month'
                 ? $validated['recurrence_month_day']
                 : null,
+            'recurrence_limit_unit' => $isRecurring ? $validated['recurrence_limit_unit'] : null,
+            'recurrence_limit_value' => $isRecurring ? $validated['recurrence_limit_value'] : null,
+            'recurrence_ends_at' => null,
             'next_occurrence_at' => null,
         ]);
 
         if ($announcement->is_recurring) {
+            $recurrenceEndsAt = $announcement->calculateRecurrenceEndsAt(now());
+            $announcement->recurrence_ends_at = $recurrenceEndsAt;
+
             $announcement->update([
+                'recurrence_ends_at' => $recurrenceEndsAt,
                 'next_occurrence_at' => $announcement->calculateNextOccurrence(now()),
             ]);
         }
@@ -151,6 +171,19 @@ class AnnouncementController extends Controller
                 'integer',
                 'between:1,31',
             ],
+            'recurrence_limit_unit' => [
+                Rule::requiredIf($request->boolean('is_recurring')),
+                'nullable',
+                'string',
+                Rule::in(['day', 'week', 'month']),
+            ],
+            'recurrence_limit_value' => [
+                Rule::requiredIf($request->boolean('is_recurring')),
+                'nullable',
+                'integer',
+                'min:1',
+                'max:365',
+            ],
         ]);
 
         $isRecurring = $request->boolean('is_recurring');
@@ -162,12 +195,16 @@ class AnnouncementController extends Controller
             ? $validated['recurrence_month_day']
             : null;
         $recurrenceTime = $isRecurring ? "{$validated['recurrence_time']}:00" : null;
+        $recurrenceLimitUnit = $isRecurring ? $validated['recurrence_limit_unit'] : null;
+        $recurrenceLimitValue = $isRecurring ? $validated['recurrence_limit_value'] : null;
         $recurrenceChanged = $announcement->is_recurring !== $isRecurring
             || $announcement->recurrence_frequency !== $recurrenceFrequency
             || (int) $announcement->recurrence_interval !== (int) ($validated['recurrence_interval'] ?? 0)
             || $announcement->recurrence_time !== $recurrenceTime
             || (int) $announcement->recurrence_weekday !== (int) ($recurrenceWeekday ?? 0)
-            || (int) $announcement->recurrence_month_day !== (int) ($recurrenceMonthDay ?? 0);
+            || (int) $announcement->recurrence_month_day !== (int) ($recurrenceMonthDay ?? 0)
+            || $announcement->recurrence_limit_unit !== $recurrenceLimitUnit
+            || (int) $announcement->recurrence_limit_value !== (int) ($recurrenceLimitValue ?? 0);
 
         $announcement->update([
             'title' => $validated['title'] ?? null,
@@ -178,11 +215,18 @@ class AnnouncementController extends Controller
             'recurrence_time' => $recurrenceTime,
             'recurrence_weekday' => $recurrenceWeekday,
             'recurrence_month_day' => $recurrenceMonthDay,
+            'recurrence_limit_unit' => $recurrenceLimitUnit,
+            'recurrence_limit_value' => $recurrenceLimitValue,
+            'recurrence_ends_at' => $isRecurring ? $announcement->recurrence_ends_at : null,
             'next_occurrence_at' => $isRecurring ? $announcement->next_occurrence_at : null,
         ]);
 
         if ($isRecurring && ($recurrenceChanged || ! $announcement->next_occurrence_at)) {
+            $recurrenceEndsAt = $announcement->calculateRecurrenceEndsAt(now());
+            $announcement->recurrence_ends_at = $recurrenceEndsAt;
+
             $announcement->update([
+                'recurrence_ends_at' => $recurrenceEndsAt,
                 'next_occurrence_at' => $announcement->calculateNextOccurrence(now()),
             ]);
         }

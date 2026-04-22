@@ -78,6 +78,8 @@ function formatRecurrenceLabel(
         weekday?: number;
         monthDay?: number;
         time?: string;
+        limitUnit?: RecurrenceFrequency;
+        limitValue?: number;
     },
 ) {
     const base = `Setiap ${Math.max(1, interval)} ${
@@ -96,6 +98,16 @@ function formatRecurrenceLabel(
 
     return `${base}${detail}${
         options?.time ? ` jam ${options.time.slice(0, 5)}` : ''
+    }${
+        options?.limitUnit && options?.limitValue
+            ? `, batas ${options.limitValue} ${
+                  options.limitUnit === 'day'
+                      ? 'hari'
+                      : options.limitUnit === 'week'
+                        ? 'minggu'
+                        : 'bulan'
+              }`
+            : ''
     }`;
 }
 
@@ -202,6 +214,10 @@ function RecurrenceFields({
     onMonthDayChange,
     time,
     onTimeChange,
+    limitUnit,
+    onLimitUnitChange,
+    limitValue,
+    onLimitValueChange,
     disabled = false,
 }: {
     enabled: boolean;
@@ -216,6 +232,10 @@ function RecurrenceFields({
     onMonthDayChange: (value: number) => void;
     time: string;
     onTimeChange: (value: string) => void;
+    limitUnit: RecurrenceFrequency;
+    onLimitUnitChange: (value: RecurrenceFrequency) => void;
+    limitValue: number;
+    onLimitValueChange: (value: number) => void;
     disabled?: boolean;
 }) {
     return (
@@ -352,6 +372,48 @@ function RecurrenceFields({
                                 disabled={disabled}
                             />
                         </label>
+
+                        <label className="space-y-1">
+                            <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                                Batas Durasi
+                            </span>
+                            <Input
+                                type="number"
+                                min={1}
+                                max={365}
+                                value={limitValue}
+                                onChange={(event) =>
+                                    onLimitValueChange(
+                                        Math.max(
+                                            1,
+                                            Number(event.target.value) || 1,
+                                        ),
+                                    )
+                                }
+                                disabled={disabled}
+                            />
+                        </label>
+
+                        <label className="space-y-1">
+                            <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                                Satuan Batas
+                            </span>
+                            <select
+                                value={limitUnit}
+                                onChange={(event) =>
+                                    onLimitUnitChange(
+                                        event.target
+                                            .value as RecurrenceFrequency,
+                                    )
+                                }
+                                className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm shadow-xs transition outline-none focus:border-primary dark:border-zinc-700 dark:bg-zinc-900"
+                                disabled={disabled}
+                            >
+                                <option value="day">Hari</option>
+                                <option value="week">Minggu</option>
+                                <option value="month">Bulan</option>
+                            </select>
+                        </label>
                     </div>
 
                     <p className="mt-3 text-xs font-medium text-primary">
@@ -359,6 +421,8 @@ function RecurrenceFields({
                             weekday,
                             monthDay,
                             time,
+                            limitUnit,
+                            limitValue,
                         })}
                     </p>
                 </>
@@ -903,6 +967,13 @@ function AnnouncementItem({ announcement, team, auth }: any) {
     const [editRecurrenceTime, setEditRecurrenceTime] = useState(
         announcement.recurrence_time?.slice(0, 5) || '09:00',
     );
+    const [editRecurrenceLimitUnit, setEditRecurrenceLimitUnit] =
+        useState<RecurrenceFrequency>(
+            announcement.recurrence_limit_unit || 'month',
+        );
+    const [editRecurrenceLimitValue, setEditRecurrenceLimitValue] = useState(
+        announcement.recurrence_limit_value || 1,
+    );
     const [saving, setSaving] = useState(false);
 
     const fileRef = useRef<HTMLInputElement>(null);
@@ -941,6 +1012,12 @@ function AnnouncementItem({ announcement, team, auth }: any) {
                         ? editRecurrenceMonthDay
                         : null,
                 recurrence_time: editIsRecurring ? editRecurrenceTime : null,
+                recurrence_limit_unit: editIsRecurring
+                    ? editRecurrenceLimitUnit
+                    : null,
+                recurrence_limit_value: editIsRecurring
+                    ? editRecurrenceLimitValue
+                    : null,
             },
             {
                 preserveScroll: true,
@@ -1030,6 +1107,10 @@ function AnnouncementItem({ announcement, team, auth }: any) {
                                                 monthDay:
                                                     announcement.recurrence_month_day,
                                                 time: announcement.recurrence_time,
+                                                limitUnit:
+                                                    announcement.recurrence_limit_unit,
+                                                limitValue:
+                                                    announcement.recurrence_limit_value,
                                             },
                                         )}
                                     </span>
@@ -1084,6 +1165,14 @@ function AnnouncementItem({ announcement, team, auth }: any) {
                                             5,
                                         ) || '09:00',
                                     );
+                                    setEditRecurrenceLimitUnit(
+                                        announcement.recurrence_limit_unit ||
+                                            'month',
+                                    );
+                                    setEditRecurrenceLimitValue(
+                                        announcement.recurrence_limit_value ||
+                                            1,
+                                    );
                                 }}
                             >
                                 <Pencil className="mr-2 h-4 w-4" /> Edit
@@ -1128,6 +1217,10 @@ function AnnouncementItem({ announcement, team, auth }: any) {
                         onMonthDayChange={setEditRecurrenceMonthDay}
                         time={editRecurrenceTime}
                         onTimeChange={setEditRecurrenceTime}
+                        limitUnit={editRecurrenceLimitUnit}
+                        onLimitUnitChange={setEditRecurrenceLimitUnit}
+                        limitValue={editRecurrenceLimitValue}
+                        onLimitValueChange={setEditRecurrenceLimitValue}
                         disabled={saving}
                     />
                     {announcement.media && announcement.media.length > 0 && (
@@ -1471,6 +1564,9 @@ export function PengumumanTab({ team }: { team: any }) {
     const [recurrenceWeekday, setRecurrenceWeekday] = useState(1);
     const [recurrenceMonthDay, setRecurrenceMonthDay] = useState(1);
     const [recurrenceTime, setRecurrenceTime] = useState('09:00');
+    const [recurrenceLimitUnit, setRecurrenceLimitUnit] =
+        useState<RecurrenceFrequency>('month');
+    const [recurrenceLimitValue, setRecurrenceLimitValue] = useState(1);
     const fileRef = useRef<HTMLInputElement>(null);
 
     const handleCreate = () => {
@@ -1499,6 +1595,10 @@ export function PengumumanTab({ team }: { team: any }) {
                         ? recurrenceMonthDay
                         : null,
                 recurrence_time: isRecurring ? recurrenceTime : null,
+                recurrence_limit_unit: isRecurring ? recurrenceLimitUnit : null,
+                recurrence_limit_value: isRecurring
+                    ? recurrenceLimitValue
+                    : null,
             },
             {
                 preserveScroll: true,
@@ -1514,6 +1614,8 @@ export function PengumumanTab({ team }: { team: any }) {
                     setRecurrenceWeekday(1);
                     setRecurrenceMonthDay(1);
                     setRecurrenceTime('09:00');
+                    setRecurrenceLimitUnit('month');
+                    setRecurrenceLimitValue(1);
                     setShowForm(false);
 
                     if (fileRef.current) {
@@ -1589,6 +1691,10 @@ export function PengumumanTab({ team }: { team: any }) {
                                 onMonthDayChange={setRecurrenceMonthDay}
                                 time={recurrenceTime}
                                 onTimeChange={setRecurrenceTime}
+                                limitUnit={recurrenceLimitUnit}
+                                onLimitUnitChange={setRecurrenceLimitUnit}
+                                limitValue={recurrenceLimitValue}
+                                onLimitValueChange={setRecurrenceLimitValue}
                                 disabled={creating}
                             />
                             <AttachmentPreviewList
