@@ -128,7 +128,7 @@ interface TaskDetailModalProps {
 }
 
 export function TaskDetailModal({ task, open, onClose }: TaskDetailModalProps) {
-    const { tags: globalTags = [], auth, team } = usePage<any>().props;
+    const { tags: globalTags = [], auth, team, uploads } = usePage<any>().props;
 
     const isGlobalAdmin = auth?.roles?.some((r: string) =>
         ['superadmin', 'admin'].includes(r),
@@ -143,9 +143,16 @@ export function TaskDetailModal({ task, open, onClose }: TaskDetailModalProps) {
     const canEditTask = Boolean(
         isGlobalAdmin || isTaskCreator || isTeamAdmin || isAssignee,
     );
-    const canDeleteTask = Boolean(isGlobalAdmin || isTaskCreator || isTeamAdmin);
+    const canDeleteTask = Boolean(
+        isGlobalAdmin || isTaskCreator || isTeamAdmin,
+    );
+    const attachmentUpload = uploads?.documents;
+    const maxAttachmentBytes = (attachmentUpload?.maxFileKb ?? 10240) * 1024;
+    const maxAttachmentLabel = formatFileSize(maxAttachmentBytes);
 
-    const currentTaskStateKey = task ? `${task.id}:${open ? 'open' : 'closed'}` : 'empty';
+    const currentTaskStateKey = task
+        ? `${task.id}:${open ? 'open' : 'closed'}`
+        : 'empty';
     const [syncedTaskStateKey, setSyncedTaskStateKey] =
         useState(currentTaskStateKey);
     const [title, setTitle] = useState(task?.title || '');
@@ -164,13 +171,33 @@ export function TaskDetailModal({ task, open, onClose }: TaskDetailModalProps) {
     const [sendingComment, setSendingComment] = useState(false);
     const [attachments, setAttachments] = useState<File[]>([]);
     const [taskAttachments, setTaskAttachments] = useState<File[]>([]);
-    const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+    const [editingCommentId, setEditingCommentId] = useState<string | null>(
+        null,
+    );
     const [editContent, setEditContent] = useState('');
     const [editAttachments, setEditAttachments] = useState<File[]>([]);
-    const [editRemovedMediaIds, setEditRemovedMediaIds] = useState<number[]>([]);
+    const [editRemovedMediaIds, setEditRemovedMediaIds] = useState<number[]>(
+        [],
+    );
     const fileInputRef = useRef<HTMLInputElement>(null);
     const taskFileInputRef = useRef<HTMLInputElement>(null);
     const editFileInputRef = useRef<HTMLInputElement>(null);
+
+    const validateAttachmentFiles = (files: File[]): boolean => {
+        const invalidFiles = files.filter(
+            (file) => file.size > maxAttachmentBytes,
+        );
+
+        if (invalidFiles.length > 0) {
+            alert(
+                `Ukuran file melebihi batas ${maxAttachmentLabel}: ${invalidFiles.map((file) => file.name).join(', ')}`,
+            );
+
+            return false;
+        }
+
+        return true;
+    };
 
     if (syncedTaskStateKey !== currentTaskStateKey) {
         setSyncedTaskStateKey(currentTaskStateKey);
@@ -185,8 +212,8 @@ export function TaskDetailModal({ task, open, onClose }: TaskDetailModalProps) {
     // Realtime polling
     useEffect(() => {
         if (!open) {
-return;
-}
+            return;
+        }
 
         const interval = setInterval(() => {
             router.reload({
@@ -211,8 +238,8 @@ return;
 
     const handleSave = () => {
         if (!task) {
-return;
-}
+            return;
+        }
 
         setSaving(true);
         router.post(
@@ -234,8 +261,8 @@ return;
                     setTaskAttachments([]);
 
                     if (taskFileInputRef.current) {
-taskFileInputRef.current.value = '';
-}
+                        taskFileInputRef.current.value = '';
+                    }
 
                     onClose();
                 },
@@ -246,8 +273,8 @@ taskFileInputRef.current.value = '';
 
     const handleDelete = () => {
         if (!task || !confirm(`Hapus task "${task.title}"?`)) {
-return;
-}
+            return;
+        }
 
         router.delete(TaskActions.destroy.url(task.id), {
             preserveScroll: true,
@@ -257,8 +284,8 @@ return;
 
     const handleAddComment = (e?: React.FormEvent) => {
         if (e) {
-e.preventDefault();
-}
+            e.preventDefault();
+        }
 
         const cleanContent = commentText.replace(/<p><\/p>/g, '').trim();
 
@@ -267,8 +294,8 @@ e.preventDefault();
             sendingComment ||
             !task
         ) {
-return;
-}
+            return;
+        }
 
         setSendingComment(true);
         router.post(
@@ -288,8 +315,8 @@ return;
                     setSendingComment(false);
 
                     if (fileInputRef.current) {
-fileInputRef.current.value = '';
-}
+                        fileInputRef.current.value = '';
+                    }
                 },
                 onError: () => setSendingComment(false),
             },
@@ -298,8 +325,8 @@ fileInputRef.current.value = '';
 
     const handleDeleteComment = (commentId: string) => {
         if (!confirm('Hapus komentar ini?')) {
-return;
-}
+            return;
+        }
 
         router.delete(`/comments/${commentId}`, {
             preserveScroll: true,
@@ -309,8 +336,8 @@ return;
 
     const handleSaveEdit = (commentId: string) => {
         if (!editContent.replace(/<p><\/p>/g, '').trim()) {
-return;
-}
+            return;
+        }
 
         router.put(
             `/comments/${commentId}`,
@@ -427,8 +454,8 @@ return;
                                                 canEditTask &&
                                                 user.id !== task?.creator_id
                                             ) {
-toggleAssignee(user.id);
-}
+                                                toggleAssignee(user.id);
+                                            }
                                         }}
                                         className={`flex items-center gap-1.5 rounded-full px-2 py-1 text-xs font-medium transition-all ${!canEditTask || user.id === task?.creator_id ? 'cursor-default opacity-80' : 'cursor-pointer hover:ring-1'} ${selected ? 'bg-primary text-primary-foreground shadow-sm ring-2 ring-primary ring-offset-1 dark:ring-offset-zinc-950' : 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-zinc-800 dark:text-slate-300 dark:hover:bg-zinc-700'}`}
                                         title={
@@ -499,13 +526,26 @@ toggleAssignee(user.id);
                                         ref={taskFileInputRef}
                                         onChange={(e) => {
                                             if (e.target.files?.length) {
-setTaskAttachments([
+                                                const files = Array.from(
+                                                    e.target.files,
+                                                );
+
+                                                if (
+                                                    !validateAttachmentFiles(
+                                                        files,
+                                                    )
+                                                ) {
+                                                    e.target.value = '';
+
+                                                    return;
+                                                }
+
+                                                setTaskAttachments([
                                                     ...taskAttachments,
-                                                    ...Array.from(
-                                                        e.target.files,
-                                                    ),
+                                                    ...files,
                                                 ]);
-}
+                                                e.target.value = '';
+                                            }
                                         }}
                                     />
                                     <Button
@@ -540,6 +580,9 @@ setTaskAttachments([
                                 ))}
                             </div>
                         )}
+                        <p className="text-xs text-muted-foreground">
+                            Maks. {maxAttachmentLabel} per file.
+                        </p>
 
                         {task?.media?.length > 0 && (
                             <div className="mt-2 flex flex-wrap gap-4 rounded-lg border border-dashed border-sidebar-border bg-slate-50/50 p-3 dark:bg-zinc-800/20">
@@ -611,10 +654,16 @@ setTaskAttachments([
                             ref={fileInputRef}
                             onChange={(e) => {
                                 if (e.target.files?.length) {
-                                    setAttachments([
-                                        ...attachments,
-                                        ...Array.from(e.target.files),
-                                    ]);
+                                    const files = Array.from(e.target.files);
+
+                                    if (!validateAttachmentFiles(files)) {
+                                        e.target.value = '';
+
+                                        return;
+                                    }
+
+                                    setAttachments([...attachments, ...files]);
+                                    e.target.value = '';
                                 }
                             }}
                         />
@@ -627,9 +676,17 @@ setTaskAttachments([
                             ref={editFileInputRef}
                             onChange={(e) => {
                                 if (e.target.files?.length) {
+                                    const files = Array.from(e.target.files);
+
+                                    if (!validateAttachmentFiles(files)) {
+                                        e.target.value = '';
+
+                                        return;
+                                    }
+
                                     setEditAttachments((prev) => [
                                         ...prev,
-                                        ...Array.from(e.target.files!),
+                                        ...files,
                                     ]);
                                     e.target.value = '';
                                 }
@@ -714,6 +771,9 @@ setTaskAttachments([
                                             )}
                                         </Button>
                                     </div>
+                                    <p className="text-xs text-muted-foreground">
+                                        Maks. {maxAttachmentLabel} per file.
+                                    </p>
                                 </div>
                             </div>
                         )}
@@ -809,9 +869,7 @@ setTaskAttachments([
                                                                 (f, i) => (
                                                                     <PendingFilePreview
                                                                         key={i}
-                                                                        file={
-                                                                            f
-                                                                        }
+                                                                        file={f}
                                                                         onRemove={() =>
                                                                             setEditAttachments(
                                                                                 (
@@ -924,6 +982,11 @@ setTaskAttachments([
                                                             </Button>
                                                         </div>
                                                     </div>
+                                                    <p className="text-xs text-muted-foreground">
+                                                        Maks.{' '}
+                                                        {maxAttachmentLabel} per
+                                                        file.
+                                                    </p>
                                                 </div>
                                             ) : (
                                                 <div
@@ -1184,7 +1247,8 @@ setTaskAttachments([
                                                                             }
                                                                         >
                                                                             <Paperclip className="h-3.5 w-3.5" />{' '}
-                                                                            Lampirkan File
+                                                                            Lampirkan
+                                                                            File
                                                                         </Button>
                                                                         <div className="flex gap-2">
                                                                             <Button
@@ -1223,6 +1287,14 @@ setTaskAttachments([
                                                                             </Button>
                                                                         </div>
                                                                     </div>
+                                                                    <p className="text-xs text-muted-foreground">
+                                                                        Maks.{' '}
+                                                                        {
+                                                                            maxAttachmentLabel
+                                                                        }{' '}
+                                                                        per
+                                                                        file.
+                                                                    </p>
                                                                 </div>
                                                             ) : (
                                                                 <div
@@ -1385,6 +1457,10 @@ setTaskAttachments([
                                                     </Button>
                                                 </div>
                                             </div>
+                                            <p className="text-xs text-muted-foreground">
+                                                Maks. {maxAttachmentLabel} per
+                                                file.
+                                            </p>
                                         </div>
                                     )}
                                 </div>
