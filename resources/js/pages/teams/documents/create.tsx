@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import { PendingFilePreview } from '@/components/pending-file-preview';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { store as storeDocument } from '@/routes/documents/document';
@@ -415,33 +416,11 @@ export default function CreateDocument({
                             {data.attachments.length > 0 && (
                                 <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
                                     {data.attachments.map((file, idx) => (
-                                        <div
+                                        <PendingFilePreview
                                             key={idx}
-                                            className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-zinc-800 dark:bg-zinc-900/50"
-                                        >
-                                            <div className="flex items-center gap-3 overflow-hidden">
-                                                <div className="shrink-0 rounded-lg border bg-white p-2 shadow-sm dark:bg-zinc-950">
-                                                    <Paperclip className="h-4 w-4 text-slate-500" />
-                                                </div>
-                                                <div className="min-w-0 overflow-hidden">
-                                                    <div className="truncate text-sm font-medium">
-                                                        {file.name}
-                                                    </div>
-                                                    <div className="text-xs text-slate-400">
-                                                        {formatFileSize(
-                                                            file.size,
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <button
-                                                type="button"
-                                                onClick={() => removeFile(idx)}
-                                                className="shrink-0 rounded-md p-1 text-slate-400 transition-colors hover:bg-red-100 hover:text-red-500"
-                                            >
-                                                <X className="h-4 w-4" />
-                                            </button>
-                                        </div>
+                                            file={file}
+                                            onRemove={() => removeFile(idx)}
+                                        />
                                     ))}
                                 </div>
                             )}

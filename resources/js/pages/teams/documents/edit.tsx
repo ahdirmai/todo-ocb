@@ -6,7 +6,6 @@ import {
     ArrowLeft,
     Loader2,
     UploadCloud,
-    X,
     Paperclip,
     Bold,
     Italic,
@@ -17,6 +16,7 @@ import {
     Save,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { PendingFilePreview } from '@/components/pending-file-preview';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -409,31 +409,12 @@ export default function EditDocument({
 
                                 {/* Display New Attachments */}
                                 {data.new_attachments.map((file, idx) => (
-                                    <div
+                                    <PendingFilePreview
                                         key={`new-${idx}`}
-                                        className="flex items-center justify-between rounded-xl border border-primary/30 bg-primary/5 p-3 dark:border-primary/20"
-                                    >
-                                        <div className="flex items-center gap-3 overflow-hidden">
-                                            <div className="shrink-0 rounded-lg border bg-white p-2 shadow-sm dark:bg-zinc-950">
-                                                <Paperclip className="h-4 w-4 text-primary" />
-                                            </div>
-                                            <div className="min-w-0 overflow-hidden">
-                                                <div className="truncate text-sm font-medium">
-                                                    {file.name} (Baru)
-                                                </div>
-                                                <div className="text-xs text-slate-400">
-                                                    {formatFileSize(file.size)}
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <button
-                                            type="button"
-                                            onClick={() => removeNewFile(idx)}
-                                            className="shrink-0 rounded-md p-1 text-slate-400 transition-colors hover:bg-red-100 hover:text-red-500"
-                                        >
-                                            <X className="h-4 w-4" />
-                                        </button>
-                                    </div>
+                                        file={file}
+                                        label="Baru"
+                                        onRemove={() => removeNewFile(idx)}
+                                    />
                                 ))}
                             </div>
 

@@ -3,6 +3,7 @@ import { ArrowLeft, Send, Paperclip, Download, Pencil, X, Check } from 'lucide-r
 import { useState, useRef } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import { PendingFilePreview } from '@/components/pending-file-preview';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { store as storeDocumentComment, update as updateDocumentComment } from '@/routes/documents/comments';
@@ -262,27 +263,15 @@ return;
                                                         {editAttachments.length > 0 && (
                                                             <div className="flex flex-wrap gap-2">
                                                                 {editAttachments.map((file, index) => (
-                                                                    <span
+                                                                    <PendingFilePreview
                                                                         key={`${file.name}-${index}`}
-                                                                        className="flex items-center gap-1 rounded-lg bg-slate-100 px-2 py-1 text-xs text-slate-600 dark:bg-zinc-800 dark:text-slate-300"
-                                                                    >
-                                                                        <Paperclip className="h-3 w-3" />
-                                                                        <span className="max-w-[180px] truncate">
-                                                                            {file.name}
-                                                                        </span>
-                                                                        <button
-                                                                            type="button"
-                                                                            onClick={() =>
-                                                                                setEditAttachments((prev) =>
-                                                                                    prev.filter((_, fileIndex) => fileIndex !== index),
-                                                                                )
-                                                                            }
-                                                                            className="text-red-500 transition hover:text-red-700"
-                                                                            title="Hapus file baru"
-                                                                        >
-                                                                            <X className="h-3 w-3" />
-                                                                        </button>
-                                                                    </span>
+                                                                        file={file}
+                                                                        onRemove={() =>
+                                                                            setEditAttachments((prev) =>
+                                                                                prev.filter((_, fileIndex) => fileIndex !== index),
+                                                                            )
+                                                                        }
+                                                                    />
                                                                 ))}
                                                             </div>
                                                         )}

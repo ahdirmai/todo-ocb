@@ -14,6 +14,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { PendingFilePreview } from '@/components/pending-file-preview';
 import {
     Sheet,
     SheetContent,
@@ -535,31 +536,13 @@ fileInputRef.current.value = '';
                 {/* File preview strip */}
                 {files.length > 0 && (
                     <div className="border-t border-sidebar-border/50 bg-slate-50/80 px-5 py-2 dark:bg-zinc-900/50">
-                        <div className="flex flex-col gap-1.5">
+                        <div className="flex flex-wrap gap-2">
                             {files.map((f, i) => (
-                                <div
+                                <PendingFilePreview
                                     key={i}
-                                    className="flex max-w-xs items-center gap-2 rounded-xl border border-sidebar-border/50 bg-white px-3 py-2 dark:bg-zinc-800"
-                                >
-                                    {isImage(f.type) ? (
-                                        <ImageIcon className="h-4 w-4 shrink-0 text-primary" />
-                                    ) : (
-                                        <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
-                                    )}
-                                    <span className="flex-1 truncate text-xs font-medium text-slate-800 dark:text-slate-200">
-                                        {f.name}
-                                    </span>
-                                    <span className="shrink-0 text-[10px] text-muted-foreground">
-                                        {formatFileSize(f.size)}
-                                    </span>
-                                    <button
-                                        onClick={() => removeFile(i)}
-                                        className="shrink-0 rounded-md p-0.5 text-muted-foreground transition-colors hover:bg-slate-100 hover:text-slate-800 dark:hover:bg-zinc-700 dark:hover:text-slate-200"
-                                        title="Hapus lampiran"
-                                    >
-                                        <X className="h-3.5 w-3.5" />
-                                    </button>
-                                </div>
+                                    file={f}
+                                    onRemove={() => removeFile(i)}
+                                />
                             ))}
                         </div>
                     </div>

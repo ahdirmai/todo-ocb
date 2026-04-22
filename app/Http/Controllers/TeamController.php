@@ -11,6 +11,7 @@ use App\Models\Team;
 use App\Models\TeamMessage;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 
@@ -18,6 +19,8 @@ class TeamController extends Controller
 {
     public function show(Team $team, string $tab = 'overview', ?string $item = null)
     {
+        Gate::authorize('view', $team);
+
         $team->load(['users' => fn ($q) => $q->withPivot('role')])->loadCount('tasks');
 
         if ($tab === 'task') {

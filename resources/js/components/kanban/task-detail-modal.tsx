@@ -18,6 +18,7 @@ import {
 import { useState, useEffect, useRef } from 'react';
 import * as TaskActions from '@/actions/App/Http/Controllers/TaskController';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { PendingFilePreview } from '@/components/pending-file-preview';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -525,25 +526,17 @@ setTaskAttachments([
                         {taskAttachments.length > 0 && (
                             <div className="mb-2 flex flex-wrap gap-2">
                                 {taskAttachments.map((f, i) => (
-                                    <span
+                                    <PendingFilePreview
                                         key={i}
-                                        className="flex items-center gap-1 rounded bg-slate-100 px-2 py-1 text-[10px] dark:bg-zinc-800"
-                                    >
-                                        <Paperclip className="h-3 w-3" />{' '}
-                                        {f.name}
-                                        <button
-                                            onClick={() =>
-                                                setTaskAttachments(
-                                                    taskAttachments.filter(
-                                                        (_, idx) => idx !== i,
-                                                    ),
-                                                )
-                                            }
-                                            className="ml-1 text-red-500 hover:text-red-700"
-                                        >
-                                            <X className="h-3 w-3" />
-                                        </button>
-                                    </span>
+                                        file={f}
+                                        onRemove={() =>
+                                            setTaskAttachments(
+                                                taskAttachments.filter(
+                                                    (_, idx) => idx !== i,
+                                                ),
+                                            )
+                                        }
+                                    />
                                 ))}
                             </div>
                         )}
@@ -668,28 +661,18 @@ setTaskAttachments([
                                     {attachments.length > 0 && (
                                         <div className="mt-1 flex flex-wrap gap-2">
                                             {attachments.map((file, i) => (
-                                                <span
+                                                <PendingFilePreview
                                                     key={i}
-                                                    className="flex items-center gap-1 rounded bg-slate-100 px-2 py-1 text-[10px] dark:bg-zinc-800"
-                                                >
-                                                    <Paperclip className="h-3 w-3" />{' '}
-                                                    {file.name} (
-                                                    {formatFileSize(file.size)})
-                                                    <button
-                                                        onClick={() =>
-                                                            setAttachments(
-                                                                attachments.filter(
-                                                                    (_, idx) =>
-                                                                        idx !==
-                                                                        i,
-                                                                ),
-                                                            )
-                                                        }
-                                                        className="ml-1 text-red-500 hover:text-red-700"
-                                                    >
-                                                        <X className="h-3 w-3" />
-                                                    </button>
-                                                </span>
+                                                    file={file}
+                                                    onRemove={() =>
+                                                        setAttachments(
+                                                            attachments.filter(
+                                                                (_, idx) =>
+                                                                    idx !== i,
+                                                            ),
+                                                        )
+                                                    }
+                                                />
                                             ))}
                                         </div>
                                     )}
@@ -824,33 +807,27 @@ setTaskAttachments([
                                                         <div className="flex flex-wrap gap-2">
                                                             {editAttachments.map(
                                                                 (f, i) => (
-                                                                    <span
+                                                                    <PendingFilePreview
                                                                         key={i}
-                                                                        className="flex items-center gap-1 rounded bg-slate-100 px-2 py-1 text-[10px] dark:bg-zinc-800"
-                                                                    >
-                                                                        <Paperclip className="h-3 w-3" />{' '}
-                                                                        {f.name}
-                                                                        <button
-                                                                            onClick={() =>
-                                                                                setEditAttachments(
-                                                                                    (
-                                                                                        prev,
-                                                                                    ) =>
-                                                                                        prev.filter(
-                                                                                            (
-                                                                                                _,
-                                                                                                idx,
-                                                                                            ) =>
-                                                                                                idx !==
-                                                                                                i,
-                                                                                        ),
-                                                                                )
-                                                                            }
-                                                                            className="ml-1 text-red-500 hover:text-red-700"
-                                                                        >
-                                                                            <X className="h-3 w-3" />
-                                                                        </button>
-                                                                    </span>
+                                                                        file={
+                                                                            f
+                                                                        }
+                                                                        onRemove={() =>
+                                                                            setEditAttachments(
+                                                                                (
+                                                                                    prev,
+                                                                                ) =>
+                                                                                    prev.filter(
+                                                                                        (
+                                                                                            _,
+                                                                                            idx,
+                                                                                        ) =>
+                                                                                            idx !==
+                                                                                            i,
+                                                                                    ),
+                                                                            )
+                                                                        }
+                                                                    />
                                                                 ),
                                                             )}
                                                         </div>
@@ -1123,37 +1100,29 @@ setTaskAttachments([
                                                                                     f,
                                                                                     i,
                                                                                 ) => (
-                                                                                    <span
+                                                                                    <PendingFilePreview
                                                                                         key={
                                                                                             i
                                                                                         }
-                                                                                        className="flex items-center gap-1 rounded bg-slate-100 px-2 py-1 text-[10px] dark:bg-zinc-800"
-                                                                                    >
-                                                                                        <Paperclip className="h-3 w-3" />{' '}
-                                                                                        {
-                                                                                            f.name
+                                                                                        file={
+                                                                                            f
                                                                                         }
-                                                                                        <button
-                                                                                            onClick={() =>
-                                                                                                setEditAttachments(
-                                                                                                    (
-                                                                                                        prev,
-                                                                                                    ) =>
-                                                                                                        prev.filter(
-                                                                                                            (
-                                                                                                                _,
-                                                                                                                idx,
-                                                                                                            ) =>
-                                                                                                                idx !==
-                                                                                                                i,
-                                                                                                        ),
-                                                                                                )
-                                                                                            }
-                                                                                            className="ml-1 text-red-500 hover:text-red-700"
-                                                                                        >
-                                                                                            <X className="h-3 w-3" />
-                                                                                        </button>
-                                                                                    </span>
+                                                                                        onRemove={() =>
+                                                                                            setEditAttachments(
+                                                                                                (
+                                                                                                    prev,
+                                                                                                ) =>
+                                                                                                    prev.filter(
+                                                                                                        (
+                                                                                                            _,
+                                                                                                            idx,
+                                                                                                        ) =>
+                                                                                                            idx !==
+                                                                                                            i,
+                                                                                                    ),
+                                                                                            )
+                                                                                        }
+                                                                                    />
                                                                                 ),
                                                                             )}
                                                                         </div>
@@ -1338,34 +1307,22 @@ setTaskAttachments([
                                                 <div className="mt-1 flex flex-wrap gap-2">
                                                     {attachments.map(
                                                         (file, i) => (
-                                                            <span
+                                                            <PendingFilePreview
                                                                 key={i}
-                                                                className="flex items-center gap-1 rounded bg-slate-100 px-2 py-1 text-[10px] dark:bg-zinc-800"
-                                                            >
-                                                                <Paperclip className="h-3 w-3" />{' '}
-                                                                {file.name} (
-                                                                {formatFileSize(
-                                                                    file.size,
-                                                                )}
-                                                                )
-                                                                <button
-                                                                    onClick={() =>
-                                                                        setAttachments(
-                                                                            attachments.filter(
-                                                                                (
-                                                                                    _,
-                                                                                    idx,
-                                                                                ) =>
-                                                                                    idx !==
-                                                                                    i,
-                                                                            ),
-                                                                        )
-                                                                    }
-                                                                    className="ml-1 text-red-500 hover:text-red-700"
-                                                                >
-                                                                    <X className="h-3 w-3" />
-                                                                </button>
-                                                            </span>
+                                                                file={file}
+                                                                onRemove={() =>
+                                                                    setAttachments(
+                                                                        attachments.filter(
+                                                                            (
+                                                                                _,
+                                                                                idx,
+                                                                            ) =>
+                                                                                idx !==
+                                                                                i,
+                                                                        ),
+                                                                    )
+                                                                }
+                                                            />
                                                         ),
                                                     )}
                                                 </div>
