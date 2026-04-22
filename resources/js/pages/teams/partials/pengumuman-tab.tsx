@@ -32,7 +32,13 @@ import {
 } from '@/routes/comments';
 import { store as storeTeamAnnouncement } from '@/routes/teams/announcements';
 
-type RecurrenceFrequency = 'day' | 'week' | 'month';
+type RecurrenceFrequency =
+    | 'second'
+    | 'minute'
+    | 'hour'
+    | 'day'
+    | 'week'
+    | 'month';
 
 const WEEKDAY_OPTIONS = [
     { value: 1, label: 'Senin' },
@@ -83,7 +89,17 @@ function formatRecurrenceLabel(
     },
 ) {
     const base = `Setiap ${Math.max(1, interval)} ${
-        frequency === 'day' ? 'hari' : frequency === 'week' ? 'minggu' : 'bulan'
+        frequency === 'second'
+            ? 'detik'
+            : frequency === 'minute'
+              ? 'menit'
+              : frequency === 'hour'
+                ? 'jam'
+                : frequency === 'day'
+                  ? 'hari'
+                  : frequency === 'week'
+                    ? 'minggu'
+                    : 'bulan'
     }`;
     const detail =
         frequency === 'week'
@@ -103,9 +119,15 @@ function formatRecurrenceLabel(
             ? `, batas ${options.limitValue} ${
                   options.limitUnit === 'day'
                       ? 'hari'
-                      : options.limitUnit === 'week'
-                        ? 'minggu'
-                        : 'bulan'
+                      : options.limitUnit === 'second'
+                        ? 'detik'
+                        : options.limitUnit === 'minute'
+                          ? 'menit'
+                          : options.limitUnit === 'hour'
+                            ? 'jam'
+                            : options.limitUnit === 'week'
+                              ? 'minggu'
+                              : 'bulan'
               }`
             : ''
     }`;
@@ -218,6 +240,7 @@ function RecurrenceFields({
     onLimitUnitChange,
     limitValue,
     onLimitValueChange,
+    isSuperadmin,
     disabled = false,
 }: {
     enabled: boolean;
@@ -236,6 +259,7 @@ function RecurrenceFields({
     onLimitUnitChange: (value: RecurrenceFrequency) => void;
     limitValue: number;
     onLimitValueChange: (value: number) => void;
+    isSuperadmin: boolean;
     disabled?: boolean;
 }) {
     return (
@@ -277,6 +301,17 @@ function RecurrenceFields({
                                 className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm shadow-xs transition outline-none focus:border-primary dark:border-zinc-700 dark:bg-zinc-900"
                                 disabled={disabled}
                             >
+                                {isSuperadmin && (
+                                    <>
+                                        <option value="second">
+                                            Per Detik
+                                        </option>
+                                        <option value="minute">
+                                            Per Menit
+                                        </option>
+                                        <option value="hour">Per Jam</option>
+                                    </>
+                                )}
                                 <option value="day">Per Hari</option>
                                 <option value="week">Per Minggu</option>
                                 <option value="month">Per Bulan</option>
@@ -409,6 +444,13 @@ function RecurrenceFields({
                                 className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm shadow-xs transition outline-none focus:border-primary dark:border-zinc-700 dark:bg-zinc-900"
                                 disabled={disabled}
                             >
+                                {isSuperadmin && (
+                                    <>
+                                        <option value="second">Detik</option>
+                                        <option value="minute">Menit</option>
+                                        <option value="hour">Jam</option>
+                                    </>
+                                )}
                                 <option value="day">Hari</option>
                                 <option value="week">Minggu</option>
                                 <option value="month">Bulan</option>
@@ -926,6 +968,7 @@ function CommentItem({ comment, auth, onReply }: any) {
 }
 
 function AnnouncementItem({ announcement, team, auth }: any) {
+    const isSuperadmin = auth?.roles?.includes('superadmin');
     const isGlobalAdmin = auth?.roles?.some((r: string) =>
         ['superadmin', 'admin'].includes(r),
     );
@@ -1221,6 +1264,7 @@ function AnnouncementItem({ announcement, team, auth }: any) {
                         onLimitUnitChange={setEditRecurrenceLimitUnit}
                         limitValue={editRecurrenceLimitValue}
                         onLimitValueChange={setEditRecurrenceLimitValue}
+                        isSuperadmin={isSuperadmin}
                         disabled={saving}
                     />
                     {announcement.media && announcement.media.length > 0 && (
@@ -1551,6 +1595,7 @@ function AnnouncementItem({ announcement, team, auth }: any) {
 
 export function PengumumanTab({ team }: { team: any }) {
     const { announcements, auth } = usePage<any>().props;
+    const isSuperadmin = auth?.roles?.includes('superadmin');
 
     const [title, setTitle] = useState('');
     const [content, setContent] = useState('');
@@ -1695,6 +1740,7 @@ export function PengumumanTab({ team }: { team: any }) {
                                 onLimitUnitChange={setRecurrenceLimitUnit}
                                 limitValue={recurrenceLimitValue}
                                 onLimitValueChange={setRecurrenceLimitValue}
+                                isSuperadmin={isSuperadmin}
                                 disabled={creating}
                             />
                             <AttachmentPreviewList

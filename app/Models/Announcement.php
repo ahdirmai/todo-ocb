@@ -91,6 +91,9 @@ class Announcement extends Model implements HasMedia
         $interval = max(1, (int) $this->recurrence_limit_value);
 
         return match ($this->recurrence_limit_unit) {
+            'second' => $base->addSeconds($interval),
+            'minute' => $base->addMinutes($interval),
+            'hour' => $base->addHours($interval),
             'day' => $base->addDays($interval),
             'week' => $base->addWeeks($interval),
             'month' => $base->addMonthsNoOverflow($interval),
@@ -104,6 +107,9 @@ class Announcement extends Model implements HasMedia
         $base = $anchor->copy();
 
         return match ($this->recurrence_frequency) {
+            'second' => $base->setTimeFromTimeString($time),
+            'minute' => $base->setTimeFromTimeString($time),
+            'hour' => $base->setTimeFromTimeString($time),
             'day' => $base->setTimeFromTimeString($time),
             'week' => $base
                 ->startOfWeek(Carbon::MONDAY)
@@ -128,6 +134,9 @@ class Announcement extends Model implements HasMedia
         $base = $anchor->copy();
 
         return match ($this->recurrence_frequency) {
+            'second' => $base->addSeconds($interval),
+            'minute' => $base->addMinutes($interval),
+            'hour' => $base->addHours($interval),
             'day' => $base->addDays($interval),
             'week' => $base->addWeeks($interval),
             'month' => $base->addMonthsNoOverflow($interval),

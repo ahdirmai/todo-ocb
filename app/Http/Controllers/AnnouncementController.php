@@ -15,6 +15,10 @@ class AnnouncementController extends Controller
     public function store(Request $request, Team $team): RedirectResponse
     {
         abort_unless($team->users()->where('user_id', request()->user()->id)->exists(), 403);
+        $isSuperadmin = $request->user()?->hasRole('superadmin') ?? false;
+        $allowedRecurrenceUnits = $isSuperadmin
+            ? ['second', 'minute', 'hour', 'day', 'week', 'month']
+            : ['day', 'week', 'month'];
 
         $validated = $request->validate([
             'title' => 'nullable|string|max:255',
@@ -26,7 +30,7 @@ class AnnouncementController extends Controller
                 Rule::requiredIf($request->boolean('is_recurring')),
                 'nullable',
                 'string',
-                Rule::in(['day', 'week', 'month']),
+                Rule::in($allowedRecurrenceUnits),
             ],
             'recurrence_interval' => [
                 Rule::requiredIf($request->boolean('is_recurring')),
@@ -62,7 +66,7 @@ class AnnouncementController extends Controller
                 Rule::requiredIf($request->boolean('is_recurring')),
                 'nullable',
                 'string',
-                Rule::in(['day', 'week', 'month']),
+                Rule::in($allowedRecurrenceUnits),
             ],
             'recurrence_limit_value' => [
                 Rule::requiredIf($request->boolean('is_recurring')),
@@ -126,6 +130,10 @@ class AnnouncementController extends Controller
     public function update(Request $request, Announcement $announcement): RedirectResponse
     {
         Gate::authorize('update', $announcement);
+        $isSuperadmin = $request->user()?->hasRole('superadmin') ?? false;
+        $allowedRecurrenceUnits = $isSuperadmin
+            ? ['second', 'minute', 'hour', 'day', 'week', 'month']
+            : ['day', 'week', 'month'];
 
         $validated = $request->validate([
             'title' => 'nullable|string|max:255',
@@ -139,7 +147,7 @@ class AnnouncementController extends Controller
                 Rule::requiredIf($request->boolean('is_recurring')),
                 'nullable',
                 'string',
-                Rule::in(['day', 'week', 'month']),
+                Rule::in($allowedRecurrenceUnits),
             ],
             'recurrence_interval' => [
                 Rule::requiredIf($request->boolean('is_recurring')),
@@ -175,7 +183,7 @@ class AnnouncementController extends Controller
                 Rule::requiredIf($request->boolean('is_recurring')),
                 'nullable',
                 'string',
-                Rule::in(['day', 'week', 'month']),
+                Rule::in($allowedRecurrenceUnits),
             ],
             'recurrence_limit_value' => [
                 Rule::requiredIf($request->boolean('is_recurring')),
