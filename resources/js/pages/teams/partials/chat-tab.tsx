@@ -291,7 +291,7 @@ export function ChatTab({ team }: { team: any }) {
         initialMessages ?? [],
     );
     const [text, setText] = useState('');
-    const [file, setFile] = useState<File | null>(null);
+    const [files, setFiles] = useState<File[]>([]);
     const [sending, setSending] = useState(false);
     const [connected, setConnected] = useState(false);
     const [memberSheetOpen, setMemberSheetOpen] = useState(false);
@@ -341,7 +341,7 @@ return prev;
     const sendMessage = useCallback(async () => {
         const trimmed = text.trim();
 
-        if (!trimmed && !file) {
+        if (!trimmed && files.length === 0) {
 return;
 }
 
@@ -357,9 +357,9 @@ return;
 formData.append('body', trimmed);
 }
 
-        if (file) {
-formData.append('attachment', file);
-}
+        files.forEach((f, i) => {
+            formData.append(`attachments[${i}]`, f);
+        });
 
         // Get CSRF token from meta tag
         const csrfToken =
@@ -395,7 +395,7 @@ formData.append('attachment', file);
             // Optimistic: add immediately (dedup handled in Echo listener)
             setMessages((prev) => [...prev, newMsg]);
             setText('');
-            setFile(null);
+            setFiles([]);
 
             if (fileInputRef.current) {
 fileInputRef.current.value = '';
@@ -404,7 +404,7 @@ fileInputRef.current.value = '';
             setSending(false);
             textareaRef.current?.focus();
         }
-    }, [text, file, sending, team.id]);
+    }, [text, files, sending, team.id]);
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
         if (e.key === 'Enter' && !e.shiftKey) {
@@ -414,7 +414,15 @@ fileInputRef.current.value = '';
     };
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setFile(e.target.files?.[0] ?? null);
+        if (e.target.files) {
+            setFiles((prev) => [...prev, ...Array.from(e.target.files!)]);
+        }
+        // Reset input so the same file can be re-selected
+        e.target.value = '';
+    };
+
+    const removeFile = (index: number) => {
+        setFiles((prev) => prev.filter((_, i) => i !== index));
     };
 
     /* Group messages: show date separator when day changes */
@@ -523,33 +531,34 @@ fileInputRef.current.value = '';
                 </div>
 
                 {/* File preview strip */}
-                {file && (
+                {files.length > 0 && (
                     <div className="border-t border-sidebar-border/50 bg-slate-50/80 px-5 py-2 dark:bg-zinc-900/50">
-                        <div className="flex max-w-xs items-center gap-2 rounded-xl border border-sidebar-border/50 bg-white px-3 py-2 dark:bg-zinc-800">
-                            {isImage(file.type) ? (
-                                <ImageIcon className="h-4 w-4 shrink-0 text-primary" />
-                            ) : (
-                                <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
-                            )}
-                            <span className="flex-1 truncate text-xs font-medium text-slate-800 dark:text-slate-200">
-                                {file.name}
-                            </span>
-                            <span className="shrink-0 text-[10px] text-muted-foreground">
-                                {formatFileSize(file.size)}
-                            </span>
-                            <button
-                                onClick={() => {
-                                    setFile(null);
-
-                                    if (fileInputRef.current) {
-fileInputRef.current.value = '';
-}
-                                }}
-                                className="shrink-0 rounded-md p-0.5 text-muted-foreground transition-colors hover:bg-slate-100 hover:text-slate-800 dark:hover:bg-zinc-700 dark:hover:text-slate-200"
-                                title="Hapus lampiran"
-                            >
-                                <X className="h-3.5 w-3.5" />
-                            </button>
+                        <div className="flex flex-col gap-1.5">
+                            {files.map((f, i) => (
+                                <div
+                                    key={i}
+                                    className="flex max-w-xs items-center gap-2 rounded-xl border border-sidebar-border/50 bg-white px-3 py-2 dark:bg-zinc-800"
+                                >
+                                    {isImage(f.type) ? (
+                                        <ImageIcon className="h-4 w-4 shrink-0 text-primary" />
+                                    ) : (
+                                        <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
+                                    )}
+                                    <span className="flex-1 truncate text-xs font-medium text-slate-800 dark:text-slate-200">
+                                        {f.name}
+                                    </span>
+                                    <span className="shrink-0 text-[10px] text-muted-foreground">
+                                        {formatFileSize(f.size)}
+                                    </span>
+                                    <button
+                                        onClick={() => removeFile(i)}
+                                        className="shrink-0 rounded-md p-0.5 text-muted-foreground transition-colors hover:bg-slate-100 hover:text-slate-800 dark:hover:bg-zinc-700 dark:hover:text-slate-200"
+                                        title="Hapus lampiran"
+                                    >
+                                        <X className="h-3.5 w-3.5" />
+                                    </button>
+                                </div>
+                            ))}
                         </div>
                     </div>
                 )}
@@ -572,6 +581,7 @@ fileInputRef.current.value = '';
                             type="file"
                             id="chat-file-input"
                             className="sr-only"
+                            multiple
                             onChange={handleFileChange}
                             accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.txt"
                         />
@@ -593,7 +603,7 @@ fileInputRef.current.value = '';
                             id="chat-send-btn"
                             type="button"
                             onClick={sendMessage}
-                            disabled={sending || (!text.trim() && !file)}
+                            disabled={sending || (!text.trim() && files.length === 0)}
                             size="sm"
                             className="h-9 w-9 shrink-0 rounded-xl p-0"
                             title="Kirim pesan"

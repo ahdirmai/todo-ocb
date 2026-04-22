@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Announcement;
 use App\Models\Comment;
 use App\Models\Task;
 use App\Services\ActivityLogger;
@@ -41,7 +42,7 @@ class CommentController extends Controller
         return back();
     }
 
-    public function storeAnnouncement(Request $request, \App\Models\Announcement $announcement)
+    public function storeAnnouncement(Request $request, Announcement $announcement)
     {
         $validated = $request->validate([
             'content' => 'required|string',
@@ -65,10 +66,37 @@ class CommentController extends Controller
         ActivityLogger::log(
             event: 'commented',
             logName: 'announcement',
-            description: "Komentar baru ditambahkan pada pengumuman",
+            description: 'Komentar baru ditambahkan pada pengumuman',
             subject: $announcement,
             teamId: $announcement->team_id,
         );
+
+        return back();
+    }
+
+    public function update(Request $request, Comment $comment)
+    {
+        abort_unless($comment->user_id === auth()->id(), 403);
+
+        $validated = $request->validate([
+            'content' => 'required|string',
+            'new_attachments' => 'nullable|array',
+            'new_attachments.*' => 'file|max:10240',
+            'removed_media_ids' => 'nullable|array',
+            'removed_media_ids.*' => 'integer',
+        ]);
+
+        $comment->update(['content' => $validated['content']]);
+
+        if (! empty($validated['removed_media_ids'])) {
+            $comment->media()->whereIn('id', $validated['removed_media_ids'])->delete();
+        }
+
+        if ($request->hasFile('new_attachments')) {
+            foreach ($request->file('new_attachments') as $file) {
+                $comment->addMedia($file)->toMediaCollection('documents');
+            }
+        }
 
         return back();
     }
@@ -92,7 +120,7 @@ class CommentController extends Controller
                 ActivityLogger::log(
                     event: 'comment_deleted',
                     logName: 'announcement',
-                    description: "Komentar dihapus pada pengumuman",
+                    description: 'Komentar dihapus pada pengumuman',
                     subject: $announcement,
                     teamId: $announcement->team_id,
                 );

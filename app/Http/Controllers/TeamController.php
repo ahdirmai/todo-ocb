@@ -39,6 +39,8 @@ class TeamController extends Controller
         $extraProps = [];
 
         if ($tab === 'activity') {
+            abort_unless(auth()->user()->hasAnyRole(['superadmin', 'admin']), 403);
+
             $extraProps['activityLogs'] = ActivityLog::with('causer')
                 ->forTeam($team->id)
                 ->latest()

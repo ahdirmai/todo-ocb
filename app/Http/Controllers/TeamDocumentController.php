@@ -77,29 +77,30 @@ class TeamDocumentController extends Controller
     {
         $validated = $request->validate([
             'parent_id' => 'nullable|exists:documents,id',
-            'file' => 'required|file|max:10240|mimes:pdf,doc,docx,xls,xlsx',
+            'files' => 'required|array|min:1',
+            'files.*' => 'file|max:10240|mimes:pdf,doc,docx,xls,xlsx,png,jpg,jpeg,webp',
             'is_sop' => 'nullable|boolean',
         ]);
 
-        $file = $request->file('file');
+        foreach ($request->file('files') as $file) {
+            $document = $team->documents()->create([
+                'user_id' => $request->user()->id,
+                'name' => $file->getClientOriginalName(),
+                'type' => 'file',
+                'is_sop' => $request->boolean('is_sop'),
+                'parent_id' => $validated['parent_id'] ?? null,
+            ]);
 
-        $document = $team->documents()->create([
-            'user_id' => $request->user()->id,
-            'name' => $file->getClientOriginalName(),
-            'type' => 'file',
-            'is_sop' => $request->boolean('is_sop'),
-            'parent_id' => $validated['parent_id'] ?? null,
-        ]);
+            $document->addMedia($file)->toMediaCollection('files');
 
-        $document->addMedia($file)->toMediaCollection('files');
-
-        ActivityLogger::log(
-            event: 'uploaded',
-            logName: 'document_file',
-            description: "Mengunggah file dokumen: {$document->name}",
-            subject: $document,
-            teamId: $team->id,
-        );
+            ActivityLogger::log(
+                event: 'uploaded',
+                logName: 'document_file',
+                description: "Mengunggah file dokumen: {$document->name}",
+                subject: $document,
+                teamId: $team->id,
+            );
+        }
 
         return back();
     }

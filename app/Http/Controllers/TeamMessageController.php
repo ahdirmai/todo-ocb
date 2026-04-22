@@ -50,11 +50,12 @@ class TeamMessageController extends Controller
 
         $validated = $request->validate([
             'body' => ['nullable', 'string', 'max:4000'],
-            'attachment' => ['nullable', 'file', 'max:20480'], // 20 MB
+            'attachments' => ['nullable', 'array'],
+            'attachments.*' => ['file', 'max:20480'], // 20 MB per file
         ]);
 
         // Require at least body or attachment
-        if (empty($validated['body']) && ! $request->hasFile('attachment')) {
+        if (empty($validated['body']) && ! $request->hasFile('attachments')) {
             return response()->json(['error' => 'Pesan tidak boleh kosong.'], 422);
         }
 
@@ -64,9 +65,10 @@ class TeamMessageController extends Controller
             'body' => $validated['body'] ?? null,
         ]);
 
-        if ($request->hasFile('attachment')) {
-            $message->addMediaFromRequest('attachment')
-                ->toMediaCollection('attachments');
+        if ($request->hasFile('attachments')) {
+            foreach ($request->file('attachments') as $file) {
+                $message->addMedia($file)->toMediaCollection('attachments');
+            }
         }
 
         $message->load('user');

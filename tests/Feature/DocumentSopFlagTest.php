@@ -41,7 +41,7 @@ test('users can mark uploaded files as sop', function () {
     $team->users()->attach($user->id, ['role' => 'admin']);
 
     $response = $this->actingAs($user)->post(route('documents.file.store', ['team' => $team->slug]), [
-        'file' => UploadedFile::fake()->create('sop-lapangan.pdf', 128, 'application/pdf'),
+        'files' => [UploadedFile::fake()->create('sop-lapangan.pdf', 128, 'application/pdf')],
         'is_sop' => true,
     ]);
 

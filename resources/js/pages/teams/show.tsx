@@ -1,4 +1,4 @@
-import { Head, router, setLayoutProps } from '@inertiajs/react';
+import { Head, router, setLayoutProps, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -40,6 +40,15 @@ export default function TeamShow({
     team: any;
     tab: Tab;
 }) {
+    const { auth } = usePage<any>().props;
+    const isAdmin = auth?.roles?.some((r: string) =>
+        ['superadmin', 'admin'].includes(r),
+    );
+
+    const visibleTabs = (Object.keys(TAB_LABELS) as Tab[]).filter(
+        (key) => key !== 'activity' || isAdmin,
+    );
+
     const [showMembersModal, setShowMembersModal] = useState(false);
 
     setLayoutProps({
@@ -100,7 +109,7 @@ export default function TeamShow({
                 >
                     <div className="w-full overflow-x-auto border-b border-sidebar-border/70 px-6 scrollbar-hide">
                         <TabsList className="flex h-auto w-max min-w-full justify-start space-x-6 bg-transparent p-0 pb-1">
-                            {(Object.keys(TAB_LABELS) as Tab[]).map((key) => (
+                            {visibleTabs.map((key) => (
                                 <TabsTrigger
                                     key={key}
                                     value={key}

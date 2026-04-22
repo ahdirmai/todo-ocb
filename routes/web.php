@@ -50,6 +50,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::put('tasks/{task}', [TaskController::class, 'update'])->name('tasks.update');
     Route::delete('tasks/{task}', [TaskController::class, 'destroy'])->name('tasks.destroy');
     Route::post('tasks/{task}/comments', [CommentController::class, 'store'])->name('tasks.comments.store');
+    Route::put('comments/{comment}', [CommentController::class, 'update'])->name('comments.update');
     Route::delete('comments/{comment}', [CommentController::class, 'destroy'])->name('comments.destroy');
     Route::put('kanbans/tasks/reorder', [KanbanBoardController::class, 'reorderTasks'])->name('kanbans.tasks.reorder');
 
@@ -82,6 +83,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('teams/{team:slug}/documents/{document}/update-file', [TeamDocumentController::class, 'updateFile'])->name('documents.update-file');
     Route::delete('teams/{team:slug}/documents/{document}', [TeamDocumentController::class, 'destroy'])->name('documents.destroy');
     Route::post('documents/{document}/comments', [DocumentCommentController::class, 'store'])->name('documents.comments.store');
+    Route::put('documents/{document}/comments/{comment}', [DocumentCommentController::class, 'update'])->name('documents.comments.update');
 
     // Member Management — Superadmin & Admin only
     Route::middleware('role:superadmin|admin')->group(function () {

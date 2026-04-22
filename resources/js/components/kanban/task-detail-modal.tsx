@@ -5,6 +5,7 @@ import {
     Calendar,
     Loader2,
     MessageSquare,
+    Pencil,
     Reply,
     Trash2,
     X,
@@ -150,8 +151,13 @@ export function TaskDetailModal({ task, open, onClose }: TaskDetailModalProps) {
     const [sendingComment, setSendingComment] = useState(false);
     const [attachments, setAttachments] = useState<File[]>([]);
     const [taskAttachments, setTaskAttachments] = useState<File[]>([]);
+    const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+    const [editContent, setEditContent] = useState('');
+    const [editAttachments, setEditAttachments] = useState<File[]>([]);
+    const [editRemovedMediaIds, setEditRemovedMediaIds] = useState<number[]>([]);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const taskFileInputRef = useRef<HTMLInputElement>(null);
+    const editFileInputRef = useRef<HTMLInputElement>(null);
 
     if (syncedTaskStateKey !== currentTaskStateKey) {
         setSyncedTaskStateKey(currentTaskStateKey);
@@ -286,6 +292,40 @@ return;
             preserveScroll: true,
             preserveState: true,
         });
+    };
+
+    const handleSaveEdit = (commentId: string) => {
+        if (!editContent.replace(/<p><\/p>/g, '').trim()) {
+return;
+}
+
+        router.put(
+            `/comments/${commentId}`,
+            {
+                content: editContent,
+                new_attachments: editAttachments,
+                removed_media_ids: editRemovedMediaIds,
+            },
+            {
+                preserveScroll: true,
+                preserveState: true,
+                forceFormData: true,
+                onSuccess: () => {
+                    setEditingCommentId(null);
+                    setEditContent('');
+                    setEditAttachments([]);
+                    setEditRemovedMediaIds([]);
+                },
+            },
+        );
+    };
+
+    const startEditing = (comment: any) => {
+        setEditingCommentId(comment.id);
+        setEditContent(comment.content);
+        setEditAttachments([]);
+        setEditRemovedMediaIds([]);
+        setReplyingTo(null);
     };
 
     const comments = (
@@ -574,6 +614,23 @@ setTaskAttachments([
                             }}
                         />
 
+                        {/* Hidden File Input for Comment Edit */}
+                        <input
+                            type="file"
+                            multiple
+                            className="hidden"
+                            ref={editFileInputRef}
+                            onChange={(e) => {
+                                if (e.target.files?.length) {
+                                    setEditAttachments((prev) => [
+                                        ...prev,
+                                        ...Array.from(e.target.files!),
+                                    ]);
+                                    e.target.value = '';
+                                }
+                            }}
+                        />
+
                         {/* Main Comment Form */}
                         {!replyingTo && (
                             <div className="mb-4 flex items-start gap-2">
@@ -710,6 +767,20 @@ setTaskAttachments([
                                                             },
                                                         )}
                                                     </span>
+                                                    {comment.user_id ===
+                                                        auth?.user?.id && (
+                                                        <button
+                                                            onClick={() =>
+                                                                startEditing(
+                                                                    comment,
+                                                                )
+                                                            }
+                                                            className="text-slate-400 transition hover:text-primary"
+                                                            title="Edit komentar"
+                                                        >
+                                                            <Pencil className="h-3.5 w-3.5" />
+                                                        </button>
+                                                    )}
                                                     {canDeleteComment(
                                                         comment,
                                                     ) && (
@@ -726,12 +797,152 @@ setTaskAttachments([
                                                     )}
                                                 </div>
                                             </div>
-                                            <div
-                                                className="text-sm text-slate-700 dark:text-slate-300 [&_em]:italic [&_li]:ml-4 [&_ol]:list-decimal [&_p]:m-0 [&_strong]:font-bold [&_ul]:list-disc"
-                                                dangerouslySetInnerHTML={{
-                                                    __html: comment.content,
-                                                }}
-                                            />
+                                            {editingCommentId === comment.id ? (
+                                                <div className="mt-1 flex flex-col gap-2">
+                                                    <RichTextEditor
+                                                        content={editContent}
+                                                        onChange={
+                                                            setEditContent
+                                                        }
+                                                        disabled={false}
+                                                    />
+                                                    {editAttachments.length >
+                                                        0 && (
+                                                        <div className="flex flex-wrap gap-2">
+                                                            {editAttachments.map(
+                                                                (f, i) => (
+                                                                    <span
+                                                                        key={i}
+                                                                        className="flex items-center gap-1 rounded bg-slate-100 px-2 py-1 text-[10px] dark:bg-zinc-800"
+                                                                    >
+                                                                        <Paperclip className="h-3 w-3" />{' '}
+                                                                        {f.name}
+                                                                        <button
+                                                                            onClick={() =>
+                                                                                setEditAttachments(
+                                                                                    (
+                                                                                        prev,
+                                                                                    ) =>
+                                                                                        prev.filter(
+                                                                                            (
+                                                                                                _,
+                                                                                                idx,
+                                                                                            ) =>
+                                                                                                idx !==
+                                                                                                i,
+                                                                                        ),
+                                                                                )
+                                                                            }
+                                                                            className="ml-1 text-red-500 hover:text-red-700"
+                                                                        >
+                                                                            <X className="h-3 w-3" />
+                                                                        </button>
+                                                                    </span>
+                                                                ),
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                    {comment.media &&
+                                                        comment.media.length >
+                                                            0 && (
+                                                            <div className="flex flex-wrap gap-2">
+                                                                {comment.media.map(
+                                                                    (m: any) =>
+                                                                        editRemovedMediaIds.includes(
+                                                                            m.id,
+                                                                        ) ? null : (
+                                                                            <span
+                                                                                key={
+                                                                                    m.id
+                                                                                }
+                                                                                className="flex items-center gap-1 rounded bg-primary/10 px-2 py-1 text-[10px] font-medium text-primary"
+                                                                            >
+                                                                                <Paperclip className="h-3 w-3" />
+                                                                                <span className="max-w-[100px] truncate">
+                                                                                    {
+                                                                                        m.file_name
+                                                                                    }
+                                                                                </span>
+                                                                                <button
+                                                                                    onClick={() =>
+                                                                                        setEditRemovedMediaIds(
+                                                                                            (
+                                                                                                prev,
+                                                                                            ) => [
+                                                                                                ...prev,
+                                                                                                m.id,
+                                                                                            ],
+                                                                                        )
+                                                                                    }
+                                                                                    className="ml-1 text-red-500 hover:text-red-700"
+                                                                                    title="Hapus lampiran"
+                                                                                >
+                                                                                    <X className="h-3 w-3" />
+                                                                                </button>
+                                                                            </span>
+                                                                        ),
+                                                                )}
+                                                            </div>
+                                                        )}
+                                                    <div className="flex items-center justify-between">
+                                                        <Button
+                                                            type="button"
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            className="flex h-7 items-center gap-1 text-xs text-muted-foreground"
+                                                            onClick={() =>
+                                                                editFileInputRef.current?.click()
+                                                            }
+                                                        >
+                                                            <Paperclip className="h-3.5 w-3.5" />{' '}
+                                                            Lampirkan File
+                                                        </Button>
+                                                        <div className="flex gap-2">
+                                                            <Button
+                                                                type="button"
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                className="h-7 text-xs"
+                                                                onClick={() => {
+                                                                    setEditingCommentId(
+                                                                        null,
+                                                                    );
+                                                                    setEditContent(
+                                                                        '',
+                                                                    );
+                                                                    setEditAttachments(
+                                                                        [],
+                                                                    );
+                                                                    setEditRemovedMediaIds(
+                                                                        [],
+                                                                    );
+                                                                }}
+                                                            >
+                                                                Batal
+                                                            </Button>
+                                                            <Button
+                                                                type="button"
+                                                                size="sm"
+                                                                className="h-7 text-xs"
+                                                                onClick={() =>
+                                                                    handleSaveEdit(
+                                                                        comment.id,
+                                                                    )
+                                                                }
+                                                            >
+                                                                Simpan
+                                                            </Button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div
+                                                    className="text-sm text-slate-700 dark:text-slate-300 [&_em]:italic [&_li]:ml-4 [&_ol]:list-decimal [&_p]:m-0 [&_strong]:font-bold [&_ul]:list-disc"
+                                                    dangerouslySetInnerHTML={{
+                                                        __html: comment.content,
+                                                    }}
+                                                />
+                                            )}
                                             {comment.media &&
                                                 comment.media.length > 0 && (
                                                     <div className="mt-2 flex flex-wrap gap-2">
@@ -845,6 +1056,22 @@ setTaskAttachments([
                                                                             },
                                                                         )}
                                                                     </span>
+                                                                    {reply.user_id ===
+                                                                        auth
+                                                                            ?.user
+                                                                            ?.id && (
+                                                                        <button
+                                                                            onClick={() =>
+                                                                                startEditing(
+                                                                                    reply,
+                                                                                )
+                                                                            }
+                                                                            className="text-slate-400 transition hover:text-primary"
+                                                                            title="Edit balasan"
+                                                                        >
+                                                                            <Pencil className="h-3 w-3" />
+                                                                        </button>
+                                                                    )}
                                                                     {canDeleteComment(
                                                                         reply,
                                                                     ) && (
@@ -861,12 +1088,168 @@ setTaskAttachments([
                                                                     )}
                                                                 </div>
                                                             </div>
-                                                            <div
-                                                                className="text-xs text-slate-700 dark:text-slate-300 [&_em]:italic [&_li]:ml-4 [&_ol]:list-decimal [&_p]:m-0 [&_strong]:font-bold [&_ul]:list-disc"
-                                                                dangerouslySetInnerHTML={{
-                                                                    __html: reply.content,
-                                                                }}
-                                                            />
+                                                            {editingCommentId ===
+                                                            reply.id ? (
+                                                                <div className="mt-1 flex flex-col gap-2">
+                                                                    <RichTextEditor
+                                                                        content={
+                                                                            editContent
+                                                                        }
+                                                                        onChange={
+                                                                            setEditContent
+                                                                        }
+                                                                        disabled={
+                                                                            false
+                                                                        }
+                                                                    />
+                                                                    {editAttachments.length >
+                                                                        0 && (
+                                                                        <div className="flex flex-wrap gap-2">
+                                                                            {editAttachments.map(
+                                                                                (
+                                                                                    f,
+                                                                                    i,
+                                                                                ) => (
+                                                                                    <span
+                                                                                        key={
+                                                                                            i
+                                                                                        }
+                                                                                        className="flex items-center gap-1 rounded bg-slate-100 px-2 py-1 text-[10px] dark:bg-zinc-800"
+                                                                                    >
+                                                                                        <Paperclip className="h-3 w-3" />{' '}
+                                                                                        {
+                                                                                            f.name
+                                                                                        }
+                                                                                        <button
+                                                                                            onClick={() =>
+                                                                                                setEditAttachments(
+                                                                                                    (
+                                                                                                        prev,
+                                                                                                    ) =>
+                                                                                                        prev.filter(
+                                                                                                            (
+                                                                                                                _,
+                                                                                                                idx,
+                                                                                                            ) =>
+                                                                                                                idx !==
+                                                                                                                i,
+                                                                                                        ),
+                                                                                                )
+                                                                                            }
+                                                                                            className="ml-1 text-red-500 hover:text-red-700"
+                                                                                        >
+                                                                                            <X className="h-3 w-3" />
+                                                                                        </button>
+                                                                                    </span>
+                                                                                ),
+                                                                            )}
+                                                                        </div>
+                                                                    )}
+                                                                    {reply.media &&
+                                                                        reply
+                                                                            .media
+                                                                            .length >
+                                                                            0 && (
+                                                                            <div className="flex flex-wrap gap-2">
+                                                                                {reply.media.map(
+                                                                                    (
+                                                                                        m: any,
+                                                                                    ) =>
+                                                                                        editRemovedMediaIds.includes(
+                                                                                            m.id,
+                                                                                        ) ? null : (
+                                                                                            <span
+                                                                                                key={
+                                                                                                    m.id
+                                                                                                }
+                                                                                                className="flex items-center gap-1 rounded bg-primary/10 px-2 py-1 text-[10px] font-medium text-primary"
+                                                                                            >
+                                                                                                <Paperclip className="h-3 w-3" />
+                                                                                                <span className="max-w-[100px] truncate">
+                                                                                                    {
+                                                                                                        m.file_name
+                                                                                                    }
+                                                                                                </span>
+                                                                                                <button
+                                                                                                    onClick={() =>
+                                                                                                        setEditRemovedMediaIds(
+                                                                                                            (
+                                                                                                                prev,
+                                                                                                            ) => [
+                                                                                                                ...prev,
+                                                                                                                m.id,
+                                                                                                            ],
+                                                                                                        )
+                                                                                                    }
+                                                                                                    className="ml-1 text-red-500 hover:text-red-700"
+                                                                                                    title="Hapus lampiran"
+                                                                                                >
+                                                                                                    <X className="h-3 w-3" />
+                                                                                                </button>
+                                                                                            </span>
+                                                                                        ),
+                                                                                )}
+                                                                            </div>
+                                                                        )}
+                                                                    <div className="flex items-center justify-between">
+                                                                        <Button
+                                                                            type="button"
+                                                                            variant="ghost"
+                                                                            size="sm"
+                                                                            className="flex h-6 items-center gap-1 text-xs text-muted-foreground"
+                                                                            onClick={() =>
+                                                                                editFileInputRef.current?.click()
+                                                                            }
+                                                                        >
+                                                                            <Paperclip className="h-3.5 w-3.5" />{' '}
+                                                                            Lampirkan File
+                                                                        </Button>
+                                                                        <div className="flex gap-2">
+                                                                            <Button
+                                                                                type="button"
+                                                                                variant="ghost"
+                                                                                size="sm"
+                                                                                className="h-6 text-xs"
+                                                                                onClick={() => {
+                                                                                    setEditingCommentId(
+                                                                                        null,
+                                                                                    );
+                                                                                    setEditContent(
+                                                                                        '',
+                                                                                    );
+                                                                                    setEditAttachments(
+                                                                                        [],
+                                                                                    );
+                                                                                    setEditRemovedMediaIds(
+                                                                                        [],
+                                                                                    );
+                                                                                }}
+                                                                            >
+                                                                                Batal
+                                                                            </Button>
+                                                                            <Button
+                                                                                type="button"
+                                                                                size="sm"
+                                                                                className="h-6 text-xs"
+                                                                                onClick={() =>
+                                                                                    handleSaveEdit(
+                                                                                        reply.id,
+                                                                                    )
+                                                                                }
+                                                                            >
+                                                                                Simpan
+                                                                            </Button>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            ) : (
+                                                                <div
+                                                                    className="text-xs text-slate-700 dark:text-slate-300 [&_em]:italic [&_li]:ml-4 [&_ol]:list-decimal [&_p]:m-0 [&_strong]:font-bold [&_ul]:list-disc"
+                                                                    dangerouslySetInnerHTML={{
+                                                                        __html: reply.content,
+                                                                    }}
+                                                                />
+                                                            )}
                                                             {reply.media &&
                                                                 reply.media
                                                                     .length >

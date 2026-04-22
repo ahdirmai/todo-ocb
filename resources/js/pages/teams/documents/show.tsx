@@ -1,8 +1,11 @@
-import { Head, Link, useForm, setLayoutProps } from '@inertiajs/react';
-import { ArrowLeft, Send, Paperclip, Download } from 'lucide-react';
+import { Head, Link, useForm, setLayoutProps, usePage, router } from '@inertiajs/react';
+import { ArrowLeft, Send, Paperclip, Download, Pencil, X, Check } from 'lucide-react';
+import { useState, useRef } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { store as storeDocumentComment, update as updateDocumentComment } from '@/routes/documents/comments';
 
 export default function DocumentShow({
     team,
@@ -19,13 +22,65 @@ export default function DocumentShow({
         ],
     });
 
+    const { auth } = usePage<{ auth: { user: { id: number } } }>().props;
+
     const commentForm = useForm({
         content: '',
     });
 
+    const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+    const [editContent, setEditContent] = useState('');
+    const [editAttachments, setEditAttachments] = useState<File[]>([]);
+    const [editRemovedMediaIds, setEditRemovedMediaIds] = useState<number[]>([]);
+    const editFileInputRef = useRef<HTMLInputElement>(null);
+
+    const isImage = (mime: string) => mime?.startsWith('image/');
+
+    const startEditing = (comment: any) => {
+        setEditingCommentId(comment.id);
+        setEditContent(comment.content);
+        setEditAttachments([]);
+        setEditRemovedMediaIds([]);
+
+        if (editFileInputRef.current) {
+            editFileInputRef.current.value = '';
+        }
+    };
+
+    const cancelEditing = () => {
+        setEditingCommentId(null);
+        setEditContent('');
+        setEditAttachments([]);
+        setEditRemovedMediaIds([]);
+
+        if (editFileInputRef.current) {
+            editFileInputRef.current.value = '';
+        }
+    };
+
+    const saveEdit = (commentId: string) => {
+        if (!editContent.trim()) {
+return;
+}
+
+        router.put(
+            updateDocumentComment.url({ document: document.id, comment: commentId }),
+            {
+                content: editContent,
+                new_attachments: editAttachments,
+                removed_media_ids: editRemovedMediaIds,
+            },
+            {
+                preserveScroll: true,
+                forceFormData: true,
+                onSuccess: cancelEditing,
+            },
+        );
+    };
+
     const handleComment = (e: React.FormEvent) => {
         e.preventDefault();
-        commentForm.post(`/documents/${document.id}/comments`, {
+        commentForm.post(storeDocumentComment.url(document.id), {
             preserveScroll: true,
             onSuccess: () => commentForm.reset('content'),
         });
@@ -181,13 +236,173 @@ export default function DocumentShow({
                                                     <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                                                         {comment.user?.name}
                                                     </span>
-                                                    <span className="shrink-0 text-xs text-slate-400">
-                                                        {formatDate(comment.created_at)}
-                                                    </span>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="shrink-0 text-xs text-slate-400">
+                                                            {formatDate(comment.created_at)}
+                                                        </span>
+                                                        {comment.user_id === auth?.user?.id && editingCommentId !== comment.id && (
+                                                            <button
+                                                                onClick={() => startEditing(comment)}
+                                                                className="text-slate-400 transition hover:text-primary"
+                                                                title="Edit komentar"
+                                                            >
+                                                                <Pencil className="h-3.5 w-3.5" />
+                                                            </button>
+                                                        )}
+                                                    </div>
                                                 </div>
-                                                <p className="text-[15px] leading-relaxed whitespace-pre-wrap text-slate-700 dark:text-slate-300">
-                                                    {comment.content}
-                                                </p>
+                                                {editingCommentId === comment.id ? (
+                                                    <div className="flex flex-col gap-2">
+                                                        <Textarea
+                                                            value={editContent}
+                                                            onChange={(e) => setEditContent(e.target.value)}
+                                                            className="min-h-[80px] resize-y rounded-xl text-[15px]"
+                                                            autoFocus
+                                                        />
+                                                        {editAttachments.length > 0 && (
+                                                            <div className="flex flex-wrap gap-2">
+                                                                {editAttachments.map((file, index) => (
+                                                                    <span
+                                                                        key={`${file.name}-${index}`}
+                                                                        className="flex items-center gap-1 rounded-lg bg-slate-100 px-2 py-1 text-xs text-slate-600 dark:bg-zinc-800 dark:text-slate-300"
+                                                                    >
+                                                                        <Paperclip className="h-3 w-3" />
+                                                                        <span className="max-w-[180px] truncate">
+                                                                            {file.name}
+                                                                        </span>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() =>
+                                                                                setEditAttachments((prev) =>
+                                                                                    prev.filter((_, fileIndex) => fileIndex !== index),
+                                                                                )
+                                                                            }
+                                                                            className="text-red-500 transition hover:text-red-700"
+                                                                            title="Hapus file baru"
+                                                                        >
+                                                                            <X className="h-3 w-3" />
+                                                                        </button>
+                                                                    </span>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                        {comment.media && comment.media.length > 0 && (
+                                                            <div className="flex flex-wrap gap-2">
+                                                                {comment.media.map((media: any) =>
+                                                                    editRemovedMediaIds.includes(media.id) ? null : (
+                                                                        <span
+                                                                            key={media.id}
+                                                                            className="flex items-center gap-1 rounded-lg bg-primary/10 px-2 py-1 text-xs font-medium text-primary"
+                                                                        >
+                                                                            <Paperclip className="h-3 w-3" />
+                                                                            <span className="max-w-[180px] truncate">
+                                                                                {media.file_name}
+                                                                            </span>
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() =>
+                                                                                    setEditRemovedMediaIds((prev) => [
+                                                                                        ...prev,
+                                                                                        media.id,
+                                                                                    ])
+                                                                                }
+                                                                                className="text-red-500 transition hover:text-red-700"
+                                                                                title="Hapus lampiran"
+                                                                            >
+                                                                                <X className="h-3 w-3" />
+                                                                            </button>
+                                                                        </span>
+                                                                    ),
+                                                                )}
+                                                            </div>
+                                                        )}
+                                                        <Input
+                                                            ref={editFileInputRef}
+                                                            type="file"
+                                                            multiple
+                                                            className="hidden"
+                                                            onChange={(e) => {
+                                                                const files = e.target.files;
+
+                                                                if (files?.length) {
+                                                                    setEditAttachments((prev) => [
+                                                                        ...prev,
+                                                                        ...Array.from(files),
+                                                                    ]);
+                                                                    e.target.value = '';
+                                                                }
+                                                            }}
+                                                        />
+                                                        <div className="flex justify-end gap-2">
+                                                            <Button
+                                                                type="button"
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                onClick={() => editFileInputRef.current?.click()}
+                                                            >
+                                                                <Paperclip className="mr-1 h-3.5 w-3.5" />
+                                                                Lampirkan File
+                                                            </Button>
+                                                            <Button
+                                                                type="button"
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                onClick={cancelEditing}
+                                                            >
+                                                                <X className="mr-1 h-3.5 w-3.5" />
+                                                                Batal
+                                                            </Button>
+                                                            <Button
+                                                                type="button"
+                                                                size="sm"
+                                                                onClick={() => saveEdit(comment.id)}
+                                                            >
+                                                                <Check className="mr-1 h-3.5 w-3.5" />
+                                                                Simpan
+                                                            </Button>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <>
+                                                        <p className="text-[15px] leading-relaxed whitespace-pre-wrap text-slate-700 dark:text-slate-300">
+                                                            {comment.content}
+                                                        </p>
+                                                        {comment.media && comment.media.length > 0 && (
+                                                            <div className="mt-3 flex flex-wrap gap-2">
+                                                                {comment.media.map((media: any) =>
+                                                                    isImage(media.mime_type) ? (
+                                                                        <a
+                                                                            key={media.id}
+                                                                            href={media.original_url}
+                                                                            target="_blank"
+                                                                            rel="noreferrer"
+                                                                            className="block h-24 w-24 overflow-hidden rounded-xl border border-slate-200 transition hover:ring-2 hover:ring-primary/30 dark:border-zinc-800"
+                                                                        >
+                                                                            <img
+                                                                                src={media.original_url}
+                                                                                alt={media.file_name}
+                                                                                className="h-full w-full object-cover"
+                                                                            />
+                                                                        </a>
+                                                                    ) : (
+                                                                        <a
+                                                                            key={media.id}
+                                                                            href={media.original_url}
+                                                                            target="_blank"
+                                                                            rel="noreferrer"
+                                                                            className="flex items-center gap-2 rounded-xl bg-primary/10 px-3 py-2 text-xs font-medium text-primary transition hover:bg-primary/15"
+                                                                        >
+                                                                            <Paperclip className="h-3.5 w-3.5" />
+                                                                            <span className="max-w-[220px] truncate">
+                                                                                {media.file_name}
+                                                                            </span>
+                                                                        </a>
+                                                                    ),
+                                                                )}
+                                                            </div>
+                                                        )}
+                                                    </>
+                                                )}
                                             </div>
                                         </div>
                                     </div>

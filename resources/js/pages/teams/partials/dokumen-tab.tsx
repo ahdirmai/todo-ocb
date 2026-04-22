@@ -17,6 +17,7 @@ import {
     Loader2,
     UploadCloud,
     ShieldCheck,
+    X,
 } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -193,8 +194,8 @@ export function DokumenTab({ team }: { team: any }) {
     const [isUpdateFileModalOpen, setIsUpdateFileModalOpen] = useState(false);
 
     const folderForm = useForm({ name: '', parent_id: null as string | null });
+    const [uploadFiles, setUploadFiles] = useState<File[]>([]);
     const fileForm = useForm({
-        file: null as File | null,
         parent_id: null as string | null,
         is_sop: false,
     });
@@ -251,12 +252,26 @@ export function DokumenTab({ team }: { team: any }) {
 
     const handleUploadFile = (e: React.FormEvent) => {
         e.preventDefault();
-        fileForm.post(storeFile.url(team), {
+
+        const formData = new FormData();
+
+        if (fileForm.data.parent_id) {
+            formData.append('parent_id', fileForm.data.parent_id);
+        }
+
+        formData.append('is_sop', fileForm.data.is_sop ? '1' : '0');
+
+        uploadFiles.forEach((f, i) => {
+            formData.append(`files[${i}]`, f);
+        });
+
+        router.post(storeFile.url(team), formData, {
             preserveScroll: true,
             forceFormData: true,
             onSuccess: () => {
                 setIsFileModalOpen(false);
-                fileForm.reset('file', 'is_sop');
+                fileForm.reset('is_sop');
+                setUploadFiles([]);
                 fetchDocuments(currentParentId);
             },
         });
@@ -696,19 +711,56 @@ export function DokumenTab({ team }: { team: any }) {
                             <Input
                                 id="file_upload"
                                 type="file"
-                                onChange={(e) =>
-                                    fileForm.setData(
-                                        'file',
-                                        e.target.files?.[0] || null,
-                                    )
-                                }
-                                required
+                                multiple
+                                onChange={(e) => {
+                                    if (e.target.files) {
+                                        setUploadFiles((prev) => [
+                                            ...prev,
+                                            ...Array.from(e.target.files!),
+                                        ]);
+                                        e.target.value = '';
+                                    }
+                                }}
                                 className="mt-2"
                             />
-                            <p className="mt-2 text-xs text-muted-foreground">
-                                Maks 10MB. Format: pdf, doc, docx, xls, xlsx,
-                                png, jpg, jpeg.
+                            <p className="mt-1 text-xs text-muted-foreground">
+                                Maks 10MB per file. Format: pdf, doc, docx,
+                                xls, xlsx, png, jpg, jpeg.
                             </p>
+
+                            {/* Selected files list */}
+                            {uploadFiles.length > 0 && (
+                                <div className="mt-3 flex flex-col gap-1.5">
+                                    {uploadFiles.map((f, i) => (
+                                        <div
+                                            key={i}
+                                            className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs dark:border-zinc-700 dark:bg-zinc-800"
+                                        >
+                                            <FileIcon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                                            <span className="flex-1 truncate font-medium text-slate-800 dark:text-slate-200">
+                                                {f.name}
+                                            </span>
+                                            <span className="shrink-0 text-muted-foreground">
+                                                {formatSize(f.size)}
+                                            </span>
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    setUploadFiles((prev) =>
+                                                        prev.filter(
+                                                            (_, j) => j !== i,
+                                                        ),
+                                                    )
+                                                }
+                                                className="shrink-0 rounded p-0.5 text-muted-foreground hover:bg-slate-200 hover:text-red-500 dark:hover:bg-zinc-700"
+                                            >
+                                                <X className="h-3 w-3" />
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
                             <label className="mt-4 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50/70 p-3 text-sm text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-100">
                                 <input
                                     type="checkbox"
@@ -741,14 +793,23 @@ export function DokumenTab({ team }: { team: any }) {
                             <Button
                                 type="button"
                                 variant="outline"
-                                onClick={() => setIsFileModalOpen(false)}
+                                onClick={() => {
+                                    setIsFileModalOpen(false);
+                                    setUploadFiles([]);
+                                }}
                             >
                                 Batal
                             </Button>
                             <Button
                                 type="submit"
-                                disabled={fileForm.processing}
+                                disabled={
+                                    fileForm.processing ||
+                                    uploadFiles.length === 0
+                                }
                             >
+                                {fileForm.processing && (
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                )}
                                 Upload
                             </Button>
                         </DialogFooter>
