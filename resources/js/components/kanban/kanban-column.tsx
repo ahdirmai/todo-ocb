@@ -1,5 +1,5 @@
 import { Droppable } from '@hello-pangea/dnd';
-import { router } from '@inertiajs/react';
+import { router, usePage } from '@inertiajs/react';
 import { MoreHorizontal, Pencil, Trash2, Check, X, Plus } from 'lucide-react';
 import { useState, useRef } from 'react';
 import * as ColumnActions from '@/actions/App/Http/Controllers/KanbanColumnController';
@@ -33,6 +33,8 @@ export function KanbanColumn({
     onMoveTask,
     onTaskCreated,
 }: Props) {
+    const { uploads } = usePage().props as any;
+    const maxFileLabel = `${((uploads?.documents?.maxFileKb ?? 20480) / 1024).toFixed(1)} MB`;
     const [editing, setEditing] = useState(false);
     const [title, setTitle] = useState(column.title);
     const [addingTask, setAddingTask] = useState(false);
@@ -325,6 +327,9 @@ export function KanbanColumn({
                                             Batal
                                         </button>
                                     </div>
+                                    <p className="text-[10px] text-muted-foreground">
+                                        Maks. {maxFileLabel} per file.
+                                    </p>
                                 </div>
                             ) : (
                                 <button

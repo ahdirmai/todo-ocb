@@ -64,33 +64,33 @@ function formatTime(iso: string): string {
     const diffMin = Math.floor(diffMs / 60000);
 
     if (diffMin < 1) {
-return 'baru saja';
-}
+        return 'baru saja';
+    }
 
     if (diffMin < 60) {
-return `${diffMin} mnt lalu`;
-}
+        return `${diffMin} mnt lalu`;
+    }
 
     const diffH = Math.floor(diffMin / 60);
 
     if (diffH < 24) {
-return date.toLocaleTimeString('id-ID', {
+        return date.toLocaleTimeString('id-ID', {
             hour: '2-digit',
             minute: '2-digit',
         });
-}
+    }
 
     return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
 }
 
 function formatFileSize(bytes: number): string {
     if (bytes < 1024) {
-return `${bytes} B`;
-}
+        return `${bytes} B`;
+    }
 
     if (bytes < 1024 * 1024) {
-return `${(bytes / 1024).toFixed(1)} KB`;
-}
+        return `${(bytes / 1024).toFixed(1)} KB`;
+    }
 
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
@@ -286,8 +286,11 @@ function MemberSidebar({ team }: { team: any }) {
 /* ─── Main Component ─────────────────────────────────────── */
 
 export function ChatTab({ team }: { team: any }) {
-    const { auth, messages: initialMessages } = usePage<any>().props;
+    const { auth, messages: initialMessages, uploads } = usePage<any>().props;
     const currentUserId: number = auth?.user?.id;
+    const maxFileLabel = formatFileSize(
+        (uploads?.documents?.maxFileKb ?? 20480) * 1024,
+    );
 
     const [messages, setMessages] = useState<ChatMessage[]>(
         initialMessages ?? [],
@@ -324,8 +327,8 @@ export function ChatTab({ team }: { team: any }) {
                 setMessages((prev) => {
                     // Avoid duplicate (our own optimistic message)
                     if (prev.some((m) => m.id === e.message.id)) {
-return prev;
-}
+                        return prev;
+                    }
 
                     return [...prev, e.message];
                 });
@@ -344,20 +347,20 @@ return prev;
         const trimmed = text.trim();
 
         if (!trimmed && files.length === 0) {
-return;
-}
+            return;
+        }
 
         if (sending) {
-return;
-}
+            return;
+        }
 
         setSending(true);
 
         const formData = new FormData();
 
         if (trimmed) {
-formData.append('body', trimmed);
-}
+            formData.append('body', trimmed);
+        }
 
         files.forEach((f, i) => {
             formData.append(`attachments[${i}]`, f);
@@ -400,8 +403,8 @@ formData.append('body', trimmed);
             setFiles([]);
 
             if (fileInputRef.current) {
-fileInputRef.current.value = '';
-}
+                fileInputRef.current.value = '';
+            }
         } finally {
             setSending(false);
             textareaRef.current?.focus();
@@ -588,7 +591,9 @@ fileInputRef.current.value = '';
                             id="chat-send-btn"
                             type="button"
                             onClick={sendMessage}
-                            disabled={sending || (!text.trim() && files.length === 0)}
+                            disabled={
+                                sending || (!text.trim() && files.length === 0)
+                            }
                             size="sm"
                             className="h-9 w-9 shrink-0 rounded-xl p-0"
                             title="Kirim pesan"
@@ -600,6 +605,9 @@ fileInputRef.current.value = '';
                             )}
                         </Button>
                     </div>
+                    <p className="mt-2 text-xs text-muted-foreground">
+                        Maks. {maxFileLabel} per file.
+                    </p>
                 </div>
             </div>
 

@@ -9,6 +9,11 @@ use Illuminate\Http\Request;
 
 class DocumentCommentController extends Controller
 {
+    private function attachmentMaxKilobytes(): int
+    {
+        return (int) config('uploads.documents.max_file_kb');
+    }
+
     public function store(Request $request, Team $team, Document $document)
     {
         $validated = $request->validate([
@@ -30,7 +35,7 @@ class DocumentCommentController extends Controller
         $validated = $request->validate([
             'content' => 'required|string',
             'new_attachments' => 'nullable|array',
-            'new_attachments.*' => 'file|max:10240',
+            'new_attachments.*' => 'file|max:'.$this->attachmentMaxKilobytes(),
             'removed_media_ids' => 'nullable|array',
             'removed_media_ids.*' => 'integer',
         ]);

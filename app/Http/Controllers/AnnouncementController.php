@@ -12,6 +12,11 @@ use Illuminate\Validation\Rule;
 
 class AnnouncementController extends Controller
 {
+    private function attachmentMaxKilobytes(): int
+    {
+        return (int) config('uploads.documents.max_file_kb');
+    }
+
     public function store(Request $request, Team $team): RedirectResponse
     {
         abort_unless($team->users()->where('user_id', request()->user()->id)->exists(), 403);
@@ -25,7 +30,7 @@ class AnnouncementController extends Controller
             'title' => 'nullable|string|max:255',
             'content' => 'required|string',
             'attachments' => 'nullable|array',
-            'attachments.*' => 'nullable|file|max:10240',
+            'attachments.*' => 'nullable|file|max:'.$this->attachmentMaxKilobytes(),
             'is_recurring' => 'nullable|boolean',
             'recurrence_frequency' => [
                 Rule::requiredIf($request->boolean('is_recurring')),
@@ -143,7 +148,7 @@ class AnnouncementController extends Controller
             'title' => 'nullable|string|max:255',
             'content' => 'required|string',
             'new_attachments' => 'nullable|array',
-            'new_attachments.*' => 'file|max:10240',
+            'new_attachments.*' => 'file|max:'.$this->attachmentMaxKilobytes(),
             'removed_media_ids' => 'nullable|array',
             'removed_media_ids.*' => 'integer',
             'is_recurring' => 'nullable|boolean',

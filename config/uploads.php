@@ -2,7 +2,7 @@
 
 return [
     'documents' => [
-        'max_file_kb' => (int) env('DOCUMENT_UPLOAD_MAX_FILE_KB', 10240),
+        'max_file_kb' => (int) env('DOCUMENT_UPLOAD_MAX_FILE_KB', 20480),
         'max_attachments' => 5,
         'allowed_mimes' => [
             'pdf',

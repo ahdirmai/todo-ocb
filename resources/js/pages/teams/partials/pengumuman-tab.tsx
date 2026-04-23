@@ -62,6 +62,10 @@ function formatFileSize(bytes: number) {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+function formatUploadLimit(maxFileKb?: number) {
+    return formatFileSize((maxFileKb ?? 20480) * 1024);
+}
+
 function isImage(mime: string) {
     return mime?.startsWith('image/');
 }
@@ -973,6 +977,8 @@ function CommentItem({ comment, auth, onReply }: any) {
 }
 
 function AnnouncementItem({ announcement, team, auth }: any) {
+    const { uploads } = usePage().props as any;
+    const maxFileLabel = formatUploadLimit(uploads?.documents?.maxFileKb);
     const isSuperadmin = auth?.roles?.includes('superadmin');
     const isGlobalAdmin = auth?.roles?.some((r: string) =>
         ['superadmin', 'admin'].includes(r),
@@ -1591,6 +1597,9 @@ function AnnouncementItem({ announcement, team, auth }: any) {
                                 )}
                             </Button>
                         </div>
+                        <p className="text-xs text-muted-foreground">
+                            Maks. {maxFileLabel} per file.
+                        </p>
                     </div>
                 </div>
             </div>
@@ -1599,8 +1608,9 @@ function AnnouncementItem({ announcement, team, auth }: any) {
 }
 
 export function PengumumanTab({ team }: { team: any }) {
-    const { announcements, auth } = usePage<any>().props;
+    const { announcements, auth, uploads } = usePage<any>().props;
     const isSuperadmin = auth?.roles?.includes('superadmin');
+    const maxFileLabel = formatUploadLimit(uploads?.documents?.maxFileKb);
 
     const [title, setTitle] = useState('');
     const [content, setContent] = useState('');
@@ -1807,6 +1817,9 @@ export function PengumumanTab({ team }: { team: any }) {
                                     )}
                                 </Button>
                             </div>
+                            <p className="text-xs text-muted-foreground">
+                                Maks. {maxFileLabel} per file.
+                            </p>
                         </div>
                     </div>
                 )}

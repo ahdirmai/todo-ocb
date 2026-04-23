@@ -12,6 +12,11 @@ use Illuminate\Validation\Rule;
 
 class TaskController extends Controller
 {
+    private function attachmentMaxKilobytes(): int
+    {
+        return (int) config('uploads.documents.max_file_kb');
+    }
+
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -21,7 +26,7 @@ class TaskController extends Controller
             'description' => 'nullable|string',
             'due_date' => 'nullable|date',
             'attachments' => 'nullable|array',
-            'attachments.*' => 'file|max:10240',
+            'attachments.*' => 'file|max:'.$this->attachmentMaxKilobytes(),
         ]);
 
         $maxOrder = Task::where('kanban_column_id', $validated['kanban_column_id'])->max('order_position') ?? -1;
@@ -88,7 +93,7 @@ class TaskController extends Controller
             'assignee_ids' => 'sometimes|array',
             'assignee_ids.*' => 'exists:users,id',
             'attachments' => 'nullable|array',
-            'attachments.*' => 'file|max:10240',
+            'attachments.*' => 'file|max:'.$this->attachmentMaxKilobytes(),
         ]);
 
         $tagIds = $validated['tag_ids'] ?? null;
