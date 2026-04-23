@@ -119,14 +119,14 @@ export function KanbanCard({
                                 <DropdownMenuContent
                                     align="end"
                                     onClick={(event) => event.stopPropagation()}
-                                    className="w-56 rounded-xl border-slate-200 p-1.5 shadow-xl dark:border-zinc-800"
+                                    className="max-h-72 w-56 overflow-y-auto rounded-xl border-slate-200 p-1.5 shadow-xl dark:border-zinc-800"
                                 >
                                     <DropdownMenuSub>
                                         <DropdownMenuSubTrigger className="rounded-lg px-2.5 py-2 font-medium text-slate-700 dark:text-slate-200">
                                             <ArrowRightLeft className="h-4 w-4" />
                                             Pindahkan ke
                                         </DropdownMenuSubTrigger>
-                                        <DropdownMenuSubContent className="w-56 rounded-xl border-slate-200 p-1.5 shadow-xl dark:border-zinc-800">
+                                        <DropdownMenuSubContent className="max-h-72 w-56 overflow-y-auto rounded-xl border-slate-200 p-1.5 shadow-xl dark:border-zinc-800">
                                             {moveTargets.map((column: any) => (
                                                 <DropdownMenuItem
                                                     key={column.id}
