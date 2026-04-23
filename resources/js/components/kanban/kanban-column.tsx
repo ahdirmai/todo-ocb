@@ -1,6 +1,6 @@
 import { Droppable } from '@hello-pangea/dnd';
 import { router } from '@inertiajs/react';
-import { MoreHorizontal, Plus, Pencil, Trash2, Check, X } from 'lucide-react';
+import { MoreHorizontal, Pencil, Trash2, Check, X, Plus } from 'lucide-react';
 import { useState, useRef } from 'react';
 import * as ColumnActions from '@/actions/App/Http/Controllers/KanbanColumnController';
 import * as TaskActions from '@/actions/App/Http/Controllers/TaskController';
@@ -16,17 +16,21 @@ import { KanbanCard } from './kanban-card';
 
 interface Props {
     column: any;
+    columns: any[];
     colorClass: string;
     teamId: string;
     onCardClick: (task: any) => void;
+    onMoveTask: (taskId: string, destinationColumnId: string) => void;
     onTaskCreated: (task: any) => void;
 }
 
 export function KanbanColumn({
     column,
+    columns,
     colorClass,
     teamId,
     onCardClick,
+    onMoveTask,
     onTaskCreated,
 }: Props) {
     const [editing, setEditing] = useState(false);
@@ -65,8 +69,8 @@ export function KanbanColumn({
                 `Hapus kolom "${column.title}"? Semua task di dalamnya akan ikut terhapus.`,
             )
         ) {
-return;
-}
+            return;
+        }
 
         router.delete(ColumnActions.destroy.url(column.id), {
             preserveScroll: true,
@@ -75,8 +79,8 @@ return;
 
     const handleAddTask = () => {
         if (!newTaskTitle.trim() || savingTask) {
-return;
-}
+            return;
+        }
 
         setSavingTask(true);
 
@@ -106,8 +110,8 @@ return;
                 setAddingTask(false);
 
                 if (taskFileInputRef.current) {
-taskFileInputRef.current.value = '';
-}
+                    taskFileInputRef.current.value = '';
+                }
 
                 if (newTask) {
                     onTaskCreated(newTask);
@@ -132,8 +136,8 @@ taskFileInputRef.current.value = '';
                                 onChange={(e) => setTitle(e.target.value)}
                                 onKeyDown={(e) => {
                                     if (e.key === 'Enter') {
-handleRenameColumn();
-}
+                                        handleRenameColumn();
+                                    }
 
                                     if (e.key === 'Escape') {
                                         setTitle(column.title);
@@ -210,7 +214,9 @@ handleRenameColumn();
                                     key={task.id}
                                     task={task}
                                     index={index}
+                                    columns={columns}
                                     onClick={onCardClick}
+                                    onMove={onMoveTask}
                                 />
                             ))}
                             {provided.placeholder}
@@ -226,12 +232,12 @@ handleRenameColumn();
                                         }
                                         onKeyDown={(e) => {
                                             if (e.key === 'Enter') {
-handleAddTask();
-}
+                                                handleAddTask();
+                                            }
 
                                             if (e.key === 'Escape') {
-setAddingTask(false);
-}
+                                                setAddingTask(false);
+                                            }
                                         }}
                                         placeholder="Judul task baru..."
                                         className="h-8 text-sm"
@@ -272,13 +278,13 @@ setAddingTask(false);
                                             ref={taskFileInputRef}
                                             onChange={(e) => {
                                                 if (e.target.files?.length) {
-setNewTaskAttachments([
+                                                    setNewTaskAttachments([
                                                         ...newTaskAttachments,
                                                         ...Array.from(
                                                             e.target.files,
                                                         ),
                                                     ]);
-}
+                                                }
                                             }}
                                         />
                                         <button

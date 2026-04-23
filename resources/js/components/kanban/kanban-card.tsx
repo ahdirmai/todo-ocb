@@ -1,15 +1,33 @@
 import { Draggable } from '@hello-pangea/dnd';
 import { usePage } from '@inertiajs/react';
+import { ArrowRightLeft } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSub,
+    DropdownMenuSubContent,
+    DropdownMenuSubTrigger,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface KanbanCardProps {
     task: any;
     index: number;
+    columns: any[];
     onClick: (task: any) => void;
+    onMove: (taskId: string, destinationColumnId: string) => void;
 }
 
-export function KanbanCard({ task, index, onClick }: KanbanCardProps) {
+export function KanbanCard({
+    task,
+    index,
+    columns,
+    onClick,
+    onMove,
+}: KanbanCardProps) {
     const { auth, team } = usePage<any>().props;
 
     const isGlobalAdmin = auth?.roles?.some((r: string) =>
@@ -25,11 +43,14 @@ export function KanbanCard({ task, index, onClick }: KanbanCardProps) {
     const canModify = Boolean(
         isGlobalAdmin || isTaskCreator || isTeamAdmin || isAssignee,
     );
+    const moveTargets = columns.filter(
+        (column: any) => column.id !== task.kanban_column_id,
+    );
 
     const formatDate = (dateStr: string) => {
         if (!dateStr) {
-return '';
-}
+            return '';
+        }
 
         return new Date(dateStr).toLocaleDateString('id-ID', {
             day: 'numeric',
@@ -73,9 +94,59 @@ return '';
                     )}
 
                     {/* Title */}
-                    <h3 className="mb-3 leading-tight font-bold text-slate-900 dark:text-slate-100">
-                        {task.title}
-                    </h3>
+                    <div className="mb-3 flex items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                            <h3 className="leading-tight font-bold text-slate-900 dark:text-slate-100">
+                                {task.title}
+                            </h3>
+                        </div>
+
+                        {canModify && moveTargets.length > 0 && (
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <button
+                                        type="button"
+                                        aria-label="Pindahkan task"
+                                        onClick={(event) =>
+                                            event.stopPropagation()
+                                        }
+                                        className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-700 shadow-sm transition hover:border-amber-300 hover:bg-amber-100 hover:text-amber-800 focus:ring-2 focus:ring-amber-300/60 focus:outline-none dark:border-amber-900/70 dark:bg-amber-950/40 dark:text-amber-300 dark:hover:bg-amber-950/70"
+                                    >
+                                        <ArrowRightLeft className="h-3.5 w-3.5" />
+                                        Move
+                                    </button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent
+                                    align="end"
+                                    onClick={(event) => event.stopPropagation()}
+                                    className="w-56 rounded-xl border-slate-200 p-1.5 shadow-xl dark:border-zinc-800"
+                                >
+                                    <DropdownMenuSub>
+                                        <DropdownMenuSubTrigger className="rounded-lg px-2.5 py-2 font-medium text-slate-700 dark:text-slate-200">
+                                            <ArrowRightLeft className="h-4 w-4" />
+                                            Pindahkan ke
+                                        </DropdownMenuSubTrigger>
+                                        <DropdownMenuSubContent className="w-56 rounded-xl border-slate-200 p-1.5 shadow-xl dark:border-zinc-800">
+                                            {moveTargets.map((column: any) => (
+                                                <DropdownMenuItem
+                                                    key={column.id}
+                                                    onSelect={() =>
+                                                        onMove(
+                                                            task.id,
+                                                            column.id,
+                                                        )
+                                                    }
+                                                    className="rounded-lg px-2.5 py-2 text-sm font-medium text-slate-700 dark:text-slate-200"
+                                                >
+                                                    {column.title}
+                                                </DropdownMenuItem>
+                                            ))}
+                                        </DropdownMenuSubContent>
+                                    </DropdownMenuSub>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        )}
+                    </div>
 
                     {/* Dates */}
                     <div className="mb-4 flex flex-col gap-1 border-l-2 border-slate-200 pl-2 text-[10px] text-slate-400 dark:border-slate-800 dark:text-slate-500">

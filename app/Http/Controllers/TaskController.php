@@ -6,7 +6,9 @@ use App\Models\KanbanColumn;
 use App\Models\Task;
 use App\Services\ActivityLogger;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\Rule;
 
 class TaskController extends Controller
 {
@@ -68,12 +70,19 @@ class TaskController extends Controller
     {
         Gate::authorize('update', $task);
 
+        $currentKanbanId = $task->kanbanColumn()->value('kanban_id');
+
         $validated = $request->validate([
             'title' => 'sometimes|string|max:255',
             'description' => 'nullable|string',
             'due_date' => 'nullable|date',
-            'kanban_column_id' => 'sometimes|exists:kanban_columns,id',
-            'order_position' => 'sometimes|integer',
+            'kanban_column_id' => [
+                'sometimes',
+                Rule::exists('kanban_columns', 'id')->where(
+                    fn ($query) => $query->where('kanban_id', $currentKanbanId),
+                ),
+            ],
+            'order_position' => 'sometimes|integer|min:0',
             'tag_ids' => 'sometimes|array',
             'tag_ids.*' => 'exists:tags,id',
             'assignee_ids' => 'sometimes|array',
@@ -85,16 +94,22 @@ class TaskController extends Controller
         $tagIds = $validated['tag_ids'] ?? null;
         unset($validated['tag_ids']);
 
-        $assigneeIds = $validated['assignee_ids'] ?? null;
         unset($validated['assignee_ids']);
 
         $attachments = $request->file('attachments');
         unset($validated['attachments']);
 
+        $originalColumnId = $task->kanban_column_id;
+        $targetColumnId = $validated['kanban_column_id'] ?? $originalColumnId;
+        $columnChanged = array_key_exists('kanban_column_id', $validated)
+            && $targetColumnId !== $originalColumnId;
+        $positionChanged = array_key_exists('order_position', $validated)
+            && (int) $validated['order_position'] !== (int) $task->order_position;
+
         // Log column move separately (before update so we have original)
-        if (isset($validated['kanban_column_id']) && $validated['kanban_column_id'] !== $task->kanban_column_id) {
+        if ($columnChanged) {
             $oldColumn = KanbanColumn::find($task->kanban_column_id);
-            $newColumn = KanbanColumn::find($validated['kanban_column_id']);
+            $newColumn = KanbanColumn::find($targetColumnId);
 
             ActivityLogger::log(
                 event: 'moved',
@@ -109,53 +124,69 @@ class TaskController extends Controller
             );
         }
 
-        $task->update($validated);
-
-        if ($request->has('assignee_ids')) {
-            $oldAssignees = $task->assignees()->pluck('users.id')->toArray();
-            $newAssignees = $request->input('assignee_ids') ?? [];
-
-            // Ensure creator is always included
-            if ($task->creator_id && ! in_array($task->creator_id, $newAssignees)) {
-                $newAssignees[] = $task->creator_id;
+        DB::transaction(function () use ($request, $positionChanged, $tagIds, $targetColumnId, $task, $validated, $columnChanged, $originalColumnId) {
+            if ($columnChanged && ! array_key_exists('order_position', $validated)) {
+                $validated['order_position'] = (Task::where('kanban_column_id', $targetColumnId)->max('order_position') ?? -1) + 1;
             }
 
-            $task->assignees()->sync($newAssignees);
+            $task->update($validated);
 
-            $added = array_diff($newAssignees, $oldAssignees);
-            $removed = array_diff($oldAssignees, $newAssignees);
+            if ($columnChanged || $positionChanged) {
+                $this->normalizeTaskOrder($originalColumnId);
 
-            if ($added || $removed) {
-                ActivityLogger::log(
-                    event: 'assignees_changed',
-                    logName: 'task',
-                    description: "Anggota tugas pada \"{$task->title}\" diperbarui",
-                    subject: $task,
-                    properties: ['added' => array_values($added), 'removed' => array_values($removed)],
-                    teamId: $task->team_id,
-                );
+                if ($targetColumnId !== $originalColumnId) {
+                    $this->normalizeTaskOrder($targetColumnId);
+                }
+
+                $task->refresh();
             }
-        }
 
-        // Log tag changes
-        if ($tagIds !== null) {
-            $oldTagIds = $task->tags()->pluck('tags.id')->toArray();
-            $task->tags()->sync($tagIds);
+            if ($request->has('assignee_ids')) {
+                $oldAssignees = $task->assignees()->pluck('users.id')->toArray();
+                $newAssignees = $request->input('assignee_ids') ?? [];
 
-            $added = array_diff($tagIds, $oldTagIds);
-            $removed = array_diff($oldTagIds, $tagIds);
+                // Ensure creator is always included
+                if ($task->creator_id && ! in_array($task->creator_id, $newAssignees)) {
+                    $newAssignees[] = $task->creator_id;
+                }
 
-            if ($added || $removed) {
-                ActivityLogger::log(
-                    event: 'tags_changed',
-                    logName: 'task',
-                    description: "Tag pada task \"{$task->title}\" diperbarui",
-                    subject: $task,
-                    properties: ['added' => array_values($added), 'removed' => array_values($removed)],
-                    teamId: $task->team_id,
-                );
+                $task->assignees()->sync($newAssignees);
+
+                $added = array_diff($newAssignees, $oldAssignees);
+                $removed = array_diff($oldAssignees, $newAssignees);
+
+                if ($added || $removed) {
+                    ActivityLogger::log(
+                        event: 'assignees_changed',
+                        logName: 'task',
+                        description: "Anggota tugas pada \"{$task->title}\" diperbarui",
+                        subject: $task,
+                        properties: ['added' => array_values($added), 'removed' => array_values($removed)],
+                        teamId: $task->team_id,
+                    );
+                }
             }
-        }
+
+            // Log tag changes
+            if ($tagIds !== null) {
+                $oldTagIds = $task->tags()->pluck('tags.id')->toArray();
+                $task->tags()->sync($tagIds);
+
+                $added = array_diff($tagIds, $oldTagIds);
+                $removed = array_diff($oldTagIds, $tagIds);
+
+                if ($added || $removed) {
+                    ActivityLogger::log(
+                        event: 'tags_changed',
+                        logName: 'task',
+                        description: "Tag pada task \"{$task->title}\" diperbarui",
+                        subject: $task,
+                        properties: ['added' => array_values($added), 'removed' => array_values($removed)],
+                        teamId: $task->team_id,
+                    );
+                }
+            }
+        });
 
         if ($attachments) {
             foreach ($attachments as $file) {
@@ -172,6 +203,20 @@ class TaskController extends Controller
         }
 
         return back();
+    }
+
+    private function normalizeTaskOrder(string $columnId): void
+    {
+        Task::query()
+            ->where('kanban_column_id', $columnId)
+            ->orderBy('order_position')
+            ->orderBy('created_at')
+            ->orderBy('id')
+            ->get(['id'])
+            ->each(
+                fn (Task $task, int $index) => Task::whereKey($task->id)
+                    ->update(['order_position' => $index]),
+            );
     }
 
     public function destroy(Task $task)

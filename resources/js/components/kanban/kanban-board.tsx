@@ -5,6 +5,7 @@ import { Plus } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import * as BoardActions from '@/actions/App/Http/Controllers/KanbanBoardController';
 import * as ColumnActions from '@/actions/App/Http/Controllers/KanbanColumnController';
+import * as TaskActions from '@/actions/App/Http/Controllers/TaskController';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { KanbanColumn } from './kanban-column';
@@ -43,7 +44,9 @@ export function KanbanBoard({ kanban }: { kanban: any }) {
         }
 
         for (const col of columns) {
-            const found = col.tasks?.find((task: any) => task.id === selectedTaskId);
+            const found = col.tasks?.find(
+                (task: any) => task.id === selectedTaskId,
+            );
 
             if (found) {
                 return found;
@@ -61,6 +64,76 @@ export function KanbanBoard({ kanban }: { kanban: any }) {
     const handleTaskCreated = (task: any) => {
         setSelectedTaskId(task.id);
         setModalOpen(true);
+    };
+
+    const moveTaskToColumn = (taskId: string, destinationColumnId: string) => {
+        const sourceColumn = columns.find((column: any) =>
+            column.tasks?.some((task: any) => task.id === taskId),
+        );
+        const destinationColumn = columns.find(
+            (column: any) => column.id === destinationColumnId,
+        );
+
+        if (!sourceColumn || !destinationColumn) {
+            return;
+        }
+
+        const task = sourceColumn.tasks?.find(
+            (item: any) => item.id === taskId,
+        );
+
+        if (!task || sourceColumn.id === destinationColumnId) {
+            return;
+        }
+
+        const newColumns = columns.map((column: any) => {
+            if (column.id === sourceColumn.id) {
+                return {
+                    ...column,
+                    tasks: (column.tasks ?? [])
+                        .filter((item: any) => item.id !== taskId)
+                        .map((item: any, index: number) => ({
+                            ...item,
+                            order_position: index,
+                        })),
+                };
+            }
+
+            if (column.id === destinationColumnId) {
+                const updatedTasks = [
+                    ...(column.tasks ?? []),
+                    {
+                        ...task,
+                        kanban_column_id: destinationColumnId,
+                    },
+                ].map((item: any, index: number) => ({
+                    ...item,
+                    order_position: index,
+                }));
+
+                return {
+                    ...column,
+                    tasks: updatedTasks,
+                };
+            }
+
+            return column;
+        });
+
+        setOptimisticColumns(newColumns);
+
+        router.put(
+            TaskActions.update.url(taskId),
+            {
+                kanban_column_id: destinationColumnId,
+            },
+            {
+                preserveScroll: true,
+                preserveState: true,
+                onSuccess: () => setOptimisticColumns(null),
+                onError: () => setOptimisticColumns(null),
+            },
+        );
     };
 
     const onDragEnd = (result: DropResult) => {
@@ -188,9 +261,11 @@ export function KanbanBoard({ kanban }: { kanban: any }) {
                         <KanbanColumn
                             key={column.id}
                             column={column}
+                            columns={columns}
                             colorClass={columnColors[idx % columnColors.length]}
                             teamId={kanban.team_id}
                             onCardClick={handleCardClick}
+                            onMoveTask={moveTaskToColumn}
                             onTaskCreated={handleTaskCreated}
                         />
                     ))}
