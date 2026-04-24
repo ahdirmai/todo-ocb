@@ -5,9 +5,11 @@ namespace App\Http\Controllers;
 use App\Models\KanbanColumn;
 use App\Models\Task;
 use App\Services\ActivityLogger;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Uri;
 use Illuminate\Validation\Rule;
 
 class TaskController extends Controller
@@ -224,13 +226,26 @@ class TaskController extends Controller
             );
     }
 
-    public function destroy(Task $task)
+    public function destroy(Request $request, Task $task): RedirectResponse
     {
         Gate::authorize('delete', $task);
 
         // Deletion is logged by TaskObserver
         $task->delete();
 
-        return back();
+        return $this->redirectAfterDestroy($request);
+    }
+
+    private function redirectAfterDestroy(Request $request): RedirectResponse
+    {
+        $previousUrl = $request->headers->get('referer') ?? url()->previous();
+
+        if (! is_string($previousUrl) || $previousUrl === '') {
+            return back();
+        }
+
+        $sanitizedPreviousUrl = Uri::of($previousUrl)->withoutQuery(['taskId']);
+
+        return redirect($sanitizedPreviousUrl->value());
     }
 }
