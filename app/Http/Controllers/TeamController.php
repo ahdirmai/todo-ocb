@@ -31,6 +31,12 @@ class TeamController extends Controller
                 'kanbans.columns.tasks.comments.media',
                 'kanbans.columns.tasks.assignees',
             ]);
+
+            $team->kanbans->each(function (Kanban $kanban): void {
+                $kanban->columns->each(function (KanbanColumn $column): void {
+                    $column->tasks->loadCount(['comments', 'media']);
+                });
+            });
         }
 
         if ($tab === 'overview') {

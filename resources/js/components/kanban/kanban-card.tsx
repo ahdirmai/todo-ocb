@@ -1,6 +1,6 @@
 import { Draggable } from '@hello-pangea/dnd';
 import { usePage } from '@inertiajs/react';
-import { ArrowRightLeft } from 'lucide-react';
+import { ArrowRightLeft, MessageSquare } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -46,6 +46,7 @@ export function KanbanCard({
     const moveTargets = columns.filter(
         (column: any) => column.id !== task.kanban_column_id,
     );
+    const commentCount = task.comments_count ?? task.comments?.length ?? 0;
 
     const formatDate = (dateStr: string) => {
         if (!dateStr) {
@@ -169,38 +170,45 @@ export function KanbanCard({
                             )}
                     </div>
 
-                    {/* Footer: Avatars */}
+                    {/* Footer */}
                     <div className="flex items-center justify-between">
-                        <div className="flex -space-x-2">
-                            {task.assignees?.slice(0, 4).map((a: any) => (
-                                <Avatar
-                                    key={a.id}
-                                    className="h-6 w-6 border-2 border-white bg-slate-100 dark:border-zinc-900"
-                                >
-                                    <AvatarImage
-                                        src={
-                                            a.avatar_url ||
-                                            `https://ui-avatars.com/api/?name=${encodeURIComponent(a.name)}`
-                                        }
-                                    />
-                                    <AvatarFallback className="text-[10px] text-slate-600">
-                                        {a.name?.charAt(0)}
-                                    </AvatarFallback>
-                                </Avatar>
-                            ))}
-                            {task.assignees?.length > 4 && (
-                                <div className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-white bg-slate-100 text-[9px] font-semibold text-slate-600 dark:border-zinc-900 dark:bg-zinc-800 dark:text-slate-400">
-                                    +{task.assignees.length - 4}
-                                </div>
-                            )}
-                            {(!task.assignees ||
-                                task.assignees.length === 0) && (
-                                <div className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-dashed border-white bg-slate-100 dark:border-zinc-900 dark:bg-zinc-800">
-                                    <span className="text-[10px] text-slate-400">
-                                        -
-                                    </span>
-                                </div>
-                            )}
+                        <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-1 rounded-full bg-slate-100 px-2 py-1 text-[10px] font-semibold text-slate-500 dark:bg-zinc-800 dark:text-slate-400">
+                                <MessageSquare className="h-3.5 w-3.5" />
+                                <span>{commentCount}</span>
+                            </div>
+
+                            <div className="flex -space-x-2">
+                                {task.assignees?.slice(0, 4).map((a: any) => (
+                                    <Avatar
+                                        key={a.id}
+                                        className="h-6 w-6 border-2 border-white bg-slate-100 dark:border-zinc-900"
+                                    >
+                                        <AvatarImage
+                                            src={
+                                                a.avatar_url ||
+                                                `https://ui-avatars.com/api/?name=${encodeURIComponent(a.name)}`
+                                            }
+                                        />
+                                        <AvatarFallback className="text-[10px] text-slate-600">
+                                            {a.name?.charAt(0)}
+                                        </AvatarFallback>
+                                    </Avatar>
+                                ))}
+                                {task.assignees?.length > 4 && (
+                                    <div className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-white bg-slate-100 text-[9px] font-semibold text-slate-600 dark:border-zinc-900 dark:bg-zinc-800 dark:text-slate-400">
+                                        +{task.assignees.length - 4}
+                                    </div>
+                                )}
+                                {(!task.assignees ||
+                                    task.assignees.length === 0) && (
+                                    <div className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-dashed border-white bg-slate-100 dark:border-zinc-900 dark:bg-zinc-800">
+                                        <span className="text-[10px] text-slate-400">
+                                            -
+                                        </span>
+                                    </div>
+                                )}
+                            </div>
                         </div>
 
                         {task.due_date && (
