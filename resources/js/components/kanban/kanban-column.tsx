@@ -1,6 +1,6 @@
 import { Droppable } from '@hello-pangea/dnd';
 import { router, usePage } from '@inertiajs/react';
-import { MoreHorizontal, Pencil, Trash2, Check, X, Plus } from 'lucide-react';
+import { MoreHorizontal, Pencil, Trash2, Check, X, Plus, CircleCheckBig } from 'lucide-react';
 import { useState, useRef } from 'react';
 import * as ColumnActions from '@/actions/App/Http/Controllers/KanbanColumnController';
 import * as TaskActions from '@/actions/App/Http/Controllers/TaskController';
@@ -42,6 +42,16 @@ export function KanbanColumn({
     const [savingTask, setSavingTask] = useState(false);
     const [newTaskAttachments, setNewTaskAttachments] = useState<File[]>([]);
     const taskFileInputRef = useRef<HTMLInputElement>(null);
+
+    const handleToggleDoneColumn = () => {
+        router.put(
+            ColumnActions.update.url(column.id),
+            { is_done: !column.is_done },
+            {
+                preserveScroll: true,
+            },
+        );
+    };
 
     const handleRenameColumn = () => {
         if (!title.trim() || title === column.title) {
@@ -169,6 +179,12 @@ export function KanbanColumn({
                             <h2 className="text-sm font-bold tracking-wider text-slate-800 uppercase dark:text-slate-200">
                                 {column.title}
                             </h2>
+                            {column.is_done && (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold tracking-normal text-emerald-700 dark:bg-emerald-950/70 dark:text-emerald-300">
+                                    <CircleCheckBig className="h-3 w-3" />
+                                    Done
+                                </span>
+                            )}
                             <span className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 text-xs font-semibold text-slate-500 dark:bg-slate-800">
                                 {column.tasks?.length || 0}
                             </span>
@@ -184,6 +200,12 @@ export function KanbanColumn({
                             </button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-40">
+                            <DropdownMenuItem onClick={handleToggleDoneColumn}>
+                                <CircleCheckBig className="mr-2 h-4 w-4" />
+                                {column.is_done
+                                    ? 'Hapus status Done'
+                                    : 'Tandai Done'}
+                            </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => setEditing(true)}>
                                 <Pencil className="mr-2 h-4 w-4" /> Rename
                             </DropdownMenuItem>

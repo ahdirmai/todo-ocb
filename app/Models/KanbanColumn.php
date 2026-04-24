@@ -14,6 +14,14 @@ class KanbanColumn extends Model
 
     protected $guarded = [];
 
+    protected function casts(): array
+    {
+        return [
+            'is_default' => 'boolean',
+            'is_done' => 'boolean',
+        ];
+    }
+
     public function kanban()
     {
         return $this->belongsTo(Kanban::class);

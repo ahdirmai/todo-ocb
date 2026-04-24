@@ -143,6 +143,7 @@ class TeamController extends Controller
                 'title' => $columnName,
                 'order' => $index,
                 'is_default' => true,
+                'is_done' => $columnName === 'Done',
             ]);
         }
 

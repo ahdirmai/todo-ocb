@@ -82,7 +82,11 @@ class MVPSeeder extends Seeder
             foreach ($columns as $index => $colName) {
                 $column = KanbanColumn::updateOrCreate(
                     ['kanban_id' => $kanban->id, 'title' => $colName],
-                    ['order' => $index, 'is_default' => true]
+                    [
+                        'order' => $index,
+                        'is_default' => true,
+                        'is_done' => $colName === 'Done',
+                    ]
                 );
 
                 // Add 2 dummy tasks per column

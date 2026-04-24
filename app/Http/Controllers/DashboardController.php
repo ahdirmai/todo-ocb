@@ -416,7 +416,7 @@ class DashboardController extends Controller
 
     private function applyDoneColumnFilter(Builder $query): void
     {
-        $query->whereRaw('LOWER(title) like ?', ['%done%']);
+        $query->where('is_done', true);
     }
 
     private function resolveDashboardRole(User $user): string

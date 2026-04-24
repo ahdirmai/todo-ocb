@@ -14,6 +14,7 @@ class KanbanColumnResource extends JsonResource
             'title' => $this->title,
             'order' => $this->order,
             'is_default' => $this->is_default,
+            'is_done' => $this->is_done,
             'tasks_count' => $this->whenCounted('tasks'),
         ];
     }

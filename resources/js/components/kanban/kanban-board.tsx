@@ -17,6 +17,7 @@ export function KanbanBoard({ kanban }: { kanban: any }) {
     );
     const [addingColumn, setAddingColumn] = useState(false);
     const [newColumnTitle, setNewColumnTitle] = useState('');
+    const [newColumnIsDone, setNewColumnIsDone] = useState(false);
     const [saving, setSaving] = useState(false);
 
     // Task Detail Modal state
@@ -223,11 +224,13 @@ export function KanbanBoard({ kanban }: { kanban: any }) {
             ColumnActions.store.url(kanban.id),
             {
                 title: newColumnTitle.trim(),
+                is_done: newColumnIsDone,
             },
             {
                 preserveScroll: true,
                 onSuccess: () => {
                     setNewColumnTitle('');
+                    setNewColumnIsDone(false);
                     setAddingColumn(false);
                     setSaving(false);
                 },
@@ -295,6 +298,19 @@ export function KanbanBoard({ kanban }: { kanban: any }) {
                                     placeholder="Contoh: In Review"
                                     className="h-8 text-sm"
                                 />
+                                <label className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
+                                    <input
+                                        type="checkbox"
+                                        checked={newColumnIsDone}
+                                        onChange={(event) =>
+                                            setNewColumnIsDone(
+                                                event.target.checked,
+                                            )
+                                        }
+                                        className="h-4 w-4 rounded border-slate-300"
+                                    />
+                                    Jadikan kolom Done
+                                </label>
                                 <div className="flex gap-2">
                                     <Button
                                         size="sm"
@@ -308,7 +324,11 @@ export function KanbanBoard({ kanban }: { kanban: any }) {
                                         size="sm"
                                         variant="ghost"
                                         className="h-7 text-xs"
-                                        onClick={() => setAddingColumn(false)}
+                                        onClick={() => {
+                                            setAddingColumn(false);
+                                            setNewColumnTitle('');
+                                            setNewColumnIsDone(false);
+                                        }}
                                     >
                                         Batal
                                     </Button>

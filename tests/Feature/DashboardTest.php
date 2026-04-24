@@ -49,6 +49,7 @@ function createWorkspace(string $name, User $member, string $teamRole = 'member'
         'kanban_id' => $kanban->id,
         'title' => 'Done',
         'order' => 2,
+        'is_done' => true,
     ]);
 
     return [$team, $todo, $done];
