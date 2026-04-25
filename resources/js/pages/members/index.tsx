@@ -1,6 +1,7 @@
 import { Head, router, usePage, setLayoutProps } from '@inertiajs/react';
 import { Plus, Pencil, Trash2, ShieldCheck, Shield, User } from 'lucide-react';
 import { useState } from 'react';
+import { toast } from 'sonner';
 import * as MemberActions from '@/actions/App/Http/Controllers/MemberController';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -80,6 +81,7 @@ export default function MembersIndex({
             onSuccess: () => {
                 setInviteOpen(false);
                 setForm({ name: '', email: '', password: '', position: '', role: 'member' });
+                toast.success('Email berhasil didaftarkan');
             },
         });
     };
