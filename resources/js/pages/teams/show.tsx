@@ -14,6 +14,7 @@ import { ChatTab } from './partials/chat-tab';
 import { DokumenTab } from './partials/dokumen-tab';
 import { OverviewTab } from './partials/overview-tab';
 import { PengumumanTab } from './partials/pengumuman-tab';
+import { SopTab } from './partials/sop-tab';
 import { TugasTab } from './partials/tugas-tab';
 
 type Tab =
@@ -22,6 +23,7 @@ type Tab =
     | 'chat'
     | 'announcement'
     | 'document'
+    | 'sop'
     | 'activity';
 
 const TAB_LABELS: Record<Tab, string> = {
@@ -30,6 +32,7 @@ const TAB_LABELS: Record<Tab, string> = {
     chat: 'Chat',
     announcement: 'Pengumuman',
     document: 'Dokumen & File',
+    sop: 'SOP',
     activity: 'Aktivitas',
 };
 
@@ -46,7 +49,13 @@ export default function TeamShow({
     );
 
     const visibleTabs = (Object.keys(TAB_LABELS) as Tab[]).filter(
-        (key) => key !== 'activity' || isAdmin,
+        (key) => {
+            if (key === 'activity' || key === 'sop') {
+                return isAdmin;
+            }
+
+            return true;
+        },
     );
 
     const [showMembersModal, setShowMembersModal] = useState(false);
@@ -151,6 +160,12 @@ export default function TeamShow({
                             className="m-0 flex h-full flex-col p-6"
                         >
                             <DokumenTab team={team} />
+                        </TabsContent>
+                        <TabsContent
+                            value="sop"
+                            className="m-0 flex h-full flex-col p-6"
+                        >
+                            <SopTab team={team} />
                         </TabsContent>
                         <TabsContent
                             value="activity"

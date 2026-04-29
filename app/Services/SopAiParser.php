@@ -6,8 +6,10 @@ use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use JsonException;
 use RuntimeException;
+use Throwable;
 
 /**
  * Parses SOP documents (markdown text or PDF via Spatie Media Library)
@@ -19,7 +21,7 @@ class SopAiParser
 {
     /**
      * @param  array{source: 'text'|'pdf'|'none', content: string|null, file_path: string|null}  $aiReadableContent
-     * @param  string[]  $kanbanColumnTitles  ordered Kanban column names for step matching
+     * @param  string[]  $kanbanColumnTitles
      * @return array<int, array{
      *     sequence_order: int,
      *     name: string,
@@ -39,7 +41,7 @@ class SopAiParser
     public function parse(array $aiReadableContent, array $kanbanColumnTitles, string $platform): array
     {
         if ($aiReadableContent['source'] === 'none') {
-            return [];
+            throw new RuntimeException('Dokumen SOP tidak memiliki konten teks atau file PDF yang bisa diparse.');
         }
 
         $raw = match ($platform) {
@@ -49,7 +51,13 @@ class SopAiParser
             default => throw new RuntimeException('Platform AI tidak dikenali: '.$platform),
         };
 
-        return $this->normalize($raw, 'ai', $aiReadableContent['source']);
+        $normalized = $this->normalize($raw, 'ai', $aiReadableContent['source']);
+
+        if ($normalized === []) {
+            throw new RuntimeException('AI tidak mengembalikan SOP step yang dapat dipakai.');
+        }
+
+        return $normalized;
     }
 
     // ─── Gemini ──────────────────────────────────────────────────────────────
@@ -194,17 +202,16 @@ class SopAiParser
                     'media_type' => 'application/pdf',
                     'data' => base64_encode((string) file_get_contents((string) $content['file_path'])),
                 ]],
-                ['type' => 'text', 'text' => $this->systemPrompt($columns)],
             ];
         } else {
             $userContent = [
-                ['type' => 'text', 'text' => (string) $content['content']."\n\n".$this->systemPrompt($columns)],
+                ['type' => 'text', 'text' => (string) $content['content']],
             ];
         }
 
         try {
             $baseUrl = rtrim((string) config('services.anthropic.base_url', 'https://api.anthropic.com/v1/'), '/').'/';
-            $model = (string) config('services.anthropic.reporting_model', 'claude-3-5-sonnet-20241022');
+            $model = (string) config('services.anthropic.reporting_model', 'claude-haiku-4-5-20251001');
 
             $response = Http::baseUrl($baseUrl)
                 ->acceptJson()
@@ -218,21 +225,52 @@ class SopAiParser
                 ->timeout(120)
                 ->post('messages', [
                     'model' => $model,
-                    'max_tokens' => 4096,
+                    'max_tokens' => 8192,
+                    'system' => $this->systemPrompt($columns)."\nJawab hanya dengan JSON valid tanpa penjelasan tambahan.",
                     'messages' => [['role' => 'user', 'content' => $userContent]],
                 ]);
 
             $response->throw();
 
-            $text = data_get($response->json(), 'content.0.text');
+            $payload = $response->json();
+            Log::info('Anthropic SOP raw response.', [
+                'provider' => 'anthropic',
+                'source' => $content['source'],
+                'model' => $model,
+                'payload' => $this->stringExcerpt(json_encode($payload, JSON_UNESCAPED_UNICODE), 8000),
+            ]);
+            $text = $this->extractAnthropicText($payload);
+
             if (! is_string($text) || $text === '') {
                 throw new RuntimeException('Claude tidak mengembalikan hasil parsing SOP.');
             }
 
-            return $this->decodeJson($text);
+            try {
+                return $this->decodeJson($text);
+            } catch (Throwable $exception) {
+                throw $exception;
+            }
         } catch (RequestException|ConnectionException|JsonException $e) {
             throw new RuntimeException('Gagal parsing SOP via Claude: '.$e->getMessage(), previous: $e);
         }
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    private function extractAnthropicText(array $payload): ?string
+    {
+        $textBlocks = collect($payload['content'] ?? [])
+            ->filter(fn (mixed $block): bool => is_array($block) && ($block['type'] ?? null) === 'text' && is_string($block['text'] ?? null))
+            ->pluck('text')
+            ->filter(fn (mixed $text): bool => is_string($text) && trim($text) !== '')
+            ->values();
+
+        if ($textBlocks->isEmpty()) {
+            return null;
+        }
+
+        return $textBlocks->implode("\n");
     }
 
     // ─── Shared helpers ───────────────────────────────────────────────────────
@@ -242,19 +280,14 @@ class SopAiParser
      */
     private function systemPrompt(array $kanbanColumnTitles): string
     {
-        $columns = implode(', ', $kanbanColumnTitles);
-
-        return <<<PROMPT
+        return <<<'PROMPT'
 Kamu adalah analis SOP operasional. Baca dokumen SOP yang diberikan dan ekstrak setiap langkah kerja menjadi array JSON terstruktur.
-
-Kanban columns tim (urutan proses): [{$columns}]
 
 Aturan ekstraksi:
 - Setiap langkah SOP = satu item JSON.
-- `name`: nama langkah ringkas maks 60 karakter. Cocokkan dengan nama Kanban Column jika ada.
+- `name`: nama langkah ringkas maks 60 karakter.
 - `action`: deskripsi 1 kalimat apa yang dilakukan pada langkah ini.
 - `keywords`: array 3-8 kata kunci unik dari langkah (untuk keyword-matching komentar task).
-- `expected_column`: nama Kanban Column dari daftar di atas yang paling relevan, atau null.
 - `required_evidence`: "both" jika butuh foto/file, "comment" jika cukup komentar teks, "media" jika hanya file.
 - `priority`: "high" jika wajib/kritikal, "low" jika opsional, "medium" lainnya.
 - `is_mandatory`: true jika langkah wajib.
@@ -283,10 +316,9 @@ PROMPT;
                             'keywords' => ['type' => 'array', 'items' => ['type' => 'string']],
                             'required_evidence' => ['type' => 'string', 'enum' => ['comment', 'media', 'both']],
                             'priority' => ['type' => 'string', 'enum' => ['high', 'medium', 'low']],
-                            'expected_column' => ['type' => ['string', 'null']],
                             'is_mandatory' => ['type' => 'boolean'],
                         ],
-                        'required' => ['name', 'action', 'keywords', 'required_evidence', 'priority', 'expected_column', 'is_mandatory'],
+                        'required' => ['name', 'action', 'keywords', 'required_evidence', 'priority', 'is_mandatory'],
                     ],
                 ],
             ],
@@ -327,8 +359,7 @@ PROMPT;
                     },
                     'min_comment' => $evidence === 'media' ? 0 : 1,
                     'min_media' => in_array($evidence, ['media', 'both']) ? 1 : 0,
-                    'expected_column' => isset($step['expected_column']) && is_string($step['expected_column'])
-                        ? $step['expected_column'] : null,
+                    'expected_column' => null,
                     'is_mandatory' => (bool) ($step['is_mandatory'] ?? true),
                     'parsed_by' => $parsedBy,
                     'parsed_from' => $parsedFrom,
@@ -337,9 +368,6 @@ PROMPT;
             ->all();
     }
 
-    /**
-     * @return array<int|string, mixed>
-     */
     private function decodeJson(string $text): array
     {
         $normalized = trim($text);
@@ -347,9 +375,104 @@ PROMPT;
         $normalized = preg_replace('/^```\s*/', '', $normalized) ?? $normalized;
         $normalized = preg_replace('/\s*```$/', '', $normalized) ?? $normalized;
 
-        /** @var array<int|string, mixed> $decoded */
-        $decoded = json_decode($normalized, true, flags: JSON_THROW_ON_ERROR);
+        try {
+            /** @var array<int|string, mixed> $decoded */
+            $decoded = json_decode($normalized, true, flags: JSON_THROW_ON_ERROR);
 
-        return $decoded;
+            return $decoded;
+        } catch (JsonException) {
+            $jsonFragment = $this->extractJsonFragment($normalized);
+
+            if ($jsonFragment !== null) {
+                try {
+                    /** @var array<int|string, mixed> $decoded */
+                    $decoded = json_decode($jsonFragment, true, flags: JSON_THROW_ON_ERROR);
+                    return $decoded;
+                } catch (JsonException) {
+                    // Fallthrough to repair
+                }
+            }
+
+            // Attempt to repair truncated JSON array
+            $repaired = $this->repairTruncatedJsonArray($normalized);
+            if ($repaired !== null) {
+                try {
+                    /** @var array<int|string, mixed> $decoded */
+                    $decoded = json_decode($repaired, true, flags: JSON_THROW_ON_ERROR);
+                    return $decoded;
+                } catch (JsonException) {}
+            }
+
+            throw new RuntimeException('AI mengembalikan JSON tidak valid: terpotong atau format salah.');
+        }
+    }
+
+    private function repairTruncatedJsonArray(string $text): ?string
+    {
+        $start = strpos($text, '[');
+        if ($start === false) {
+            return null;
+        }
+
+        $candidate = substr($text, $start);
+        $lastClosingBrace = strrpos($candidate, '}');
+
+        if ($lastClosingBrace !== false) {
+            return substr($candidate, 0, $lastClosingBrace + 1) . ']';
+        }
+
+        return null;
+    }
+
+    private function extractJsonFragment(string $text): ?string
+    {
+        if (preg_match('/```(?:json)?\s*(.*?)\s*```/is', $text, $matches)) {
+            return trim($matches[1]);
+        }
+
+        $objectStart = strpos($text, '{');
+        $arrayStart = strpos($text, '[');
+
+        $start = match (true) {
+            $objectStart === false && $arrayStart === false => false,
+            $objectStart === false => $arrayStart,
+            $arrayStart === false => $objectStart,
+            default => min($objectStart, $arrayStart),
+        };
+
+        if ($start === false) {
+            return null;
+        }
+
+        $candidate = substr($text, $start);
+
+        $lastObjectEnd = strrpos($candidate, '}');
+        $lastArrayEnd = strrpos($candidate, ']');
+        $end = max($lastObjectEnd !== false ? $lastObjectEnd : -1, $lastArrayEnd !== false ? $lastArrayEnd : -1);
+
+        if ($end < 0) {
+            return null;
+        }
+
+        return trim(substr($candidate, 0, $end + 1));
+    }
+
+    private function stringExcerpt(?string $value, int $limit = 1200): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $normalized = trim($value);
+
+        if ($normalized === '') {
+            return '';
+        }
+
+        if (mb_strlen($normalized) <= $limit) {
+            return $normalized;
+        }
+
+        return mb_substr($normalized, 0, $limit).'...';
     }
 }

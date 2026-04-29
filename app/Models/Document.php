@@ -19,6 +19,9 @@ class Document extends Model implements HasMedia
     {
         return [
             'is_sop' => 'boolean',
+            'sop_parse_queued_at' => 'datetime',
+            'sop_parse_started_at' => 'datetime',
+            'sop_parse_completed_at' => 'datetime',
         ];
     }
 
@@ -68,7 +71,12 @@ class Document extends Model implements HasMedia
         }
 
         /** @var Media|null $pdf */
-        $pdf = $this->getMedia()->first(fn ($m) => str_ends_with(strtolower((string) $m->file_name), '.pdf'));
+        $pdf = collect([
+            ...$this->getMedia('files')->all(),
+            ...$this->getMedia('attachments')->all(),
+        ])
+            ->reverse()
+            ->first(fn (Media $media): bool => str_ends_with(strtolower((string) $media->file_name), '.pdf'));
 
         if ($pdf !== null) {
             return ['source' => 'pdf', 'content' => null, 'file_path' => $pdf->getPath()];

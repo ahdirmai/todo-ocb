@@ -9,6 +9,17 @@ use Illuminate\Http\Request;
 
 class TeamDocumentController extends Controller
 {
+    private function clearOtherTeamSopFlags(Team $team, ?string $exceptDocumentId = null): void
+    {
+        $team->documents()
+            ->where('is_sop', true)
+            ->when(
+                $exceptDocumentId !== null,
+                fn ($query) => $query->where('id', '!=', $exceptDocumentId)
+            )
+            ->update(['is_sop' => false]);
+    }
+
     /**
      * @return array<int, string>
      */
@@ -94,12 +105,18 @@ class TeamDocumentController extends Controller
             'is_sop' => 'nullable|boolean',
         ]);
 
+        $markAsSop = $request->boolean('is_sop');
+
+        if ($markAsSop) {
+            $this->clearOtherTeamSopFlags($team);
+        }
+
         foreach ($request->file('files') as $file) {
             $document = $team->documents()->create([
                 'user_id' => $request->user()->id,
                 'name' => $file->getClientOriginalName(),
                 'type' => 'file',
-                'is_sop' => $request->boolean('is_sop'),
+                'is_sop' => $markAsSop,
                 'parent_id' => $validated['parent_id'] ?? null,
             ]);
 
@@ -128,12 +145,18 @@ class TeamDocumentController extends Controller
             'attachments.*' => $this->documentAttachmentRules(),
         ]);
 
+        $markAsSop = $request->boolean('is_sop');
+
+        if ($markAsSop) {
+            $this->clearOtherTeamSopFlags($team);
+        }
+
         $document = $team->documents()->create([
             'user_id' => $request->user()->id,
             'name' => $validated['name'],
             'type' => 'document',
             'content' => $validated['content'],
-            'is_sop' => $request->boolean('is_sop'),
+            'is_sop' => $markAsSop,
             'parent_id' => $validated['parent_id'] ?? null,
         ]);
 
@@ -204,6 +227,10 @@ class TeamDocumentController extends Controller
             'is_sop' => $request->has('is_sop') ? $request->boolean('is_sop') : $document->is_sop,
         ]);
 
+        if ($document->is_sop) {
+            $this->clearOtherTeamSopFlags($team, $document->id);
+        }
+
         if (! empty($validated['removed_media_ids'])) {
             $document->media()->whereIn('id', $validated['removed_media_ids'])->delete();
         }
@@ -253,6 +280,10 @@ class TeamDocumentController extends Controller
         $file = $request->file('file');
         if ($request->has('is_sop')) {
             $document->update(['is_sop' => $request->boolean('is_sop')]);
+
+            if ($document->is_sop) {
+                $this->clearOtherTeamSopFlags($team, $document->id);
+            }
         }
 
         // Spatie Media Library allows multiple files in a collection.
@@ -273,7 +304,7 @@ class TeamDocumentController extends Controller
         return back();
     }
 
-    public function destroy(Team $team, Document $document)
+    public function destroy(Request $request, Team $team, Document $document)
     {
         $canModify = request()->user()->id === $document->user_id
             || request()->user()->hasAnyRole(['superadmin', 'admin']);

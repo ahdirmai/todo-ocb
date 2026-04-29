@@ -21,11 +21,19 @@ class DocumentSopStep extends Model
             'min_media' => 'integer',
             'weight' => 'integer',
             'sequence_order' => 'integer',
+            'score_kurang' => 'integer',
+            'score_cukup' => 'integer',
+            'score_sangat_baik' => 'integer',
         ];
     }
 
     public function document(): BelongsTo
     {
         return $this->belongsTo(Document::class);
+    }
+
+    public function kanbanColumn(): BelongsTo
+    {
+        return $this->belongsTo(KanbanColumn::class);
     }
 }

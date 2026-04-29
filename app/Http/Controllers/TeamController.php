@@ -9,6 +9,7 @@ use App\Models\Kanban;
 use App\Models\KanbanColumn;
 use App\Models\Team;
 use App\Models\TeamMessage;
+use App\Services\AiReportingService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -22,6 +23,7 @@ class TeamController extends Controller
         Gate::authorize('view', $team);
 
         $team->load(['users' => fn ($q) => $q->withPivot('role')])->loadCount('tasks');
+        $isAdmin = auth()->user()->hasAnyRole(['superadmin', 'admin']);
 
         if ($tab === 'task') {
             $team->load([
@@ -49,7 +51,7 @@ class TeamController extends Controller
         $extraProps = [];
 
         if ($tab === 'activity') {
-            abort_unless(auth()->user()->hasAnyRole(['superadmin', 'admin']), 403);
+            abort_unless($isAdmin, 403);
 
             $extraProps['activityLogs'] = ActivityLog::with('causer')
                 ->forTeam($team->id)
@@ -96,6 +98,74 @@ class TeamController extends Controller
                 ->where('team_id', $team->id)
                 ->latest()
                 ->paginate(15);
+        }
+
+        if ($tab === 'sop') {
+            abort_unless($isAdmin, 403);
+
+            $team->load([
+                'kanbans.columns' => fn ($query) => $query->orderBy('order'),
+                'documents' => fn ($query) => $query
+                    ->where('is_sop', true)
+                    ->with(['user', 'media', 'sopSteps.kanbanColumn'])
+                    ->latest()
+                    ->limit(1),
+            ]);
+
+            $sopDocument = $team->documents->first();
+            $platforms = app(AiReportingService::class)->platforms();
+
+            $extraProps['sopData'] = [
+                'document' => $sopDocument ? [
+                    'id' => $sopDocument->id,
+                    'name' => $sopDocument->name,
+                    'type' => $sopDocument->type,
+                    'content_source' => $sopDocument->getAiReadableContent()['source'],
+                    'updated_at' => $sopDocument->updated_at?->toISOString(),
+                    'steps_count' => $sopDocument->sopSteps->count(),
+                    'parse_status' => $sopDocument->sop_parse_status,
+                    'parse_platform' => $sopDocument->sop_parse_platform,
+                    'parse_error' => $sopDocument->sop_parse_error,
+                    'parse_queued_at' => $sopDocument->sop_parse_queued_at?->toISOString(),
+                    'parse_started_at' => $sopDocument->sop_parse_started_at?->toISOString(),
+                    'parse_completed_at' => $sopDocument->sop_parse_completed_at?->toISOString(),
+                ] : null,
+                'steps' => $sopDocument
+                    ? $sopDocument->sopSteps
+                        ->sortBy('sequence_order')
+                        ->values()
+                        ->map(fn ($step) => [
+                            'id' => $step->id,
+                            'sequence_order' => $step->sequence_order,
+                            'name' => $step->name,
+                            'action' => $step->action,
+                            'keywords' => $step->keywords ?? [],
+                            'required_evidence' => $step->required_evidence,
+                            'priority' => $step->priority,
+                            'weight' => $step->weight,
+                            'min_comment' => $step->min_comment,
+                            'min_media' => $step->min_media,
+                            'expected_column' => $step->expected_column,
+                            'kanban_column_id' => $step->kanban_column_id,
+                            'score_kurang' => $step->score_kurang,
+                            'score_cukup' => $step->score_cukup,
+                            'score_sangat_baik' => $step->score_sangat_baik,
+                            'is_mandatory' => $step->is_mandatory,
+                        ])
+                        ->all()
+                    : [],
+                'kanban_columns' => $team->kanbans
+                    ->flatMap(fn (Kanban $kanban) => $kanban->columns->map(fn (KanbanColumn $column) => [
+                        'id' => $column->id,
+                        'title' => $column->title,
+                        'kanban_name' => $kanban->name,
+                        'order' => $column->order,
+                    ]))
+                    ->values()
+                    ->all(),
+                'platforms' => $platforms,
+                'default_platform' => $platforms[0]['value'] ?? null,
+            ];
         }
 
         return Inertia::render('teams/show', [

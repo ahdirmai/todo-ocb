@@ -3,16 +3,16 @@
 return [
 
     /*
-    |--------------------------------------------------------------------------
-    | Third Party Services
-    |--------------------------------------------------------------------------
-    |
-    | This file is for storing the credentials for third party services such
-    | as Mailgun, Postmark, AWS and more. This file provides the de facto
-    | location for this type of information, allowing packages to have
-    | a conventional file to locate the various service credentials.
-    |
-    */
+     |--------------------------------------------------------------------------
+     | Third Party Services
+     |--------------------------------------------------------------------------
+     |
+     | This file is for storing the credentials for third party services such
+     | as Mailgun, Postmark, AWS and more. This file provides the de facto
+     | location for this type of information, allowing packages to have
+     | a conventional file to locate the various service credentials.
+     |
+     */
 
     'postmark' => [
         'key' => env('POSTMARK_API_KEY'),
@@ -49,7 +49,7 @@ return [
         'api_key' => env('ANTHROPIC_API_KEY'),
         'base_url' => env('ANTHROPIC_BASE_URL', 'https://api.anthropic.com/v1'),
         'version' => env('ANTHROPIC_VERSION', '2023-06-01'),
-        'reporting_model' => env('ANTHROPIC_REPORTING_MODEL', 'claude-sonnet-4-20250514'),
+        'reporting_model' => env('ANTHROPIC_REPORTING_MODEL', 'claude-haiku-4-5-20251001'),
     ],
 
     'gemini' => [

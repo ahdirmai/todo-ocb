@@ -16,6 +16,7 @@ use App\Http\Controllers\TeamController;
 use App\Http\Controllers\TeamDocumentController;
 use App\Http\Controllers\TeamMemberController;
 use App\Http\Controllers\TeamMessageController;
+use App\Http\Controllers\TeamSopController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -40,7 +41,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Team routes — URL-based tab navigation
     Route::get('teams/{team:slug}/{tab?}/{item?}', [TeamController::class, 'show'])
-        ->where('tab', 'overview|task|chat|announcement|question|document|activity')
+        ->where('tab', 'overview|task|chat|announcement|question|document|sop|activity')
         ->name('teams.show');
 
     // Kanban Column CRUD
@@ -89,6 +90,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('teams/{team:slug}/documents/{document}', [TeamDocumentController::class, 'destroy'])->name('documents.destroy');
     Route::post('documents/{document}/comments', [DocumentCommentController::class, 'store'])->name('documents.comments.store');
     Route::put('documents/{document}/comments/{comment}', [DocumentCommentController::class, 'update'])->name('documents.comments.update');
+    Route::middleware('role:superadmin|admin')->group(function () {
+        Route::post('teams/{team:slug}/sop/parse', [TeamSopController::class, 'parse'])->name('teams.sop.parse');
+        Route::post('teams/{team:slug}/sop/steps', [TeamSopController::class, 'storeStep'])->name('teams.sop.steps.store');
+        Route::put('teams/{team:slug}/sop/steps/reorder', [TeamSopController::class, 'reorderSteps'])->name('teams.sop.steps.reorder');
+        Route::patch('teams/{team:slug}/sop/steps/{documentSopStep}', [TeamSopController::class, 'updateStep'])->name('teams.sop.steps.update');
+        Route::delete('teams/{team:slug}/sop/steps/{documentSopStep}', [TeamSopController::class, 'destroyStep'])->name('teams.sop.steps.destroy');
+    });
 
     // Member Management — Superadmin & Admin only
     Route::middleware('role:superadmin|admin')->group(function () {

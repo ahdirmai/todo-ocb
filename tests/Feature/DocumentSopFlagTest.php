@@ -50,6 +50,7 @@ test('users can mark uploaded files as sop', function () {
 
     expect($document->is_sop)->toBeTrue();
     expect($document->getMedia('files'))->toHaveCount(1);
+    expect($document->getAiReadableContent()['source'])->toBe('pdf');
 });
 
 test('renaming a sop document preserves its sop flag when the field is omitted', function () {
@@ -75,6 +76,33 @@ test('renaming a sop document preserves its sop flag when the field is omitted',
 
     $response->assertSessionHasNoErrors();
     expect($document->fresh()->is_sop)->toBeTrue();
+});
+
+test('marking a new document as sop clears previous sop on the same team', function () {
+    $user = User::factory()->create();
+    $team = createDocumentSopTeam();
+    $team->users()->attach($user->id, ['role' => 'admin']);
+
+    $oldDocument = Document::create([
+        'team_id' => $team->id,
+        'user_id' => $user->id,
+        'name' => 'SOP Lama',
+        'type' => 'document',
+        'content' => '<p>Langkah lama</p>',
+        'is_sop' => true,
+    ]);
+
+    $response = $this->actingAs($user)->post(route('documents.document.store', ['team' => $team->slug]), [
+        'name' => 'SOP Baru',
+        'content' => '<p>Langkah baru</p>',
+        'is_sop' => true,
+    ]);
+
+    $response->assertSessionHasNoErrors();
+
+    expect($oldDocument->fresh()->is_sop)->toBeFalse();
+    expect(Document::where('team_id', $team->id)->where('is_sop', true)->count())->toBe(1);
+    expect(Document::where('team_id', $team->id)->where('name', 'SOP Baru')->firstOrFail()->is_sop)->toBeTrue();
 });
 
 test('document uploads respect configured max file size', function () {
