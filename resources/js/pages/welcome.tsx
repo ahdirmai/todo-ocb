@@ -18,7 +18,7 @@ export default function Welcome() {
                     <nav className="flex items-center justify-end gap-4">
                         {auth.user ? (
                             <Link
-                                href={dashboard()}
+                                href={dashboard.url()}
                                 className="inline-block rounded-sm border border-[#19140035] px-5 py-1.5 text-sm leading-normal text-[#1b1b18] hover:border-[#1915014a] dark:border-[#3E3E3A] dark:text-[#EDEDEC] dark:hover:border-[#62605b]"
                             >
                                 Dashboard
@@ -54,7 +54,7 @@ export default function Welcome() {
                                     <span>
                                         Buka
                                         <a
-                                            href={auth.user ? dashboard() : login()}
+                                            href={auth.user ? dashboard.url() : login.url()}
                                             className="ml-1 inline-flex items-center space-x-1 font-medium text-[#f53003] underline underline-offset-4 dark:text-[#FF4433]"
                                         >
                                             <span>
@@ -86,7 +86,7 @@ export default function Welcome() {
                                     <span>
                                         Akses
                                         <a
-                                            href={auth.user ? dashboard() : login()}
+                                            href={auth.user ? dashboard.url() : login.url()}
                                             className="ml-1 inline-flex items-center space-x-1 font-medium text-[#f53003] underline underline-offset-4 dark:text-[#FF4433]"
                                         >
                                             <span>

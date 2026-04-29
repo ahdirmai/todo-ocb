@@ -14,6 +14,7 @@ import {
     List,
     ListOrdered,
     Save,
+    X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PendingFilePreview } from '@/components/pending-file-preview';

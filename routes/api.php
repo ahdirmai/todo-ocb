@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\V1\AuthController as V1AuthController;
 use App\Http\Controllers\Api\V1\CommentController as V1CommentController;
 use App\Http\Controllers\Api\V1\DashboardController as V1DashboardController;
 use App\Http\Controllers\Api\V1\DocumentController as V1DocumentController;
+use App\Http\Controllers\Api\V1\MonthlyTaskReportController as V1MonthlyTaskReportController;
 use App\Http\Controllers\Api\V1\TagController as V1TagController;
 use App\Http\Controllers\Api\V1\TaskController as V1TaskController;
 use App\Http\Controllers\TeamMessageController;
@@ -95,5 +96,10 @@ Route::prefix('v1')
             Route::patch('teams/{team}/documents/{document}', [V1DocumentController::class, 'update'])->name('teams.documents.update');
             Route::post('teams/{team}/documents/{document}/file-version', [V1DocumentController::class, 'storeFileVersion'])->name('teams.documents.file-version.store');
             Route::delete('teams/{team}/documents/{document}', [V1DocumentController::class, 'destroy'])->name('teams.documents.destroy');
+
+            Route::middleware('role:superadmin|admin')->group(function () {
+                Route::get('reports/monthly-tasks', [V1MonthlyTaskReportController::class, 'show'])
+                    ->name('reports.monthly-tasks.show');
+            });
         });
     });

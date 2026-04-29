@@ -9,6 +9,7 @@ use App\Http\Controllers\KanbanBoardController;
 use App\Http\Controllers\KanbanColumnController;
 use App\Http\Controllers\MemberController;
 use App\Http\Controllers\NightwatchController;
+use App\Http\Controllers\ReportingController;
 use App\Http\Controllers\TagController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\TeamController;
@@ -91,6 +92,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Member Management — Superadmin & Admin only
     Route::middleware('role:superadmin|admin')->group(function () {
+        Route::get('reporting', [ReportingController::class, 'index'])->name('reporting.index');
+        Route::get('reporting/{monthlyTaskReport}', [ReportingController::class, 'show'])->name('reporting.show');
+        Route::post('reporting/generate', [ReportingController::class, 'generate'])->name('reporting.generate');
+
         Route::get('members', [MemberController::class, 'index'])->name('members.index');
         Route::post('members', [MemberController::class, 'store'])->name('members.store');
         Route::put('members/{user}', [MemberController::class, 'update'])->name('members.update');

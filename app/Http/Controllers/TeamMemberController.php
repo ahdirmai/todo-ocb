@@ -61,7 +61,7 @@ class TeamMemberController extends Controller
         return response()->json(
             $team->users()->select('users.id', 'users.name', 'users.email')
                 ->get()
-                ->map(fn($user) => [
+                ->map(fn ($user) => [
                     'id' => $user->id,
                     'name' => $user->name,
                     'avatar_url' => $user->avatar_url,

@@ -8,8 +8,10 @@ import {
     Sun,
     Activity,
     Binoculars,
+    FileBarChart2,
 } from 'lucide-react';
 import { useState } from 'react';
+import * as ReportingActions from '@/actions/App/Http/Controllers/ReportingController';
 import * as TeamActions from '@/actions/App/Http/Controllers/TeamController';
 import AppLogo from '@/components/app-logo';
 import { NavFooter } from '@/components/nav-footer';
@@ -128,6 +130,14 @@ export function AppSidebar() {
                                         <Link href="/teams/manage">
                                             <Users2 className="h-4 w-4" />
                                             <span>Manajemen Tim</span>
+                                        </Link>
+                                    </SidebarMenuButton>
+                                </SidebarMenuItem>
+                                <SidebarMenuItem>
+                                    <SidebarMenuButton asChild>
+                                        <Link href={ReportingActions.index.url()}>
+                                            <FileBarChart2 className="h-4 w-4" />
+                                            <span>Reporting</span>
                                         </Link>
                                     </SidebarMenuButton>
                                 </SidebarMenuItem>

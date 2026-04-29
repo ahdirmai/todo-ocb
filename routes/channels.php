@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Team;
 use Illuminate\Support\Facades\Broadcast;
 
 /*
@@ -22,7 +23,7 @@ Broadcast::channel('App.Models.User.{id}', function ($user, $id) {
  * Only authenticated team members may subscribe.
  */
 Broadcast::channel('team.{teamId}', function ($user, string $teamId) {
-    return \App\Models\Team::where('id', $teamId)
+    return Team::where('id', $teamId)
         ->whereHas('users', fn ($q) => $q->where('users.id', $user->id))
         ->exists();
 });
