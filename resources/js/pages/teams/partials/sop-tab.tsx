@@ -392,7 +392,7 @@ export function SopTab({ team }: { team: { slug: string; name: string } }) {
                                                                     </div>
 
                                                                     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-6 bg-slate-50 dark:bg-zinc-900 p-3 rounded-xl border border-slate-100 dark:border-zinc-800">
-                                                                        <div className="space-y-2">
+                                                                        <div className="space-y-2 hidden">
                                                                             <Label className="text-xs">Bobot (Weight)</Label>
                                                                             <Input type="number" min={0} value={step.weight} onChange={(e) => handleStepChange(step.id, 'weight', Number(e.target.value))} />
                                                                         </div>

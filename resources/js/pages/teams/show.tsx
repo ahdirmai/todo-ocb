@@ -73,7 +73,7 @@ export default function TeamShow({
     return (
         <>
             <Head title={team.name} />
-            <div className="flex h-full flex-1 flex-col overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
+            <div className="mx-auto flex h-full w-full max-w-[1600px] flex-1 flex-col overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
                 {/* Header Team Area */}
                 <div className="flex items-center justify-between px-6 pt-5 pb-3">
                     <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
@@ -133,7 +133,7 @@ export default function TeamShow({
                     <div className="flex-1 overflow-hidden">
                         <TabsContent
                             value="overview"
-                            className="m-0 flex h-full flex-col p-6"
+                            className="m-0 flex h-full flex-col overflow-y-auto p-6"
                         >
                             <OverviewTab team={team} />
                         </TabsContent>
@@ -151,25 +151,25 @@ export default function TeamShow({
                         </TabsContent>
                         <TabsContent
                             value="announcement"
-                            className="m-0 flex h-full flex-col p-6"
+                            className="m-0 flex h-full flex-col overflow-y-auto p-6"
                         >
                             <PengumumanTab team={team} />
                         </TabsContent>
                         <TabsContent
                             value="document"
-                            className="m-0 flex h-full flex-col p-6"
+                            className="m-0 flex h-full flex-col overflow-y-auto p-6"
                         >
                             <DokumenTab team={team} />
                         </TabsContent>
                         <TabsContent
                             value="sop"
-                            className="m-0 flex h-full flex-col p-6"
+                            className="m-0 flex h-full flex-col overflow-y-auto p-6"
                         >
                             <SopTab team={team} />
                         </TabsContent>
                         <TabsContent
                             value="activity"
-                            className="m-0 flex h-full flex-col p-6"
+                            className="m-0 flex h-full flex-col overflow-y-auto p-6"
                         >
                             <ActivityTab />
                         </TabsContent>
