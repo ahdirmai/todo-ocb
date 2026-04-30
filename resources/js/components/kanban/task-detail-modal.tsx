@@ -28,6 +28,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { toast } from 'sonner';
 
 const RichTextEditor = ({ content, onChange, disabled }: any) => {
     const editor = useEditor({
@@ -128,7 +129,7 @@ interface TaskDetailModalProps {
 }
 
 export function TaskDetailModal({ task, open, onClose }: TaskDetailModalProps) {
-    const { tags: globalTags = [], auth, team, uploads } = usePage<any>().props;
+    const { tags: globalTags = [], auth, team, uploads, errors } = usePage<any>().props;
 
     const isGlobalAdmin = auth?.roles?.some((r: string) =>
         ['superadmin', 'admin'].includes(r),
@@ -304,6 +305,7 @@ export function TaskDetailModal({ task, open, onClose }: TaskDetailModalProps) {
                 content: cleanContent || '<p></p>',
                 parent_id: replyingTo,
                 attachments: attachments,
+                attachment_dates: attachments.map(file => new Date(file.lastModified).toISOString()),
             },
             {
                 preserveScroll: true,
@@ -318,7 +320,12 @@ export function TaskDetailModal({ task, open, onClose }: TaskDetailModalProps) {
                         fileInputRef.current.value = '';
                     }
                 },
-                onError: () => setSendingComment(false),
+                onError: (errors: any) => {
+                    setSendingComment(false);
+                    if (errors.attachments) {
+                        toast.error(errors.attachments);
+                    }
+                },
             },
         );
     };
@@ -344,6 +351,7 @@ export function TaskDetailModal({ task, open, onClose }: TaskDetailModalProps) {
             {
                 content: editContent,
                 new_attachments: editAttachments,
+                new_attachment_dates: editAttachments.map(file => new Date(file.lastModified).toISOString()),
                 removed_media_ids: editRemovedMediaIds,
             },
             {
@@ -355,6 +363,11 @@ export function TaskDetailModal({ task, open, onClose }: TaskDetailModalProps) {
                     setEditContent('');
                     setEditAttachments([]);
                     setEditRemovedMediaIds([]);
+                },
+                onError: (errors: any) => {
+                    if (errors.attachments) {
+                        toast.error(errors.attachments);
+                    }
                 },
             },
         );

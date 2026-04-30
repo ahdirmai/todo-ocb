@@ -22,7 +22,20 @@ class CommentController extends Controller
             'parent_id' => 'nullable|exists:comments,id',
             'attachments' => 'nullable|array',
             'attachments.*' => 'file|max:'.$this->attachmentMaxKilobytes(),
+            'attachment_dates' => 'nullable|array',
+            'attachment_dates.*' => 'date',
         ]);
+
+        if (!empty($validated['attachment_dates'])) {
+            foreach ($validated['attachment_dates'] as $date) {
+                $fileDate = \Carbon\Carbon::parse($date);
+                if ($fileDate->diffInHours(now()) > 24) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'attachments' => 'File/foto tidak valid: Bukti yang dilampirkan dibuat lebih dari 1 hari yang lalu.',
+                    ]);
+                }
+            }
+        }
 
         $comment = $task->comments()->create([
             'user_id' => $request->user()?->id,
@@ -31,8 +44,13 @@ class CommentController extends Controller
         ]);
 
         if ($request->hasFile('attachments')) {
-            foreach ($request->file('attachments') as $file) {
-                $comment->addMedia($file)->toMediaCollection('documents');
+            $dates = $validated['attachment_dates'] ?? [];
+            foreach ($request->file('attachments') as $index => $file) {
+                $media = $comment->addMedia($file);
+                if (isset($dates[$index])) {
+                    $media->withCustomProperties(['original_date_created' => $dates[$index]]);
+                }
+                $media->toMediaCollection('documents');
             }
         }
 
@@ -87,9 +105,22 @@ class CommentController extends Controller
             'content' => 'required|string',
             'new_attachments' => 'nullable|array',
             'new_attachments.*' => 'file|max:'.$this->attachmentMaxKilobytes(),
+            'new_attachment_dates' => 'nullable|array',
+            'new_attachment_dates.*' => 'date',
             'removed_media_ids' => 'nullable|array',
             'removed_media_ids.*' => 'integer',
         ]);
+
+        if (!empty($validated['new_attachment_dates'])) {
+            foreach ($validated['new_attachment_dates'] as $date) {
+                $fileDate = \Carbon\Carbon::parse($date);
+                if ($fileDate->diffInHours(now()) > 24) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'attachments' => 'File/foto tidak valid: Bukti yang dilampirkan dibuat lebih dari 1 hari yang lalu.',
+                    ]);
+                }
+            }
+        }
 
         $comment->update(['content' => $validated['content']]);
 
@@ -98,8 +129,13 @@ class CommentController extends Controller
         }
 
         if ($request->hasFile('new_attachments')) {
-            foreach ($request->file('new_attachments') as $file) {
-                $comment->addMedia($file)->toMediaCollection('documents');
+            $dates = $validated['new_attachment_dates'] ?? [];
+            foreach ($request->file('new_attachments') as $index => $file) {
+                $media = $comment->addMedia($file);
+                if (isset($dates[$index])) {
+                    $media->withCustomProperties(['original_date_created' => $dates[$index]]);
+                }
+                $media->toMediaCollection('documents');
             }
         }
 
