@@ -165,6 +165,7 @@ class TeamSopController extends Controller
     private function defaultPlatform(): string
     {
         return match (true) {
+            filled(config('services.9route.api_key')) => '9route',
             filled(config('services.openai.api_key')) => 'openai',
             filled(config('services.anthropic.api_key')) => 'anthropic',
             filled(config('services.gemini.api_key')) => 'gemini',

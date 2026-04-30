@@ -14,6 +14,7 @@ class MonthlyTaskReport extends Model
         return [
             'report_month' => 'date',
             'payload' => 'array',
+            'recap_per_user' => 'array',
             'source_snapshot' => 'array',
             'generated_at' => 'datetime',
         ];

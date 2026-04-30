@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Models\Document;
+use App\Models\DocumentSopStep;
 use App\Models\KanbanColumn;
 use App\Models\MonthlyTaskReport;
 use App\Models\Task;
@@ -11,6 +13,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Log;
 
 class MonthlyTaskReportingService
 {
@@ -49,12 +52,121 @@ class MonthlyTaskReportingService
                 'prompt_version' => 'v1',
                 'source_task_count' => data_get($sourceSnapshot, 'overall.task_count', 0),
                 'payload' => $payload,
+                'recap_per_user' => $this->generateRecapFromPayload($payload, $month),
                 'source_snapshot' => $sourceSnapshot,
                 'generated_at' => now(),
             ])->load(['generator', 'team']);
-        } catch (QueryException) {
-            return $this->findByMonth($month, $teamId) ?? throw new \RuntimeException('Gagal menyimpan report bulanan.');
+        } catch (QueryException $e) {
+            Log::error('MonthlyTaskReport insert failed', [
+                'message' => $e->getMessage(),
+                'sql' => $e->getSql(),
+                'bindings' => $e->getBindings(),
+            ]);
+
+            return $this->findByMonth($month, $teamId) ?? throw new \RuntimeException('Gagal menyimpan report bulanan: '.$e->getMessage());
         }
+    }
+
+    /**
+     * Build recap_per_user array from payload.
+     * Includes work_days, target_score, and kpi_status per member.
+     */
+    public function generateRecapFromPayload(array $payload, ?CarbonImmutable $month = null): array
+    {
+        $recap = [];
+        $teams = $payload['teams'] ?? [];
+
+        // Calculate work days: total days in month minus number of Sundays
+        $workDays = $this->calculateWorkDays($month);
+
+        foreach ($teams as $team) {
+            // Derive max_score_per_task from the sum of score_sangat_baik across
+            // all breakdown_jalur of the first available task (same SOP = same max per task)
+            $maxScorePerTask = $this->resolveMaxScorePerTask($team);
+
+            foreach ($team['members'] as $member) {
+                $jumlahTask = (int) ($member['jumlah_task'] ?? 0);
+                $skorMaksimal = (int) ($member['skor_maksimal'] ?? 0);
+                $totalScore = (int) ($member['total_score'] ?? 0);
+
+                // target = (sum of all SOP step max scores) × work_days
+                $targetScore = (int) round($maxScorePerTask * $workDays);
+
+                $targetCompliance = $targetScore > 0
+                    ? number_format(($totalScore / $targetScore) * 100, 1)
+                    : '0.0';
+
+                $kpiStatus = (float) $targetCompliance >= 80.0 ? 'memenuhi' : 'tidak_memenuhi';
+
+                $recap[] = [
+                    'team_name' => $team['team_name'] ?? '',
+                    'member_key' => $member['member_key'] ?? '',
+                    'name' => $member['name'] ?? '',
+                    'position' => $member['position'] ?? '',
+                    'jumlah_task' => $jumlahTask,
+                    'total_score' => $totalScore,
+                    'skor_maksimal' => $skorMaksimal,
+                    'compliance_persen' => $member['compliance_persen'] ?? '0.0',
+                    'performance_label' => $member['performance_label'] ?? 'none',
+                    'work_days' => $workDays,
+                    'max_score_per_task' => $maxScorePerTask,
+                    'target_score' => $targetScore,
+                    'target_compliance' => $targetCompliance,
+                    'kpi_status' => $kpiStatus,
+                ];
+            }
+        }
+
+        return $recap;
+    }
+
+    /**
+     * Resolve the max score for a single task by summing score_sangat_baik
+     * (or skor_maksimal as fallback) from all breakdown_jalur of the first task.
+     * This is the same for all tasks in a team since they share the same SOP.
+     */
+    private function resolveMaxScorePerTask(array $team): int
+    {
+        foreach ($team['members'] as $member) {
+            foreach ($member['breakdown_task'] ?? [] as $task) {
+                $jalurList = $task['breakdown_jalur'] ?? [];
+                if (count($jalurList) === 0) {
+                    continue;
+                }
+
+                return (int) collect($jalurList)->sum(
+                    fn (array $j): int => (int) ($j['score_sangat_baik'] ?? $j['skor_maksimal'] ?? 10)
+                );
+            }
+        }
+
+        return 0;
+    }
+
+    /**
+     * Calculate working days for a month (total days minus Sundays).
+     */
+    private function calculateWorkDays(?CarbonImmutable $month): int
+    {
+        if ($month === null) {
+            $month = CarbonImmutable::now()->startOfMonth();
+        }
+
+        $start = $month->startOfMonth();
+        $end = $month->endOfMonth();
+        $daysInMonth = $end->day;
+
+        // Count Sundays in the month
+        $sundays = 0;
+        $current = $start;
+        while ($current->lte($end)) {
+            if ($current->isSunday()) {
+                $sundays++;
+            }
+            $current = $current->addDay();
+        }
+
+        return max(1, $daysInMonth - $sundays);
     }
 
     public function teamOptions(): array
@@ -89,27 +201,26 @@ class MonthlyTaskReportingService
             ];
         }
 
-        $kanbanColumns = $sourceSnapshot['teams'][0]['kanban_columns'] ?? [];
-        $auditStepCount = count($kanbanColumns);
-
         return [
             'month' => $sourceSnapshot['month'],
-            'platform' => 'word-match',
+            'platform' => 'sop-step-scoring',
             'period' => $sourceSnapshot['period'],
             'overview' => [
                 'headline' => 'Laporan scoring task bulanan.',
-                'summary' => 'Scoring dilakukan berdasarkan word-matching komentar task terhadap nama kolom Kanban.',
+                'summary' => 'Scoring dilakukan berdasarkan SOP steps dan word-matching komentar task.',
                 'metrics' => $sourceSnapshot['overall'],
             ],
             'teams' => collect($sourceSnapshot['teams'])
-                ->map(function (array $team) use ($auditStepCount): array {
+                ->map(function (array $team): array {
                     $kanbanColumns = $team['kanban_columns'] ?? [];
+                    $sopSteps = $this->loadSopStepsForTeam($team['team_id']);
+                    $auditStepCount = count($sopSteps) > 0 ? count($sopSteps) : count($kanbanColumns);
 
                     $members = collect($team['members'])
-                        ->map(function (array $member) use ($kanbanColumns): array {
+                        ->map(function (array $member) use ($kanbanColumns, $sopSteps): array {
                             $breakdownTask = collect($member['tasks'])
-                                ->map(function (array $task) use ($kanbanColumns): array {
-                                    $scoring = $this->scoringService->scoreTask($task, $kanbanColumns);
+                                ->map(function (array $task) use ($kanbanColumns, $sopSteps): array {
+                                    $scoring = $this->scoringService->scoreTask($task, $kanbanColumns, $sopSteps);
 
                                     return [
                                         'task_id' => $task['id'],
@@ -163,6 +274,38 @@ class MonthlyTaskReportingService
                 ->values()
                 ->all(),
         ];
+    }
+
+    /**
+     * @return array<int, array{name: string, expected_column: ?string, score_kurang: int, score_cukup: int, score_sangat_baik: int, min_comment: int, min_media: int, is_mandatory: bool}>
+     */
+    private function loadSopStepsForTeam(string $teamId): array
+    {
+        $sopDocument = Document::query()
+            ->where('team_id', $teamId)
+            ->where('is_sop', true)
+            ->latest()
+            ->first();
+
+        if ($sopDocument === null) {
+            return [];
+        }
+
+        return DocumentSopStep::query()
+            ->where('document_id', $sopDocument->id)
+            ->orderBy('sequence_order')
+            ->get()
+            ->map(fn (DocumentSopStep $step): array => [
+                'name' => $step->name,
+                'expected_column' => $step->expected_column,
+                'score_kurang' => $step->score_kurang,
+                'score_cukup' => $step->score_cukup,
+                'score_sangat_baik' => $step->score_sangat_baik,
+                'min_comment' => $step->min_comment,
+                'min_media' => $step->min_media,
+                'is_mandatory' => $step->is_mandatory,
+            ])
+            ->all();
     }
 
     private function buildSourceSnapshot(CarbonImmutable $month, Team $team): array

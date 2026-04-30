@@ -4,19 +4,10 @@ namespace App\Services;
 
 use Illuminate\Support\Str;
 
-/**
- * Scores task comments against Kanban column names using word/similarity matching.
- *
- * Scoring rules:
- * - 10: Comment matches column AND has file attachment
- * - 6:  Comment matches column text only (no attachment)
- * - 3:  No matching comment, but task is in a subsequent column (step was passed)
- * - 0:  No evidence at all
- */
 class TaskColumnScoringService
 {
     /**
-     * Score a single task against all audit columns.
+     * Score a single task against SOP steps.
      *
      * @param  array{
      *     id: string,
@@ -30,73 +21,226 @@ class TaskColumnScoringService
      *     comments: array<int, array{author: ?string, content: string, attachments_count: int}>
      * }  $task
      * @param  array<int, array{id: string, title: string, order: int|string|null, is_done: bool}>  $kanbanColumns
+     * @param  array<int, array{
+     *     name: string,
+     *     expected_column: ?string,
+     *     score_kurang: int,
+     *     score_cukup: int,
+     *     score_sangat_baik: int,
+     *     min_comment: int,
+     *     min_media: int,
+     *     is_mandatory: bool
+     * }>  $sopSteps
      * @return array{
      *     skor_total_task: int,
      *     skor_maksimal_task: int,
      *     compliance_persen: string,
      *     quality: string,
-     *     breakdown_jalur: array<int, array{nama_jalur: string, skor: int, penjelasan: string}>
+     *     breakdown_jalur: array<int, array{
+     *         nama_jalur: string,
+     *         skor: int,
+     *         skor_maksimal: int,
+     *         score_kurang: int,
+     *         score_cukup: int,
+     *         score_sangat_baik: int,
+     *         level: string,
+     *         penjelasan: string,
+     *         is_mandatory: bool
+     *     }>
      * }
      */
-    public function scoreTask(array $task, array $kanbanColumns): array
+    public function scoreTask(array $task, array $kanbanColumns, array $sopSteps = []): array
     {
         $currentColumnTitle = $task['status'] ?? null;
         $currentColumnOrder = $this->findColumnOrder($currentColumnTitle, $kanbanColumns);
 
         $breakdownJalur = [];
         $totalScore = 0;
+        $totalMaxScore = 0;
 
-        foreach ($kanbanColumns as $index => $column) {
-            $columnTitle = $column['title'] ?? '';
-            $columnOrder = (int) ($column['order'] ?? ($index + 1));
-
-            $matchResult = $this->findMatchingComment($columnTitle, $task['comments'] ?? []);
-
-            if ($matchResult !== null) {
-                if ($matchResult['has_attachment']) {
-                    $skor = 10;
-                    $penjelasan = 'Komentar cocok + File terlampir';
-                } else {
-                    $skor = 6;
-                    $penjelasan = 'Hanya komentar (tanpa lampiran file)';
-                }
-            } elseif ($this->isStepPassed($columnOrder, $currentColumnOrder)) {
-                $skor = 3;
-                $penjelasan = 'Tanpa evidence, tapi sudah di step selanjutnya';
-            } else {
-                $skor = 0;
-                $penjelasan = 'Tidak ada evidence';
+        if (count($sopSteps) > 0) {
+            $totalSteps = count($sopSteps);
+            foreach ($sopSteps as $index => $step) {
+                $isLastStep = ($index === $totalSteps - 1);
+                $result = $this->scoreStepWithSop($step, $task, $kanbanColumns, $currentColumnOrder, $isLastStep);
+                $totalScore += $result['skor'];
+                $totalMaxScore += $result['skor_maksimal'];
+                $breakdownJalur[] = $result;
             }
-
-            $totalScore += $skor;
-            $breakdownJalur[] = [
-                'nama_jalur' => $columnTitle,
-                'skor' => $skor,
-                'penjelasan' => $penjelasan,
-            ];
+        } else {
+            $totalColumns = count($kanbanColumns);
+            foreach ($kanbanColumns as $index => $column) {
+                $isLastStep = ($index === $totalColumns - 1);
+                $result = $this->scoreStepLegacy($column, $index, $task, $kanbanColumns, $currentColumnOrder, $isLastStep);
+                $totalScore += $result['skor'];
+                $totalMaxScore += $result['skor_maksimal'];
+                $breakdownJalur[] = $result;
+            }
         }
 
-        $maxScore = count($kanbanColumns) * 10;
-        $compliancePersen = $maxScore > 0
-            ? number_format(($totalScore / $maxScore) * 100, 1)
+        $compliancePersen = $totalMaxScore > 0
+            ? number_format(($totalScore / $totalMaxScore) * 100, 1)
             : '0.0';
-
-        $quality = $this->determineQuality($compliancePersen);
 
         return [
             'skor_total_task' => $totalScore,
-            'skor_maksimal_task' => $maxScore,
+            'skor_maksimal_task' => $totalMaxScore,
             'compliance_persen' => $compliancePersen,
-            'quality' => $quality,
+            'quality' => $this->determineQuality($compliancePersen),
             'breakdown_jalur' => $breakdownJalur,
         ];
     }
 
     /**
-     * Try to find a comment whose content matches (word/similar) the column title.
+     * @param  array{name: string, expected_column: ?string, score_kurang: int, score_cukup: int, score_sangat_baik: int, min_comment: int, min_media: int, is_mandatory: bool}  $step
+     * @param  array<int, array{id: string, title: string, order: int|string|null, is_done: bool}>  $kanbanColumns
+     */
+    private function scoreStepWithSop(array $step, array $task, array $kanbanColumns, ?int $currentColumnOrder, bool $isLastStep = false): array
+    {
+        $expectedColumn = $step['expected_column'] ?? $step['name'];
+        $columnOrder = $this->findColumnOrder($expectedColumn, $kanbanColumns);
+
+        $scoreKurang = (int) ($step['score_kurang'] ?? 2);
+        $scoreCukup = (int) ($step['score_cukup'] ?? 4);
+        $scoreSangatBaik = (int) ($step['score_sangat_baik'] ?? 5);
+        $minComment = (int) ($step['min_comment'] ?? 0);
+        $minMedia = (int) ($step['min_media'] ?? 0);
+
+        $matchResult = $this->findMatchingComment($expectedColumn, $task['comments'] ?? []);
+
+        // Jika task sudah mencapai atau melewati step terakhir
+        if ($isLastStep && $currentColumnOrder !== null && $columnOrder !== null && $currentColumnOrder >= $columnOrder) {
+            $skor = $scoreSangatBaik;
+            $level = 'sangat_baik';
+            $penjelasan = 'Auto max score karena sudah mencapai step terakhir';
+        } elseif ($matchResult !== null) {
+            $commentCount = $this->countMatchingComments($expectedColumn, $task['comments'] ?? []);
+            $attachmentCount = $matchResult['attachment_count'];
+
+            $meetsMinComment = $minComment === 0 || $commentCount >= $minComment;
+            $meetsMinMedia = $minMedia === 0 || $attachmentCount >= $minMedia;
+
+            if ($meetsMinComment && $meetsMinMedia) {
+                $skor = $scoreSangatBaik;
+                $level = 'sangat_baik';
+                $penjelasan = 'Evidence lengkap (komentar + lampiran memenuhi syarat)';
+            } else {
+                $skor = $scoreCukup;
+                $level = 'cukup';
+                $parts = [];
+                if (! $meetsMinComment) {
+                    $parts[] = "komentar {$commentCount}/{$minComment}";
+                }
+                if (! $meetsMinMedia) {
+                    $parts[] = "lampiran {$attachmentCount}/{$minMedia}";
+                }
+                $penjelasan = 'Evidence ada tapi belum lengkap: '.implode(', ', $parts);
+            }
+        } elseif ($this->isStepPassed($columnOrder, $currentColumnOrder)) {
+            $skor = $scoreKurang;
+            $level = 'kurang';
+            $penjelasan = 'Tanpa evidence, tapi sudah di step selanjutnya';
+        } else {
+            $skor = 0;
+            $level = 'none';
+            $penjelasan = 'Tidak ada evidence';
+        }
+
+        return [
+            'nama_jalur' => $expectedColumn,
+            'skor' => $skor,
+            'skor_maksimal' => $scoreSangatBaik,
+            'score_kurang' => $scoreKurang,
+            'score_cukup' => $scoreCukup,
+            'score_sangat_baik' => $scoreSangatBaik,
+            'level' => $level,
+            'penjelasan' => $penjelasan,
+            'is_mandatory' => (bool) ($step['is_mandatory'] ?? false),
+        ];
+    }
+
+    /**
+     * Legacy scoring for backward compatibility when no SOP steps are available.
+     *
+     * @param  array{id: string, title: string, order: int|string|null, is_done: bool}  $column
+     * @param  array<int, array{id: string, title: string, order: int|string|null, is_done: bool}>  $kanbanColumns
+     */
+    private function scoreStepLegacy(array $column, int $index, array $task, array $kanbanColumns, ?int $currentColumnOrder, bool $isLastStep = false): array
+    {
+        $columnTitle = $column['title'] ?? '';
+        $columnOrder = (int) ($column['order'] ?? ($index + 1));
+
+        $matchResult = $this->findMatchingComment($columnTitle, $task['comments'] ?? []);
+
+        // Jika task sudah mencapai atau melewati step terakhir
+        if ($isLastStep && $currentColumnOrder !== null && $currentColumnOrder >= $columnOrder) {
+            $skor = 10;
+            $level = 'sangat_baik';
+            $penjelasan = 'Auto max score karena sudah mencapai step terakhir';
+        } elseif ($matchResult !== null) {
+            if ($matchResult['has_attachment']) {
+                $skor = 10;
+                $level = 'sangat_baik';
+                $penjelasan = 'Komentar cocok + File terlampir';
+            } else {
+                $skor = 6;
+                $level = 'cukup';
+                $penjelasan = 'Hanya komentar (tanpa lampiran file)';
+            }
+        } elseif ($this->isStepPassed($columnOrder, $currentColumnOrder)) {
+            $skor = 3;
+            $level = 'kurang';
+            $penjelasan = 'Tanpa evidence, tapi sudah di step selanjutnya';
+        } else {
+            $skor = 0;
+            $level = 'none';
+            $penjelasan = 'Tidak ada evidence';
+        }
+
+        return [
+            'nama_jalur' => $columnTitle,
+            'skor' => $skor,
+            'skor_maksimal' => 10,
+            'score_kurang' => 3,
+            'score_cukup' => 6,
+            'score_sangat_baik' => 10,
+            'level' => $level,
+            'penjelasan' => $penjelasan,
+            'is_mandatory' => false,
+        ];
+    }
+
+    /**
+     * Count matching comments for a column title.
      *
      * @param  array<int, array{author: ?string, content: string, attachments_count: int}>  $comments
-     * @return array{has_attachment: bool}|null
+     */
+    private function countMatchingComments(string $columnTitle, array $comments): int
+    {
+        if ($columnTitle === '' || count($comments) === 0) {
+            return 0;
+        }
+
+        $columnWords = $this->extractSignificantWords($columnTitle);
+
+        if (count($columnWords) === 0) {
+            return 0;
+        }
+
+        $count = 0;
+        foreach ($comments as $comment) {
+            $content = (string) ($comment['content'] ?? '');
+            if ($content !== '' && $this->isWordMatch($columnWords, $content)) {
+                $count++;
+            }
+        }
+
+        return $count;
+    }
+
+    /**
+     * @param  array<int, array{author: ?string, content: string, attachments_count: int}>  $comments
+     * @return array{has_attachment: bool, attachment_count: int}|null
      */
     private function findMatchingComment(string $columnTitle, array $comments): ?array
     {
@@ -110,6 +254,9 @@ class TaskColumnScoringService
             return null;
         }
 
+        $totalAttachments = 0;
+        $found = false;
+
         foreach ($comments as $comment) {
             $content = (string) ($comment['content'] ?? '');
 
@@ -118,19 +265,22 @@ class TaskColumnScoringService
             }
 
             if ($this->isWordMatch($columnWords, $content)) {
-                return [
-                    'has_attachment' => ((int) ($comment['attachments_count'] ?? 0)) > 0,
-                ];
+                $found = true;
+                $totalAttachments += (int) ($comment['attachments_count'] ?? 0);
             }
         }
 
-        return null;
+        if (! $found) {
+            return null;
+        }
+
+        return [
+            'has_attachment' => $totalAttachments > 0,
+            'attachment_count' => $totalAttachments,
+        ];
     }
 
     /**
-     * Check if significant words from the column title appear in the comment content.
-     * Uses a threshold: at least 50% of column words must appear, with a minimum of 1.
-     *
      * @param  string[]  $columnWords
      */
     private function isWordMatch(array $columnWords, string $content): bool
@@ -150,8 +300,6 @@ class TaskColumnScoringService
     }
 
     /**
-     * Extract significant words from a column title, filtering out stopwords.
-     *
      * @return string[]
      */
     private function extractSignificantWords(string $title): array
@@ -176,9 +324,6 @@ class TaskColumnScoringService
         ));
     }
 
-    /**
-     * Normalize text: strip tags, lowercase, squish whitespace.
-     */
     private function normalizeText(string $text): string
     {
         $stripped = strip_tags($text);
@@ -186,12 +331,9 @@ class TaskColumnScoringService
         return mb_strtolower(preg_replace('/\s+/', ' ', trim($stripped)) ?? $stripped);
     }
 
-    /**
-     * Check if a column step was passed (task is in a later column).
-     */
-    private function isStepPassed(int $columnOrder, ?int $currentColumnOrder): bool
+    private function isStepPassed(?int $columnOrder, ?int $currentColumnOrder): bool
     {
-        if ($currentColumnOrder === null) {
+        if ($currentColumnOrder === null || $columnOrder === null) {
             return false;
         }
 
@@ -199,8 +341,6 @@ class TaskColumnScoringService
     }
 
     /**
-     * Find the order of a column by its title.
-     *
      * @param  array<int, array{id: string, title: string, order: int|string|null, is_done: bool}>  $kanbanColumns
      */
     private function findColumnOrder(?string $columnTitle, array $kanbanColumns): ?int
@@ -218,9 +358,6 @@ class TaskColumnScoringService
         return null;
     }
 
-    /**
-     * Determine quality label based on compliance percentage.
-     */
     private function determineQuality(string $compliancePersen): string
     {
         $value = (float) $compliancePersen;
@@ -233,9 +370,6 @@ class TaskColumnScoringService
         };
     }
 
-    /**
-     * Determine performance label based on compliance percentage.
-     */
     public function determinePerformanceLabel(string $compliancePersen): string
     {
         $value = (float) $compliancePersen;

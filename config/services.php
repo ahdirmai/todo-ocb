@@ -58,4 +58,10 @@ return [
         'reporting_model' => env('GEMINI_REPORTING_MODEL', 'gemini-2.5-flash'),
     ],
 
+    '9route' => [
+        'api_key' => env('NINE_ROUTE_API_KEY', 'sk-9route'),
+        'base_url' => env('NINE_ROUTE_BASE_URL', 'http://localhost:20128/v1'),
+        'model' => env('NINE_ROUTE_MODEL', 'sumopod/gpt-5.1'),
+    ],
+
 ];

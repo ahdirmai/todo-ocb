@@ -37,6 +37,7 @@ class AiReportingService
     public function platforms(): array
     {
         return collect([
+            ['value' => '9route', 'label' => '9Route (Local)', 'configured' => filled(config('services.9route.api_key'))],
             ['value' => 'openai', 'label' => 'ChatGPT', 'configured' => filled(config('services.openai.api_key'))],
             ['value' => 'anthropic', 'label' => 'Claude', 'configured' => filled(config('services.anthropic.api_key'))],
             ['value' => 'gemini', 'label' => 'Gemini', 'configured' => filled(config('services.gemini.api_key'))],

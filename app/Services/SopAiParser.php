@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use JsonException;
 use RuntimeException;
+use Smalot\PdfParser\Parser;
 use Throwable;
 
 /**
@@ -48,8 +49,16 @@ class SopAiParser
             'openai' => $this->callOpenAi($aiReadableContent, $kanbanColumnTitles),
             'anthropic' => $this->callAnthropic($aiReadableContent, $kanbanColumnTitles),
             'gemini' => $this->callGemini($aiReadableContent, $kanbanColumnTitles),
+            '9route' => $this->call9Route($aiReadableContent, $kanbanColumnTitles),
             default => throw new RuntimeException('Platform AI tidak dikenali: '.$platform),
         };
+
+        Log::info('SOP AI Parser raw response.', [
+            'platform' => $platform,
+            'source' => $aiReadableContent['source'],
+            'raw_keys' => array_keys($raw),
+            'raw_excerpt' => $this->stringExcerpt(json_encode($raw, JSON_UNESCAPED_UNICODE), 2000),
+        ]);
 
         $normalized = $this->normalize($raw, 'ai', $aiReadableContent['source']);
 
@@ -100,7 +109,7 @@ class SopAiParser
                 ->asJson()
                 ->withHeaders(['x-goog-api-key' => $apiKey])
                 ->connectTimeout(15)
-                ->timeout(120)
+                ->timeout(300)
                 ->post('models/'.$model.':generateContent', [
                     'contents' => [['parts' => $parts]],
                     'generationConfig' => ['responseMimeType' => 'application/json'],
@@ -116,6 +125,65 @@ class SopAiParser
             return $this->decodeJson($text);
         } catch (RequestException|ConnectionException|JsonException $e) {
             throw new RuntimeException('Gagal parsing SOP via Gemini: '.$e->getMessage(), previous: $e);
+        }
+    }
+
+    // ─── 9Route (OpenAI-compatible local router) ──────────────────────────────
+
+    /**
+     * @param  array{source: 'text'|'pdf'|'none', content: string|null, file_path: string|null}  $content
+     * @param  string[]  $columns
+     * @return array<int|string, mixed>
+     */
+    private function call9Route(array $content, array $columns): array
+    {
+        $apiKey = (string) config('services.9route.api_key', 'sk-9route');
+        $baseUrl = rtrim((string) config('services.9route.base_url', 'http://localhost:20128/v1'), '/').'/';
+        $model = (string) config('services.9route.model', 'kr/claude-sonnet-4.5');
+
+        $messages = [
+            ['role' => 'system', 'content' => $this->systemPrompt($columns)."\nPENTING: Jika dokumen terlihat terpotong atau tidak lengkap di bagian akhir, JANGAN berikan pesan error. Ekstrak saja langkah-langkah yang ada semaksimal mungkin secara utuh menjadi sebuah array. Jawab HANYA dengan JSON valid tanpa penjelasan tambahan."],
+        ];
+
+        if ($content['source'] === 'pdf' && $content['file_path'] !== null && file_exists((string) $content['file_path'])) {
+            $pdfText = $this->extractPdfText((string) $content['file_path']);
+            $pdfText = mb_substr($pdfText, 0, 20000);
+            $messages[] = ['role' => 'user', 'content' => "Berikut isi dokumen SOP:\n\n".$pdfText];
+        } else {
+            $messages[] = ['role' => 'user', 'content' => (string) ($content['content'] ?? '[Konten SOP kosong.]')];
+        }
+
+        try {
+            $response = Http::baseUrl($baseUrl)
+                ->acceptJson()
+                ->asJson()
+                ->withToken($apiKey)
+                ->connectTimeout(15)
+                ->timeout(180)
+                ->post('chat/completions', [
+                    'model' => $model,
+                    'messages' => $messages,
+                    'max_tokens' => 8192,
+                    'response_format' => ['type' => 'json_object'],
+                    'temperature' => 0.1,
+                ]);
+
+            $response->throw();
+
+            Log::info('9Route SOP raw API response.', [
+                'status' => $response->status(),
+                'body' => $this->stringExcerpt($response->body(), 3000),
+            ]);
+
+            $text = data_get($response->json(), 'choices.0.message.content');
+
+            if (! is_string($text) || $text === '') {
+                throw new RuntimeException('9Route tidak mengembalikan hasil parsing SOP. Response: '.$this->stringExcerpt($response->body(), 500));
+            }
+
+            return $this->decodeJson($text);
+        } catch (RequestException|ConnectionException|JsonException $e) {
+            throw new RuntimeException('Gagal parsing SOP via 9Route: '.$e->getMessage(), previous: $e);
         }
     }
 
@@ -332,10 +400,21 @@ PROMPT;
      */
     private function normalize(array $raw, string $parsedBy, string $parsedFrom): array
     {
-        // Handle OpenAI schema wrapper: {steps: [...]}
+        // Handle wrapper objects: {steps: [...]}, {sop_steps: [...]}, {data: [...]}
         if (isset($raw['steps']) && is_array($raw['steps'])) {
             $raw = $raw['steps'];
+        } elseif (isset($raw['sop_steps']) && is_array($raw['sop_steps'])) {
+            $raw = $raw['sop_steps'];
+        } elseif (isset($raw['data']) && is_array($raw['data'])) {
+            $raw = $raw['data'];
+        } elseif (! array_is_list($raw)) {
+            $firstArray = collect($raw)->first(fn (mixed $v): bool => is_array($v) && array_is_list($v));
+            if ($firstArray !== null) {
+                $raw = $firstArray;
+            }
         }
+
+        $raw = array_filter($raw, 'is_array');
 
         return collect($raw)
             ->values()
@@ -368,6 +447,25 @@ PROMPT;
             ->all();
     }
 
+    private function extractPdfText(string $filePath): string
+    {
+        $parser = new Parser;
+        $pdf = $parser->parseFile($filePath);
+        $text = $pdf->getText();
+
+        Log::info('PDF text extraction result.', [
+            'file' => basename($filePath),
+            'length' => mb_strlen($text),
+            'excerpt' => $this->stringExcerpt($text, 500),
+        ]);
+
+        if (trim($text) === '') {
+            throw new RuntimeException('Tidak dapat mengekstrak teks dari file PDF SOP. File mungkin berupa gambar/scan.');
+        }
+
+        return $text;
+    }
+
     private function decodeJson(string $text): array
     {
         $normalized = trim($text);
@@ -387,6 +485,7 @@ PROMPT;
                 try {
                     /** @var array<int|string, mixed> $decoded */
                     $decoded = json_decode($jsonFragment, true, flags: JSON_THROW_ON_ERROR);
+
                     return $decoded;
                 } catch (JsonException) {
                     // Fallthrough to repair
@@ -399,8 +498,10 @@ PROMPT;
                 try {
                     /** @var array<int|string, mixed> $decoded */
                     $decoded = json_decode($repaired, true, flags: JSON_THROW_ON_ERROR);
+
                     return $decoded;
-                } catch (JsonException) {}
+                } catch (JsonException) {
+                }
             }
 
             throw new RuntimeException('AI mengembalikan JSON tidak valid: terpotong atau format salah.');
@@ -418,7 +519,7 @@ PROMPT;
         $lastClosingBrace = strrpos($candidate, '}');
 
         if ($lastClosingBrace !== false) {
-            return substr($candidate, 0, $lastClosingBrace + 1) . ']';
+            return substr($candidate, 0, $lastClosingBrace + 1).']';
         }
 
         return null;

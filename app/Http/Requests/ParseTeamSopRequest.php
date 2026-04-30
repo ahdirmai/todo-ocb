@@ -16,7 +16,7 @@ class ParseTeamSopRequest extends FormRequest
     {
         return [
             'document_id' => ['required', 'uuid', 'exists:documents,id'],
-            'platform' => ['nullable', Rule::in(['openai', 'anthropic', 'gemini'])],
+            'platform' => ['nullable', Rule::in(['openai', 'anthropic', 'gemini', '9route'])],
         ];
     }
 }

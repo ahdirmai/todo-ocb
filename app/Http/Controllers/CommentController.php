@@ -6,7 +6,9 @@ use App\Models\Announcement;
 use App\Models\Comment;
 use App\Models\Task;
 use App\Services\ActivityLogger;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 class CommentController extends Controller
 {
@@ -26,11 +28,11 @@ class CommentController extends Controller
             'attachment_dates.*' => 'date',
         ]);
 
-        if (!empty($validated['attachment_dates'])) {
+        if (! empty($validated['attachment_dates'])) {
             foreach ($validated['attachment_dates'] as $date) {
-                $fileDate = \Carbon\Carbon::parse($date);
+                $fileDate = Carbon::parse($date);
                 if ($fileDate->diffInHours(now()) > 24) {
-                    throw \Illuminate\Validation\ValidationException::withMessages([
+                    throw ValidationException::withMessages([
                         'attachments' => 'File/foto tidak valid: Bukti yang dilampirkan dibuat lebih dari 1 hari yang lalu.',
                     ]);
                 }
@@ -111,11 +113,11 @@ class CommentController extends Controller
             'removed_media_ids.*' => 'integer',
         ]);
 
-        if (!empty($validated['new_attachment_dates'])) {
+        if (! empty($validated['new_attachment_dates'])) {
             foreach ($validated['new_attachment_dates'] as $date) {
-                $fileDate = \Carbon\Carbon::parse($date);
+                $fileDate = Carbon::parse($date);
                 if ($fileDate->diffInHours(now()) > 24) {
-                    throw \Illuminate\Validation\ValidationException::withMessages([
+                    throw ValidationException::withMessages([
                         'attachments' => 'File/foto tidak valid: Bukti yang dilampirkan dibuat lebih dari 1 hari yang lalu.',
                     ]);
                 }
