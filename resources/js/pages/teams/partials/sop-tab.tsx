@@ -64,6 +64,7 @@ export function SopTab({ team }: { team: { slug: string; name: string } }) {
     const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null);
     const [draftSteps, setDraftSteps] = useState<Record<string, SopStep>>({});
     const [expandedSteps, setExpandedSteps] = useState<string[]>([]);
+    const [keywordDrafts, setKeywordDrafts] = useState<Record<string, string>>({});
     
     const platform = selectedPlatform ?? sopData.default_platform ?? '';
     
@@ -360,8 +361,13 @@ export function SopTab({ team }: { team: { slug: string; name: string } }) {
                                                                         <div className="space-y-2 lg:col-span-2">
                                                                             <Label>Keywords</Label>
                                                                             <Input
-                                                                                value={step.keywords.join(', ')}
-                                                                                onChange={(e) => handleStepChange(step.id, 'keywords', e.target.value.split(',').map((item) => item.trim()).filter(Boolean))}
+                                                                                value={keywordDrafts[step.id] ?? step.keywords.join(', ')}
+                                                                                onChange={(e) => setKeywordDrafts((prev) => ({ ...prev, [step.id]: e.target.value }))}
+                                                                                onBlur={(e) => {
+                                                                                    const parsed = e.target.value.split(',').map((item) => item.trim()).filter(Boolean);
+                                                                                    handleStepChange(step.id, 'keywords', parsed);
+                                                                                    setKeywordDrafts((prev) => { const next = { ...prev }; delete next[step.id]; return next; });
+                                                                                }}
                                                                                 placeholder="pisahkan dengan koma"
                                                                             />
                                                                         </div>
