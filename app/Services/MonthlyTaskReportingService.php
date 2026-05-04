@@ -12,6 +12,7 @@ use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\QueryException;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 
@@ -20,6 +21,38 @@ class MonthlyTaskReportingService
     public function __construct(
         public TaskColumnScoringService $scoringService,
     ) {}
+
+    /**
+     * @return LengthAwarePaginator<MonthlyTaskReport>
+     */
+    public function listReports(?string $teamId = null, ?int $year = null): LengthAwarePaginator
+    {
+        return MonthlyTaskReport::query()
+            ->with(['generator:id,name,email', 'team:id,name,slug'])
+            ->when($teamId, fn ($q) => $q->where('team_id', $teamId))
+            ->when($year, fn ($q) => $q->whereYear('report_month', $year))
+            ->orderByDesc('report_month')
+            ->orderBy('team_id')
+            ->paginate(20);
+    }
+
+    /**
+     * @return EloquentCollection<int, MonthlyTaskReport>
+     */
+    public function findAllByMonth(CarbonImmutable $month): EloquentCollection
+    {
+        return MonthlyTaskReport::query()
+            ->with(['team:id,name,slug'])
+            ->whereDate('report_month', $month->toDateString())
+            ->get();
+    }
+
+    public function latestReportMonth(): ?CarbonImmutable
+    {
+        $latest = MonthlyTaskReport::query()->max('report_month');
+
+        return $latest ? CarbonImmutable::parse($latest)->startOfMonth() : null;
+    }
 
     public function findByMonth(CarbonImmutable $month, string $teamId): ?MonthlyTaskReport
     {

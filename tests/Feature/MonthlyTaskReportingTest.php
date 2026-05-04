@@ -446,6 +446,366 @@ test('report generation fails for team without sop', function () {
         ->toThrow(RuntimeException::class, 'Team tidak memiliki SOP');
 });
 
+test('internal recap per user without team_id returns all teams for requested month', function () {
+    $admin = User::factory()->create();
+    $teamA = createReportingTeam(['name' => 'All Team A']);
+    $teamB = createReportingTeam(['name' => 'All Team B']);
+    createSopDocument($teamA, $admin);
+    createSopDocument($teamB, $admin);
+
+    $recap = fn (string $name) => [[
+        'member_key' => 'user:1', 'name' => $name, 'position' => 'SPV',
+        'team_name' => $name, 'work_days' => 26, 'jumlah_task' => 3,
+        'total_score' => 900, 'skor_maksimal' => 1200, 'target_score' => 5000,
+        'max_score_per_task' => 400, 'compliance_persen' => '75.0',
+        'target_compliance' => '18.0', 'performance_label' => 'good',
+        'kpi_status' => 'tidak_memenuhi',
+    ]];
+
+    $base = [
+        'report_month' => '2026-04-01',
+        'platform' => 'word-match',
+        'generated_by' => $admin->id,
+        'model' => 'word-match-v1',
+        'prompt_version' => 'v1',
+        'source_task_count' => 3,
+        'payload' => ['month' => '2026-04', 'overview' => [], 'teams' => []],
+        'source_snapshot' => ['month' => '2026-04', 'overall' => [], 'teams' => []],
+        'generated_at' => now(),
+    ];
+
+    MonthlyTaskReport::create(array_merge($base, ['team_id' => $teamA->id, 'recap_per_user' => $recap('All Team A')]));
+    MonthlyTaskReport::create(array_merge($base, ['team_id' => $teamB->id, 'recap_per_user' => $recap('All Team B')]));
+
+    config(['app.api_secret_key' => 'test-secret-123']);
+
+    $response = $this->withHeaders(['X-Secret-Key' => 'test-secret-123'])
+        ->getJson(route('api.v1.internal.reports.monthly-tasks.recap-per-user', ['month' => '2026-04']));
+
+    $response->assertSuccessful()
+        ->assertJsonPath('data.month', '2026-04')
+        ->assertJsonPath('data.source_task_count', 6)
+        ->assertJsonCount(2, 'data.recap_per_user');
+});
+
+test('internal recap per user without team_id returns empty when month has no reports', function () {
+    $admin = User::factory()->create();
+    $team = createReportingTeam(['name' => 'May Team']);
+    createSopDocument($team, $admin);
+
+    // Hanya ada data April, tidak ada Mei
+    MonthlyTaskReport::create([
+        'report_month' => '2026-04-01',
+        'platform' => 'word-match',
+        'team_id' => $team->id,
+        'generated_by' => $admin->id,
+        'model' => 'word-match-v1',
+        'prompt_version' => 'v1',
+        'source_task_count' => 3,
+        'payload' => ['month' => '2026-04', 'overview' => [], 'teams' => []],
+        'source_snapshot' => ['month' => '2026-04', 'overall' => [], 'teams' => []],
+        'generated_at' => now(),
+    ]);
+
+    config(['app.api_secret_key' => 'test-secret-123']);
+
+    // Request bulan Mei — harus return kosong, bukan fallback ke April
+    $this->withHeaders(['X-Secret-Key' => 'test-secret-123'])
+        ->getJson(route('api.v1.internal.reports.monthly-tasks.recap-per-user', ['month' => '2026-05']))
+        ->assertSuccessful()
+        ->assertJsonPath('data.month', '2026-05')
+        ->assertJsonPath('data.recap_per_user', [])
+        ->assertJsonPath('data.source_task_count', 0);
+});
+
+test('internal recap per user without team_id returns empty when no reports exist', function () {
+    config(['app.api_secret_key' => 'test-secret-123']);
+
+    $this->withHeaders(['X-Secret-Key' => 'test-secret-123'])
+        ->getJson(route('api.v1.internal.reports.monthly-tasks.recap-per-user'))
+        ->assertSuccessful()
+        ->assertJsonPath('data.recap_per_user', [])
+        ->assertJsonPath('data.source_task_count', 0);
+});
+
+test('internal endpoint returns reports with valid secret key', function () {
+    $admin = User::factory()->create();
+    $team = createReportingTeam(['name' => 'Internal Team']);
+    createSopDocument($team, $admin);
+
+    MonthlyTaskReport::create([
+        'report_month' => '2026-04-01',
+        'platform' => 'word-match',
+        'team_id' => $team->id,
+        'generated_by' => $admin->id,
+        'model' => 'word-match-v1',
+        'prompt_version' => 'v1',
+        'source_task_count' => 5,
+        'payload' => ['month' => '2026-04', 'overview' => [], 'teams' => []],
+        'source_snapshot' => ['month' => '2026-04', 'overall' => [], 'teams' => []],
+        'generated_at' => now(),
+    ]);
+
+    config(['app.api_secret_key' => 'test-secret-123']);
+
+    $this->withHeaders(['X-Secret-Key' => 'test-secret-123'])
+        ->getJson(route('api.v1.internal.reports.monthly-tasks.index'))
+        ->assertSuccessful()
+        ->assertJsonCount(1, 'data');
+});
+
+test('internal endpoint accepts Authorization Bearer as secret key', function () {
+    config(['app.api_secret_key' => 'test-secret-123']);
+
+    $this->withHeaders(['Authorization' => 'Bearer test-secret-123'])
+        ->getJson(route('api.v1.internal.reports.monthly-tasks.index'))
+        ->assertSuccessful();
+});
+
+test('internal endpoint rejects request without secret key', function () {
+    $this->getJson(route('api.v1.internal.reports.monthly-tasks.index'))
+        ->assertUnauthorized()
+        ->assertJsonPath('message', 'Invalid or missing secret key.');
+});
+
+test('internal endpoint rejects request with wrong secret key', function () {
+    config(['app.api_secret_key' => 'correct-secret']);
+
+    $this->withHeaders(['X-Secret-Key' => 'wrong-secret'])
+        ->getJson(route('api.v1.internal.reports.monthly-tasks.index'))
+        ->assertUnauthorized();
+});
+
+test('internal endpoint recap per user returns data with valid secret key', function () {
+    $admin = User::factory()->create();
+    $team = createReportingTeam(['name' => 'Internal Recap Team']);
+    createSopDocument($team, $admin);
+
+    MonthlyTaskReport::create([
+        'report_month' => now()->startOfMonth()->toDateString(),
+        'platform' => 'word-match',
+        'team_id' => $team->id,
+        'generated_by' => $admin->id,
+        'model' => 'word-match-v1',
+        'prompt_version' => 'v1',
+        'source_task_count' => 3,
+        'payload' => ['month' => now()->format('Y-m'), 'overview' => [], 'teams' => []],
+        'source_snapshot' => ['month' => now()->format('Y-m'), 'overall' => [], 'teams' => []],
+        'recap_per_user' => [[
+            'member_key' => 'user:1', 'name' => 'Budi', 'position' => 'SPV',
+            'team_name' => 'Internal Recap Team', 'work_days' => 26,
+            'jumlah_task' => 3, 'total_score' => 900, 'skor_maksimal' => 1200,
+            'target_score' => 5000, 'max_score_per_task' => 400,
+            'compliance_persen' => '75.0', 'target_compliance' => '18.0',
+            'performance_label' => 'good', 'kpi_status' => 'tidak_memenuhi',
+        ]],
+        'generated_at' => now(),
+    ]);
+
+    config(['app.api_secret_key' => 'test-secret-123']);
+
+    $this->withHeaders(['X-Secret-Key' => 'test-secret-123'])
+        ->getJson(route('api.v1.internal.reports.monthly-tasks.recap-per-user', [
+            'month' => now()->format('Y-m'),
+            'team_id' => $team->id,
+        ]))
+        ->assertSuccessful()
+        ->assertJsonPath('data.recap_per_user.0.name', 'Budi');
+});
+
+test('admin can list all generated reports via api', function () {
+    ensureReportingRoles();
+
+    $admin = User::factory()->create();
+    $admin->assignRole('admin');
+    $team = createReportingTeam(['name' => 'Index Team']);
+    createSopDocument($team, $admin);
+
+    $baseReport = [
+        'platform' => 'word-match',
+        'team_id' => $team->id,
+        'generated_by' => $admin->id,
+        'model' => 'word-match-v1',
+        'prompt_version' => 'v1',
+        'source_task_count' => 3,
+        'payload' => ['month' => '2026-03', 'overview' => [], 'teams' => []],
+        'source_snapshot' => ['month' => '2026-03', 'overall' => [], 'teams' => []],
+        'generated_at' => now(),
+    ];
+
+    MonthlyTaskReport::create(array_merge($baseReport, ['report_month' => '2026-03-01']));
+    MonthlyTaskReport::create(array_merge($baseReport, [
+        'report_month' => '2026-04-01',
+        'payload' => ['month' => '2026-04', 'overview' => [], 'teams' => []],
+        'source_snapshot' => ['month' => '2026-04', 'overall' => [], 'teams' => []],
+    ]));
+
+    Sanctum::actingAs($admin);
+
+    $response = $this->getJson(route('api.v1.reports.monthly-tasks.index'));
+
+    $response->assertSuccessful()
+        ->assertJsonCount(2, 'data')
+        ->assertJsonPath('data.0.month', '2026-04')
+        ->assertJsonPath('data.1.month', '2026-03')
+        ->assertJsonStructure([
+            'data' => [['id', 'month', 'report_month', 'platform', 'team', 'generated_at', 'source_task_count']],
+            'meta' => ['total', 'per_page', 'current_page'],
+        ]);
+});
+
+test('admin can filter reports by team_id', function () {
+    ensureReportingRoles();
+
+    $admin = User::factory()->create();
+    $admin->assignRole('admin');
+    $teamA = createReportingTeam(['name' => 'Team Filter A']);
+    $teamB = createReportingTeam(['name' => 'Team Filter B']);
+    createSopDocument($teamA, $admin);
+    createSopDocument($teamB, $admin);
+
+    $makeReport = fn (Team $team, string $month) => MonthlyTaskReport::create([
+        'report_month' => $month.'-01',
+        'platform' => 'word-match',
+        'team_id' => $team->id,
+        'generated_by' => $admin->id,
+        'model' => 'word-match-v1',
+        'prompt_version' => 'v1',
+        'source_task_count' => 0,
+        'payload' => ['month' => $month, 'overview' => [], 'teams' => []],
+        'source_snapshot' => ['month' => $month, 'overall' => [], 'teams' => []],
+        'generated_at' => now(),
+    ]);
+
+    $makeReport($teamA, '2026-03');
+    $makeReport($teamB, '2026-03');
+
+    Sanctum::actingAs($admin);
+
+    $response = $this->getJson(route('api.v1.reports.monthly-tasks.index', ['team_id' => $teamA->id]));
+
+    $response->assertSuccessful()
+        ->assertJsonCount(1, 'data')
+        ->assertJsonPath('data.0.team.id', $teamA->id);
+});
+
+test('member cannot access reports index api', function () {
+    ensureReportingRoles();
+
+    $user = User::factory()->create();
+    $user->assignRole('member');
+
+    Sanctum::actingAs($user);
+
+    $this->getJson(route('api.v1.reports.monthly-tasks.index'))->assertForbidden();
+});
+
+test('admin can get recap per user from api', function () {
+    ensureReportingRoles();
+
+    $admin = User::factory()->create();
+    $admin->assignRole('admin');
+    $team = createReportingTeam(['name' => 'Recap Team']);
+    createSopDocument($team, $admin);
+
+    $recapData = [
+        [
+            'member_key' => 'user:1',
+            'name' => 'Budi Santoso',
+            'position' => 'SPV Area A',
+            'team_name' => 'Recap Team',
+            'work_days' => 26,
+            'jumlah_task' => 5,
+            'total_score' => 1500,
+            'skor_maksimal' => 2000,
+            'target_score' => 5000,
+            'max_score_per_task' => 400,
+            'compliance_persen' => '75.0',
+            'target_compliance' => '30.0',
+            'performance_label' => 'good',
+            'kpi_status' => 'tidak_memenuhi',
+        ],
+    ];
+
+    MonthlyTaskReport::create([
+        'report_month' => now()->startOfMonth()->toDateString(),
+        'platform' => 'word-match',
+        'team_id' => $team->id,
+        'generated_by' => $admin->id,
+        'model' => 'word-match-v1',
+        'prompt_version' => 'v1',
+        'source_task_count' => 5,
+        'payload' => ['month' => now()->format('Y-m'), 'overview' => [], 'teams' => []],
+        'source_snapshot' => ['month' => now()->format('Y-m'), 'overall' => [], 'teams' => []],
+        'recap_per_user' => $recapData,
+        'generated_at' => now(),
+    ]);
+
+    Sanctum::actingAs($admin);
+
+    $response = $this->getJson(route('api.v1.reports.monthly-tasks.recap-per-user', [
+        'month' => now()->format('Y-m'),
+        'team_id' => $team->id,
+    ]));
+
+    $response->assertSuccessful()
+        ->assertJsonPath('data.recap_per_user.0.member_key', 'user:1')
+        ->assertJsonPath('data.recap_per_user.0.name', 'Budi Santoso')
+        ->assertJsonPath('data.recap_per_user.0.performance_label', 'good')
+        ->assertJsonPath('data.recap_per_user.0.kpi_status', 'tidak_memenuhi')
+        ->assertJsonPath('data.source_task_count', 5);
+});
+
+test('member cannot access recap per user api endpoint', function () {
+    ensureReportingRoles();
+
+    $user = User::factory()->create();
+    $user->assignRole('member');
+    $team = createReportingTeam(['name' => 'Restricted Recap Team']);
+    createSopDocument($team, $user);
+
+    Sanctum::actingAs($user);
+
+    $this->getJson(route('api.v1.reports.monthly-tasks.recap-per-user', [
+        'month' => now()->format('Y-m'),
+        'team_id' => $team->id,
+    ]))->assertForbidden();
+});
+
+test('internal recap per user returns empty data when report not yet generated', function () {
+    $admin = User::factory()->create();
+    $team = createReportingTeam(['name' => 'No Report Team']);
+    createSopDocument($team, $admin);
+
+    config(['app.api_secret_key' => 'test-secret-123']);
+
+    $this->withHeaders(['X-Secret-Key' => 'test-secret-123'])
+        ->getJson(route('api.v1.internal.reports.monthly-tasks.recap-per-user', [
+            'month' => '2026-05',
+            'team_id' => $team->id,
+        ]))
+        ->assertSuccessful()
+        ->assertJsonPath('data.recap_per_user', [])
+        ->assertJsonPath('data.source_task_count', 0)
+        ->assertJsonPath('data.month', '2026-05');
+});
+
+test('recap per user returns 404 when report not yet generated', function () {
+    ensureReportingRoles();
+
+    $admin = User::factory()->create();
+    $admin->assignRole('admin');
+    $team = createReportingTeam(['name' => 'Empty Recap Team']);
+    createSopDocument($team, $admin);
+
+    Sanctum::actingAs($admin);
+
+    $this->getJson(route('api.v1.reports.monthly-tasks.recap-per-user', [
+        'month' => now()->format('Y-m'),
+        'team_id' => $team->id,
+    ]))->assertNotFound();
+});
+
 test('performance label is calculated from compliance percentage', function () {
     $scoring = new TaskColumnScoringService;
 

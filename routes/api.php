@@ -34,6 +34,17 @@ Route::as('api.')
         Route::post('teams/{team}/resolve-references', [TeamReadController::class, 'resolveReferences'])->name('teams.resolve-references');
     });
 
+Route::prefix('v1/internal')
+    ->as('api.v1.internal.')
+    ->middleware('secret')
+    ->withoutMiddleware(['auth:sanctum', 'auth'])
+    ->group(function () {
+        Route::get('reports/monthly-tasks', [V1MonthlyTaskReportController::class, 'internalIndex'])
+            ->name('reports.monthly-tasks.index');
+        Route::get('reports/monthly-tasks/recap-per-user', [V1MonthlyTaskReportController::class, 'internalRecapPerUser'])
+            ->name('reports.monthly-tasks.recap-per-user');
+    });
+
 Route::prefix('v1')
     ->as('api.v1.')
     ->group(function () {
@@ -98,8 +109,12 @@ Route::prefix('v1')
             Route::delete('teams/{team}/documents/{document}', [V1DocumentController::class, 'destroy'])->name('teams.documents.destroy');
 
             Route::middleware('role:superadmin|admin')->group(function () {
-                Route::get('reports/monthly-tasks', [V1MonthlyTaskReportController::class, 'show'])
+                Route::get('reports/monthly-tasks', [V1MonthlyTaskReportController::class, 'index'])
+                    ->name('reports.monthly-tasks.index');
+                Route::get('reports/monthly-tasks/show', [V1MonthlyTaskReportController::class, 'show'])
                     ->name('reports.monthly-tasks.show');
+                Route::get('reports/monthly-tasks/recap-per-user', [V1MonthlyTaskReportController::class, 'recapPerUser'])
+                    ->name('reports.monthly-tasks.recap-per-user');
             });
         });
     });
