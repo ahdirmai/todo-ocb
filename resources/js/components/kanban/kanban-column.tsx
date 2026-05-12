@@ -134,10 +134,10 @@ export function KanbanColumn({
     };
 
     return (
-        <div className="flex h-full w-[320px] min-w-[320px] flex-col">
+        <div className="flex h-full min-h-0 w-[320px] min-w-[320px] flex-col">
             {/* Column Header */}
             <div
-                className={`mb-4 flex items-center justify-between border-b-2 pb-2 ${colorClass}`}
+                className={`mb-4 flex shrink-0 items-center justify-between border-b-2 pb-2 ${colorClass}`}
             >
                 <div className="flex flex-1 items-center gap-2">
                     {editing ? (
@@ -223,7 +223,7 @@ export function KanbanColumn({
             {/* Tasks Droppable */}
             <Droppable droppableId={column.id.toString()} type="task">
                 {(provided, snapshot) => (
-                    <ScrollArea className="-mr-3 h-full flex-1 rounded-md pr-3 pb-4">
+                    <ScrollArea className="-mr-3 h-full min-h-0 flex-1 rounded-md pr-3 pb-4">
                         <div
                             ref={provided.innerRef}
                             {...provided.droppableProps}
