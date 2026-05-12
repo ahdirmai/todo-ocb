@@ -62,20 +62,28 @@ class TeamSopController extends Controller
             'name' => ['required', 'string', 'max:255'],
         ]);
 
-        $maxOrder = $document->sopSteps()->max('sequence_order') ?? 0;
+        try {
+            DB::transaction(function () use ($document, $validated): void {
+                $maxOrder = $document->sopSteps()->max('sequence_order') ?? 0;
 
-        $document->sopSteps()->create([
-            'name' => $validated['name'],
-            'sequence_order' => $maxOrder + 1,
-            'action' => '',
-            'keywords' => [],
-            'required_evidence' => 'comment',
-            'priority' => 'medium',
-            'weight' => 3,
-            'min_comment' => 1,
-            'min_media' => 0,
-            'is_mandatory' => true,
-        ]);
+                $document->sopSteps()->create([
+                    'name' => $validated['name'],
+                    'sequence_order' => $maxOrder + 1,
+                    'action' => '',
+                    'keywords' => [],
+                    'required_evidence' => 'comment',
+                    'priority' => 'medium',
+                    'weight' => 3,
+                    'min_comment' => 1,
+                    'min_media' => 0,
+                    'is_mandatory' => true,
+                ]);
+            });
+        } catch (\Throwable $e) {
+            report($e);
+
+            return back()->withErrors(['error' => 'Gagal menambahkan langkah SOP, silakan coba lagi.']);
+        }
 
         return back();
     }
@@ -107,22 +115,30 @@ class TeamSopController extends Controller
             $expectedColumn = $kanbanColumn->title;
         }
 
-        $documentSopStep->update([
-            'name' => $validated['name'],
-            'action' => $validated['action'] ?? '',
-            'keywords' => $validated['keywords'] ?? [],
-            'required_evidence' => $validated['required_evidence'],
-            'priority' => $validated['priority'],
-            'weight' => $validated['weight'],
-            'min_comment' => $validated['min_comment'],
-            'min_media' => $validated['min_media'],
-            'kanban_column_id' => $kanbanColumnId,
-            'expected_column' => $expectedColumn,
-            'score_kurang' => $validated['score_kurang'],
-            'score_cukup' => $validated['score_cukup'],
-            'score_sangat_baik' => $validated['score_sangat_baik'],
-            'is_mandatory' => $validated['is_mandatory'],
-        ]);
+        try {
+            DB::transaction(function () use ($documentSopStep, $validated, $kanbanColumnId, $expectedColumn): void {
+                $documentSopStep->update([
+                    'name' => $validated['name'],
+                    'action' => $validated['action'] ?? '',
+                    'keywords' => $validated['keywords'] ?? [],
+                    'required_evidence' => $validated['required_evidence'],
+                    'priority' => $validated['priority'],
+                    'weight' => $validated['weight'],
+                    'min_comment' => $validated['min_comment'],
+                    'min_media' => $validated['min_media'],
+                    'kanban_column_id' => $kanbanColumnId,
+                    'expected_column' => $expectedColumn,
+                    'score_kurang' => $validated['score_kurang'],
+                    'score_cukup' => $validated['score_cukup'],
+                    'score_sangat_baik' => $validated['score_sangat_baik'],
+                    'is_mandatory' => $validated['is_mandatory'],
+                ]);
+            });
+        } catch (\Throwable $e) {
+            report($e);
+
+            return back()->withErrors(['error' => 'Gagal memperbarui langkah SOP, silakan coba lagi.']);
+        }
 
         return back();
     }
@@ -157,7 +173,13 @@ class TeamSopController extends Controller
         $documentSopStep->loadMissing('document');
         abort_unless($documentSopStep->document?->team_id === $team->id, 404);
 
-        $documentSopStep->delete();
+        try {
+            DB::transaction(fn () => $documentSopStep->delete());
+        } catch (\Throwable $e) {
+            report($e);
+
+            return back()->withErrors(['error' => 'Gagal menghapus langkah SOP, silakan coba lagi.']);
+        }
 
         return back();
     }

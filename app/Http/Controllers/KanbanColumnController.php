@@ -110,15 +110,23 @@ class KanbanColumnController extends Controller
 
     public function destroy(KanbanColumn $column)
     {
-        ActivityLogger::log(
-            event: 'deleted',
-            logName: 'kanban',
-            description: "Kolom \"{$column->title}\" dihapus dari papan kanban",
-            subject: $column,
-            teamId: $column->kanban?->team_id,
-        );
+        try {
+            DB::transaction(function () use ($column): void {
+                ActivityLogger::log(
+                    event: 'deleted',
+                    logName: 'kanban',
+                    description: "Kolom \"{$column->title}\" dihapus dari papan kanban",
+                    subject: $column,
+                    teamId: $column->kanban?->team_id,
+                );
 
-        $column->delete();
+                $column->delete();
+            });
+        } catch (\Throwable $e) {
+            report($e);
+
+            return back()->withErrors(['error' => 'Gagal menghapus kolom, silakan coba lagi.']);
+        }
 
         return back();
     }

@@ -31,36 +31,43 @@ class TaskController extends Controller
             'attachments.*' => 'file|max:'.$this->attachmentMaxKilobytes(),
         ]);
 
-        $maxOrder = Task::where('kanban_column_id', $validated['kanban_column_id'])->max('order_position') ?? -1;
-
         $attachments = $request->file('attachments');
         unset($validated['attachments']);
 
-        $task = Task::create([
-            ...$validated,
-            'creator_id' => $request->user()?->id,
-            'order_position' => $maxOrder + 1,
-        ]);
+        try {
+            DB::transaction(function () use ($validated, $request, $attachments): void {
+                $maxOrder = Task::where('kanban_column_id', $validated['kanban_column_id'])->max('order_position') ?? -1;
 
-        if ($request->user()) {
-            $task->assignees()->attach($request->user()->id);
+                $task = Task::create([
+                    ...$validated,
+                    'creator_id' => $request->user()?->id,
+                    'order_position' => $maxOrder + 1,
+                ]);
+
+                if ($request->user()) {
+                    $task->assignees()->attach($request->user()->id);
+                }
+
+                if ($attachments) {
+                    foreach ($attachments as $file) {
+                        $task->addMedia($file)->toMediaCollection('documents');
+                    }
+
+                    ActivityLogger::log(
+                        event: 'attachment_added',
+                        logName: 'task',
+                        description: count($attachments)." lampiran ditambahkan ke task \"{$task->title}\"",
+                        subject: $task,
+                        teamId: $task->team_id,
+                    );
+                }
+            });
+        } catch (\Throwable $e) {
+            report($e);
+
+            return back()->withErrors(['error' => 'Gagal membuat task, silakan coba lagi.']);
         }
 
-        if ($attachments) {
-            foreach ($attachments as $file) {
-                $task->addMedia($file)->toMediaCollection('documents');
-            }
-
-            ActivityLogger::log(
-                event: 'attachment_added',
-                logName: 'task',
-                description: count($attachments)." lampiran ditambahkan ke task \"{$task->title}\"",
-                subject: $task,
-                teamId: $task->team_id,
-            );
-        }
-
-        // Task creation itself is logged by TaskObserver
         return back();
     }
 
@@ -131,69 +138,75 @@ class TaskController extends Controller
             );
         }
 
-        DB::transaction(function () use ($request, $positionChanged, $tagIds, $targetColumnId, $task, $validated, $columnChanged, $originalColumnId) {
-            if ($columnChanged && ! array_key_exists('order_position', $validated)) {
-                $validated['order_position'] = (Task::where('kanban_column_id', $targetColumnId)->max('order_position') ?? -1) + 1;
-            }
-
-            $task->update($validated);
-
-            if ($columnChanged || $positionChanged) {
-                $this->normalizeTaskOrder($originalColumnId);
-
-                if ($targetColumnId !== $originalColumnId) {
-                    $this->normalizeTaskOrder($targetColumnId);
+        try {
+            DB::transaction(function () use ($request, $positionChanged, $tagIds, $targetColumnId, $task, $validated, $columnChanged, $originalColumnId) {
+                if ($columnChanged && ! array_key_exists('order_position', $validated)) {
+                    $validated['order_position'] = (Task::where('kanban_column_id', $targetColumnId)->max('order_position') ?? -1) + 1;
                 }
 
-                $task->refresh();
-            }
+                $task->update($validated);
 
-            if ($request->has('assignee_ids')) {
-                $oldAssignees = $task->assignees()->pluck('users.id')->toArray();
-                $newAssignees = $request->input('assignee_ids') ?? [];
+                if ($columnChanged || $positionChanged) {
+                    $this->normalizeTaskOrder($originalColumnId);
 
-                // Ensure creator is always included
-                if ($task->creator_id && ! in_array($task->creator_id, $newAssignees)) {
-                    $newAssignees[] = $task->creator_id;
+                    if ($targetColumnId !== $originalColumnId) {
+                        $this->normalizeTaskOrder($targetColumnId);
+                    }
+
+                    $task->refresh();
                 }
 
-                $task->assignees()->sync($newAssignees);
+                if ($request->has('assignee_ids')) {
+                    $oldAssignees = $task->assignees()->pluck('users.id')->toArray();
+                    $newAssignees = $request->input('assignee_ids') ?? [];
 
-                $added = array_diff($newAssignees, $oldAssignees);
-                $removed = array_diff($oldAssignees, $newAssignees);
+                    // Ensure creator is always included
+                    if ($task->creator_id && ! in_array($task->creator_id, $newAssignees)) {
+                        $newAssignees[] = $task->creator_id;
+                    }
 
-                if ($added || $removed) {
-                    ActivityLogger::log(
-                        event: 'assignees_changed',
-                        logName: 'task',
-                        description: "Anggota tugas pada \"{$task->title}\" diperbarui",
-                        subject: $task,
-                        properties: ['added' => array_values($added), 'removed' => array_values($removed)],
-                        teamId: $task->team_id,
-                    );
+                    $task->assignees()->sync($newAssignees);
+
+                    $added = array_diff($newAssignees, $oldAssignees);
+                    $removed = array_diff($oldAssignees, $newAssignees);
+
+                    if ($added || $removed) {
+                        ActivityLogger::log(
+                            event: 'assignees_changed',
+                            logName: 'task',
+                            description: "Anggota tugas pada \"{$task->title}\" diperbarui",
+                            subject: $task,
+                            properties: ['added' => array_values($added), 'removed' => array_values($removed)],
+                            teamId: $task->team_id,
+                        );
+                    }
                 }
-            }
 
-            // Log tag changes
-            if ($tagIds !== null) {
-                $oldTagIds = $task->tags()->pluck('tags.id')->toArray();
-                $task->tags()->sync($tagIds);
+                // Log tag changes
+                if ($tagIds !== null) {
+                    $oldTagIds = $task->tags()->pluck('tags.id')->toArray();
+                    $task->tags()->sync($tagIds);
 
-                $added = array_diff($tagIds, $oldTagIds);
-                $removed = array_diff($oldTagIds, $tagIds);
+                    $added = array_diff($tagIds, $oldTagIds);
+                    $removed = array_diff($oldTagIds, $tagIds);
 
-                if ($added || $removed) {
-                    ActivityLogger::log(
-                        event: 'tags_changed',
-                        logName: 'task',
-                        description: "Tag pada task \"{$task->title}\" diperbarui",
-                        subject: $task,
-                        properties: ['added' => array_values($added), 'removed' => array_values($removed)],
-                        teamId: $task->team_id,
-                    );
+                    if ($added || $removed) {
+                        ActivityLogger::log(
+                            event: 'tags_changed',
+                            logName: 'task',
+                            description: "Tag pada task \"{$task->title}\" diperbarui",
+                            subject: $task,
+                            properties: ['added' => array_values($added), 'removed' => array_values($removed)],
+                            teamId: $task->team_id,
+                        );
+                    }
                 }
-            }
-        });
+            });
+        } catch (\Throwable $e) {
+            report($e);
+
+            return back()->withErrors(['error' => 'Gagal memperbarui task, silakan coba lagi.']);
+        }
 
         if ($attachments) {
             foreach ($attachments as $file) {
@@ -230,8 +243,13 @@ class TaskController extends Controller
     {
         Gate::authorize('delete', $task);
 
-        // Deletion is logged by TaskObserver
-        $task->delete();
+        try {
+            DB::transaction(fn () => $task->delete());
+        } catch (\Throwable $e) {
+            report($e);
+
+            return back()->withErrors(['error' => 'Gagal menghapus task, silakan coba lagi.']);
+        }
 
         return $this->redirectAfterDestroy($request);
     }

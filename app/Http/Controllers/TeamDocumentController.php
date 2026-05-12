@@ -6,6 +6,7 @@ use App\Models\Document;
 use App\Models\Team;
 use App\Services\ActivityLogger;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class TeamDocumentController extends Controller
 {
@@ -44,14 +45,28 @@ class TeamDocumentController extends Controller
 
         $breadcrumbs = [];
         if ($parentId) {
-            $current = Document::find($parentId);
-            while ($current) {
-                array_unshift($breadcrumbs, [
+            $ancestors = collect();
+            $currentId = $parentId;
+            $visited = [];
+
+            while ($currentId && ! in_array($currentId, $visited, true)) {
+                $visited[] = $currentId;
+                $current = Document::query()
+                    ->select(['id', 'name', 'parent_id'])
+                    ->find($currentId);
+
+                if (! $current) {
+                    break;
+                }
+
+                $ancestors->prepend([
                     'id' => $current->id,
                     'name' => $current->name,
                 ]);
-                $current = $current->parent;
+                $currentId = $current->parent_id;
             }
+
+            $breadcrumbs = $ancestors->all();
         }
 
         return response()->json([
@@ -78,20 +93,28 @@ class TeamDocumentController extends Controller
             'parent_id' => 'nullable|exists:documents,id',
         ]);
 
-        $document = $team->documents()->create([
-            'user_id' => $request->user()->id,
-            'name' => $validated['name'],
-            'type' => 'folder',
-            'parent_id' => $validated['parent_id'] ?? null,
-        ]);
+        try {
+            DB::transaction(function () use ($team, $request, $validated): void {
+                $document = $team->documents()->create([
+                    'user_id' => $request->user()->id,
+                    'name' => $validated['name'],
+                    'type' => 'folder',
+                    'parent_id' => $validated['parent_id'] ?? null,
+                ]);
 
-        ActivityLogger::log(
-            event: 'created',
-            logName: 'document_folder',
-            description: "Membuat folder dokumen: {$document->name}",
-            subject: $document,
-            teamId: $team->id,
-        );
+                ActivityLogger::log(
+                    event: 'created',
+                    logName: 'document_folder',
+                    description: "Membuat folder dokumen: {$document->name}",
+                    subject: $document,
+                    teamId: $team->id,
+                );
+            });
+        } catch (\Throwable $e) {
+            report($e);
+
+            return back()->withErrors(['error' => 'Gagal membuat folder, silakan coba lagi.']);
+        }
 
         return back();
     }
@@ -107,28 +130,36 @@ class TeamDocumentController extends Controller
 
         $markAsSop = $request->boolean('is_sop');
 
-        if ($markAsSop) {
-            $this->clearOtherTeamSopFlags($team);
-        }
+        try {
+            DB::transaction(function () use ($team, $request, $validated, $markAsSop): void {
+                if ($markAsSop) {
+                    $this->clearOtherTeamSopFlags($team);
+                }
 
-        foreach ($request->file('files') as $file) {
-            $document = $team->documents()->create([
-                'user_id' => $request->user()->id,
-                'name' => $file->getClientOriginalName(),
-                'type' => 'file',
-                'is_sop' => $markAsSop,
-                'parent_id' => $validated['parent_id'] ?? null,
-            ]);
+                foreach ($request->file('files') as $file) {
+                    $document = $team->documents()->create([
+                        'user_id' => $request->user()->id,
+                        'name' => $file->getClientOriginalName(),
+                        'type' => 'file',
+                        'is_sop' => $markAsSop,
+                        'parent_id' => $validated['parent_id'] ?? null,
+                    ]);
 
-            $document->addMedia($file)->toMediaCollection('files');
+                    $document->addMedia($file)->toMediaCollection('files');
 
-            ActivityLogger::log(
-                event: 'uploaded',
-                logName: 'document_file',
-                description: "Mengunggah file dokumen: {$document->name}",
-                subject: $document,
-                teamId: $team->id,
-            );
+                    ActivityLogger::log(
+                        event: 'uploaded',
+                        logName: 'document_file',
+                        description: "Mengunggah file dokumen: {$document->name}",
+                        subject: $document,
+                        teamId: $team->id,
+                    );
+                }
+            });
+        } catch (\Throwable $e) {
+            report($e);
+
+            return back()->withErrors(['error' => 'Gagal mengunggah file, silakan coba lagi.']);
         }
 
         return back();
@@ -147,32 +178,42 @@ class TeamDocumentController extends Controller
 
         $markAsSop = $request->boolean('is_sop');
 
-        if ($markAsSop) {
-            $this->clearOtherTeamSopFlags($team);
+        try {
+            $document = DB::transaction(function () use ($team, $request, $validated, $markAsSop): Document {
+                if ($markAsSop) {
+                    $this->clearOtherTeamSopFlags($team);
+                }
+
+                $document = $team->documents()->create([
+                    'user_id' => $request->user()->id,
+                    'name' => $validated['name'],
+                    'type' => 'document',
+                    'content' => $validated['content'],
+                    'is_sop' => $markAsSop,
+                    'parent_id' => $validated['parent_id'] ?? null,
+                ]);
+
+                if ($request->hasFile('attachments')) {
+                    foreach ($request->file('attachments') as $file) {
+                        $document->addMedia($file)->toMediaCollection('attachments');
+                    }
+                }
+
+                ActivityLogger::log(
+                    event: 'created',
+                    logName: 'document',
+                    description: "Membuat dokumen: {$document->name}",
+                    subject: $document,
+                    teamId: $team->id,
+                );
+
+                return $document;
+            });
+        } catch (\Throwable $e) {
+            report($e);
+
+            return back()->withErrors(['error' => 'Gagal membuat dokumen, silakan coba lagi.']);
         }
-
-        $document = $team->documents()->create([
-            'user_id' => $request->user()->id,
-            'name' => $validated['name'],
-            'type' => 'document',
-            'content' => $validated['content'],
-            'is_sop' => $markAsSop,
-            'parent_id' => $validated['parent_id'] ?? null,
-        ]);
-
-        if ($request->hasFile('attachments')) {
-            foreach ($request->file('attachments') as $file) {
-                $document->addMedia($file)->toMediaCollection('attachments');
-            }
-        }
-
-        ActivityLogger::log(
-            event: 'created',
-            logName: 'document',
-            description: "Membuat dokumen: {$document->name}",
-            subject: $document,
-            teamId: $team->id,
-        );
 
         return redirect()->route('documents.show', ['team' => $team, 'document' => $document]);
     }
@@ -221,39 +262,46 @@ class TeamDocumentController extends Controller
 
         $oldName = $document->name;
 
-        $document->update([
-            'name' => $validated['name'],
-            'content' => $validated['content'] ?? $document->content,
-            'is_sop' => $request->has('is_sop') ? $request->boolean('is_sop') : $document->is_sop,
-        ]);
+        try {
+            DB::transaction(function () use ($document, $validated, $request, $team, $oldName): void {
+                $document->update([
+                    'name' => $validated['name'],
+                    'content' => $validated['content'] ?? $document->content,
+                    'is_sop' => $request->has('is_sop') ? $request->boolean('is_sop') : $document->is_sop,
+                ]);
 
-        if ($document->is_sop) {
-            $this->clearOtherTeamSopFlags($team, $document->id);
+                if ($document->is_sop) {
+                    $this->clearOtherTeamSopFlags($team, $document->id);
+                }
+
+                if (! empty($validated['removed_media_ids'])) {
+                    $document->media()->whereIn('id', $validated['removed_media_ids'])->delete();
+                }
+
+                if ($request->hasFile('new_attachments')) {
+                    foreach ($request->file('new_attachments') as $file) {
+                        $document->addMedia($file)->toMediaCollection('attachments');
+                    }
+                }
+
+                $logName = $document->type === 'folder' ? 'document_folder' : ($document->type === 'file' ? 'document_file' : 'document');
+                $logDescription = $oldName !== $validated['name']
+                    ? "Mangganti nama menjadi: {$document->name}"
+                    : "Memperbarui isi dokumen: {$document->name}";
+
+                ActivityLogger::log(
+                    event: 'updated',
+                    logName: $logName,
+                    description: $logDescription,
+                    subject: $document,
+                    teamId: $team->id,
+                );
+            });
+        } catch (\Throwable $e) {
+            report($e);
+
+            return back()->withErrors(['error' => 'Gagal memperbarui dokumen, silakan coba lagi.']);
         }
-
-        if (! empty($validated['removed_media_ids'])) {
-            $document->media()->whereIn('id', $validated['removed_media_ids'])->delete();
-        }
-
-        if ($request->hasFile('new_attachments')) {
-            foreach ($request->file('new_attachments') as $file) {
-                $document->addMedia($file)->toMediaCollection('attachments');
-            }
-        }
-
-        $logEvent = 'updated';
-        $logName = $document->type === 'folder' ? 'document_folder' : ($document->type === 'file' ? 'document_file' : 'document');
-        $logDescription = $oldName !== $validated['name']
-            ? "Mangganti nama menjadi: {$document->name}"
-            : "Memperbarui isi dokumen: {$document->name}";
-
-        ActivityLogger::log(
-            event: $logEvent,
-            logName: $logName,
-            description: $logDescription,
-            subject: $document,
-            teamId: $team->id,
-        );
 
         if ($document->type === 'document') {
             return redirect()->route('documents.show', ['team' => $team, 'document' => $document]);
@@ -278,28 +326,32 @@ class TeamDocumentController extends Controller
         ]);
 
         $file = $request->file('file');
-        if ($request->has('is_sop')) {
-            $document->update(['is_sop' => $request->boolean('is_sop')]);
 
-            if ($document->is_sop) {
-                $this->clearOtherTeamSopFlags($team, $document->id);
-            }
+        try {
+            DB::transaction(function () use ($request, $document, $team, $file): void {
+                if ($request->has('is_sop')) {
+                    $document->update(['is_sop' => $request->boolean('is_sop')]);
+
+                    if ($document->is_sop) {
+                        $this->clearOtherTeamSopFlags($team, $document->id);
+                    }
+                }
+
+                $document->addMedia($file)->toMediaCollection('files');
+
+                ActivityLogger::log(
+                    event: 'uploaded_new_version',
+                    logName: 'document_file',
+                    description: "Memperbarui versi file dokumen: {$document->name}",
+                    subject: $document,
+                    teamId: $team->id,
+                );
+            });
+        } catch (\Throwable $e) {
+            report($e);
+
+            return back()->withErrors(['error' => 'Gagal memperbarui file, silakan coba lagi.']);
         }
-
-        // Spatie Media Library allows multiple files in a collection.
-        // We just add a new one, and it will be part of the history.
-        $document->addMedia($file)->toMediaCollection('files');
-
-        // We can optionally update the document's recorded name to match the matched new file
-        // if that's desired, but let's keep the user's defined name mostly or update it if it's identical currently.
-
-        ActivityLogger::log(
-            event: 'uploaded_new_version',
-            logName: 'document_file',
-            description: "Memperbarui versi file dokumen: {$document->name}",
-            subject: $document,
-            teamId: $team->id,
-        );
 
         return back();
     }
@@ -311,18 +363,26 @@ class TeamDocumentController extends Controller
 
         abort_unless($canModify, 403, 'Hanya pemilik atau admin yang dapat menghapus dokumen ini.');
 
-        // Determine log type before deletion
         $logName = $document->type === 'folder' ? 'document_folder' : ($document->type === 'file' ? 'document_file' : 'document');
         $docName = $document->name;
+        $docType = $document->type;
 
-        $document->delete();
+        try {
+            DB::transaction(function () use ($document, $logName, $docName, $docType, $team): void {
+                $document->delete();
 
-        ActivityLogger::log(
-            event: 'deleted',
-            logName: $logName,
-            description: "Menghapus {$document->type}: {$docName}",
-            teamId: $team->id,
-        );
+                ActivityLogger::log(
+                    event: 'deleted',
+                    logName: $logName,
+                    description: "Menghapus {$docType}: {$docName}",
+                    teamId: $team->id,
+                );
+            });
+        } catch (\Throwable $e) {
+            report($e);
+
+            return back()->withErrors(['error' => 'Gagal menghapus dokumen, silakan coba lagi.']);
+        }
 
         return (($request->headers->get('referer') && str_contains($request->headers->get('referer'), '/edit')))
             ? redirect()->route('documents.index', ['team' => $team])

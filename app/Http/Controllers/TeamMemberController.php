@@ -6,6 +6,7 @@ use App\Models\Team;
 use App\Models\User;
 use App\Services\ActivityLogger;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class TeamMemberController extends Controller
 {
@@ -22,18 +23,25 @@ class TeamMemberController extends Controller
         $role = $validated['role'] ?? 'member';
         $user = User::find($validated['user_id']);
 
-        // syncWithoutDetaching so re-invite doesn't error
-        $team->users()->syncWithoutDetaching([
-            $validated['user_id'] => ['role' => $role],
-        ]);
+        try {
+            DB::transaction(function () use ($team, $validated, $role, $user): void {
+                $team->users()->syncWithoutDetaching([
+                    $validated['user_id'] => ['role' => $role],
+                ]);
 
-        ActivityLogger::log(
-            event: 'member_added',
-            logName: 'member',
-            description: "Anggota \"{$user->name}\" ditambahkan ke tim \"{$team->name}\"",
-            subject: $user,
-            teamId: $team->id,
-        );
+                ActivityLogger::log(
+                    event: 'member_added',
+                    logName: 'member',
+                    description: "Anggota \"{$user->name}\" ditambahkan ke tim \"{$team->name}\"",
+                    subject: $user,
+                    teamId: $team->id,
+                );
+            });
+        } catch (\Throwable $e) {
+            report($e);
+
+            return back()->withErrors(['error' => 'Gagal menambahkan anggota, silakan coba lagi.']);
+        }
 
         return back();
     }
@@ -43,15 +51,23 @@ class TeamMemberController extends Controller
      */
     public function destroy(Team $team, User $user)
     {
-        $team->users()->detach($user->id);
+        try {
+            DB::transaction(function () use ($team, $user): void {
+                $team->users()->detach($user->id);
 
-        ActivityLogger::log(
-            event: 'member_removed',
-            logName: 'member',
-            description: "Anggota \"{$user->name}\" dikeluarkan dari tim \"{$team->name}\"",
-            subject: $user,
-            teamId: $team->id,
-        );
+                ActivityLogger::log(
+                    event: 'member_removed',
+                    logName: 'member',
+                    description: "Anggota \"{$user->name}\" dikeluarkan dari tim \"{$team->name}\"",
+                    subject: $user,
+                    teamId: $team->id,
+                );
+            });
+        } catch (\Throwable $e) {
+            report($e);
+
+            return back()->withErrors(['error' => 'Gagal menghapus anggota, silakan coba lagi.']);
+        }
 
         return back();
     }

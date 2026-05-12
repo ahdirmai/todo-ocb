@@ -39,9 +39,11 @@ const TAB_LABELS: Record<Tab, string> = {
 export default function TeamShow({
     team,
     tab,
+    taskMonth,
 }: {
     team: any;
     tab: Tab;
+    taskMonth?: string | null;
 }) {
     const { auth } = usePage<any>().props;
     const isAdmin = auth?.roles?.some((r: string) =>
@@ -73,7 +75,7 @@ export default function TeamShow({
     return (
         <>
             <Head title={team.name} />
-            <div className="mx-auto flex h-full w-full max-w-[1600px] flex-1 flex-col overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
+            <div className="mx-auto flex h-[calc(100dvh-4rem)] max-h-[calc(100dvh-4rem)] w-full max-w-[1600px] flex-1 flex-col overflow-hidden border border-sidebar-border/70 dark:border-sidebar-border">
                 {/* Header Team Area */}
                 <div className="flex items-center justify-between px-6 pt-5 pb-3">
                     <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
@@ -139,9 +141,9 @@ export default function TeamShow({
                         </TabsContent>
                         <TabsContent
                             value="task"
-                            className="m-0 flex h-full flex-col p-0"
+                            className="m-0 flex h-full flex-col overflow-hidden p-0"
                         >
-                            <TugasTab team={team} />
+                            <TugasTab team={team} taskMonth={taskMonth ?? null} />
                         </TabsContent>
                         <TabsContent
                             value="chat"

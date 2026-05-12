@@ -7,6 +7,7 @@ use App\Models\Team;
 use App\Models\TeamMessage;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 class TeamMessageController extends Controller
@@ -29,7 +30,7 @@ class TeamMessageController extends Controller
     {
         $this->authorizeTeamMember($team);
 
-        $messages = TeamMessage::with('user')
+        $messages = TeamMessage::with(['user', 'media'])
             ->where('team_id', $team->id)
             ->latest()
             ->limit(50)
@@ -59,19 +60,29 @@ class TeamMessageController extends Controller
             return response()->json(['error' => 'Pesan tidak boleh kosong.'], 422);
         }
 
-        $message = TeamMessage::create([
-            'team_id' => $team->id,
-            'user_id' => auth()->id(),
-            'body' => $validated['body'] ?? null,
-        ]);
+        try {
+            $message = DB::transaction(function () use ($request, $team, $validated): TeamMessage {
+                $message = TeamMessage::create([
+                    'team_id' => $team->id,
+                    'user_id' => auth()->id(),
+                    'body' => $validated['body'] ?? null,
+                ]);
 
-        if ($request->hasFile('attachments')) {
-            foreach ($request->file('attachments') as $file) {
-                $message->addMedia($file)->toMediaCollection('attachments');
-            }
+                if ($request->hasFile('attachments')) {
+                    foreach ($request->file('attachments') as $file) {
+                        $message->addMedia($file)->toMediaCollection('attachments');
+                    }
+                }
+
+                return $message;
+            });
+        } catch (\Throwable $e) {
+            report($e);
+
+            return response()->json(['error' => 'Gagal mengirim pesan, silakan coba lagi.'], 500);
         }
 
-        $message->load('user');
+        $message->load(['user', 'media']);
 
         broadcast(new TeamMessageSent($message))->toOthers();
 

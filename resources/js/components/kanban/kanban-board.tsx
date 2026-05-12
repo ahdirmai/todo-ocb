@@ -259,7 +259,7 @@ export function KanbanBoard({ kanban }: { kanban: any }) {
     return (
         <>
             <DragDropContext onDragEnd={onDragEnd}>
-                <div className="flex h-full flex-1 items-start gap-6 overflow-x-auto p-6 pt-4">
+                <div className="flex h-full min-h-0 w-full flex-1 items-stretch gap-6 overflow-x-auto overflow-y-hidden p-6 pt-4">
                     {columns.map((column: any, idx: number) => (
                         <KanbanColumn
                             key={column.id}

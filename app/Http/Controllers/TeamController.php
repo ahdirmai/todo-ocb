@@ -10,8 +10,10 @@ use App\Models\KanbanColumn;
 use App\Models\Team;
 use App\Models\TeamMessage;
 use App\Services\AiReportingService;
+use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
@@ -25,20 +27,35 @@ class TeamController extends Controller
         $team->load(['users' => fn ($q) => $q->withPivot('role')])->loadCount('tasks');
         $isAdmin = auth()->user()->hasAnyRole(['superadmin', 'admin']);
 
+        $taskMonth = null;
+
         if ($tab === 'task') {
+            $monthInput = request()->query('month');
+            if (is_string($monthInput) && preg_match('/^\d{4}-\d{2}$/', $monthInput)) {
+                try {
+                    $taskMonth = Carbon::createFromFormat('Y-m', $monthInput)->startOfMonth();
+                } catch (\Throwable) {
+                    $taskMonth = null;
+                }
+            }
+
             $team->load([
+                'kanbans.columns.tasks' => function ($q) use ($taskMonth): void {
+                    $q->withCount(['comments', 'media']);
+
+                    if ($taskMonth !== null) {
+                        $q->whereBetween('due_date', [
+                            $taskMonth->copy()->startOfMonth(),
+                            $taskMonth->copy()->endOfMonth(),
+                        ]);
+                    }
+                },
                 'kanbans.columns.tasks.tags',
                 'kanbans.columns.tasks.media',
                 'kanbans.columns.tasks.comments.user',
                 'kanbans.columns.tasks.comments.media',
                 'kanbans.columns.tasks.assignees',
             ]);
-
-            $team->kanbans->each(function (Kanban $kanban): void {
-                $kanban->columns->each(function (KanbanColumn $column): void {
-                    $column->tasks->loadCount(['comments', 'media']);
-                });
-            });
         }
 
         if ($tab === 'overview') {
@@ -60,7 +77,7 @@ class TeamController extends Controller
         }
 
         if ($tab === 'chat') {
-            $extraProps['messages'] = TeamMessage::with('user')
+            $extraProps['messages'] = TeamMessage::with(['user', 'media'])
                 ->where('team_id', $team->id)
                 ->latest()
                 ->limit(50)
@@ -172,6 +189,7 @@ class TeamController extends Controller
             'team' => $team,
             'tab' => $tab,
             'item' => $item,
+            'taskMonth' => $taskMonth?->format('Y-m'),
             ...$extraProps,
         ]);
     }
@@ -183,38 +201,44 @@ class TeamController extends Controller
             'grouping' => 'required|string|in:hq,team,project',
         ]);
 
-        $slug = Str::slug($validated['name']);
-        $originalSlug = $slug;
-        $counter = 1;
-        while (Team::where('slug', $slug)->exists()) {
-            $slug = "{$originalSlug}-{$counter}";
-            $counter++;
-        }
+        try {
+            DB::transaction(function () use ($validated): void {
+                $slug = Str::slug($validated['name']);
+                $originalSlug = $slug;
+                $counter = 1;
+                while (Team::where('slug', $slug)->exists()) {
+                    $slug = "{$originalSlug}-{$counter}";
+                    $counter++;
+                }
 
-        $team = Team::create([
-            'name' => $validated['name'],
-            'grouping' => GroupingType::from($validated['grouping']),
-            'slug' => $slug,
-        ]);
+                $team = Team::create([
+                    'name' => $validated['name'],
+                    'grouping' => GroupingType::from($validated['grouping']),
+                    'slug' => $slug,
+                ]);
 
-        // Auto-attach the creating user as admin
-        $team->users()->attach(auth()->id(), ['role' => 'admin']);
+                $team->users()->attach(auth()->id(), ['role' => 'admin']);
 
-        // Auto-create default Kanban board
-        $kanban = Kanban::create([
-            'team_id' => $team->id,
-            'name' => 'Papan Utama',
-        ]);
+                $kanban = Kanban::create([
+                    'team_id' => $team->id,
+                    'name' => 'Papan Utama',
+                ]);
 
-        $defaultColumns = ['Backlog', 'In Progress', 'In Review', 'Done'];
-        foreach ($defaultColumns as $index => $columnName) {
-            KanbanColumn::create([
-                'kanban_id' => $kanban->id,
-                'title' => $columnName,
-                'order' => $index,
-                'is_default' => true,
-                'is_done' => $columnName === 'Done',
-            ]);
+                $defaultColumns = ['Backlog', 'In Progress', 'In Review', 'Done'];
+                foreach ($defaultColumns as $index => $columnName) {
+                    KanbanColumn::create([
+                        'kanban_id' => $kanban->id,
+                        'title' => $columnName,
+                        'order' => $index,
+                        'is_default' => true,
+                        'is_done' => $columnName === 'Done',
+                    ]);
+                }
+            });
+        } catch (\Throwable $e) {
+            report($e);
+
+            return back()->withErrors(['error' => 'Gagal membuat tim, silakan coba lagi.']);
         }
 
         return back();
@@ -230,23 +254,30 @@ class TeamController extends Controller
             'is_active' => 'sometimes|boolean',
         ]);
 
-        // Regenerate slug only if name changed
-        if ($validated['name'] !== $team->name) {
-            $slug = Str::slug($validated['name']);
-            $baseSlug = $slug;
-            $counter = 1;
-            while (Team::where('slug', $slug)->where('id', '!=', $team->id)->exists()) {
-                $slug = "{$baseSlug}-{$counter}";
-                $counter++;
-            }
-            $validated['slug'] = $slug;
-        }
+        try {
+            DB::transaction(function () use (&$validated, $team): void {
+                if ($validated['name'] !== $team->name) {
+                    $slug = Str::slug($validated['name']);
+                    $baseSlug = $slug;
+                    $counter = 1;
+                    while (Team::where('slug', $slug)->where('id', '!=', $team->id)->exists()) {
+                        $slug = "{$baseSlug}-{$counter}";
+                        $counter++;
+                    }
+                    $validated['slug'] = $slug;
+                }
 
-        if (isset($validated['grouping'])) {
-            $validated['grouping'] = GroupingType::from($validated['grouping']);
-        }
+                if (isset($validated['grouping'])) {
+                    $validated['grouping'] = GroupingType::from($validated['grouping']);
+                }
 
-        $team->update($validated);
+                $team->update($validated);
+            });
+        } catch (\Throwable $e) {
+            report($e);
+
+            return back()->withErrors(['error' => 'Gagal memperbarui tim, silakan coba lagi.']);
+        }
 
         if (($validated['slug'] ?? null) && $validated['slug'] !== $originalSlug) {
             return $this->redirectToUpdatedTeamLocation($request, $team, $originalSlug);
@@ -298,7 +329,13 @@ class TeamController extends Controller
 
     public function destroy(Team $team)
     {
-        $team->delete();
+        try {
+            DB::transaction(fn () => $team->delete());
+        } catch (\Throwable $e) {
+            report($e);
+
+            return back()->withErrors(['error' => 'Gagal menghapus tim, silakan coba lagi.']);
+        }
 
         return back();
     }

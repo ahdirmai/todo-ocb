@@ -7,6 +7,7 @@ use App\Models\Team;
 use App\Services\ActivityLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 
@@ -85,52 +86,62 @@ class AnnouncementController extends Controller
 
         $isRecurring = $request->boolean('is_recurring');
 
-        $announcement = $team->announcements()->create([
-            'user_id' => $request->user()->id,
-            'title' => $validated['title'] ?? null,
-            'content' => $validated['content'],
-            'is_recurring' => $isRecurring,
-            'recurrence_frequency' => $isRecurring ? $validated['recurrence_frequency'] : null,
-            'recurrence_interval' => $isRecurring ? $validated['recurrence_interval'] : null,
-            'recurrence_time' => $isRecurring && $requiresClockTime
-                ? "{$validated['recurrence_time']}:00"
-                : null,
-            'recurrence_weekday' => $isRecurring && $validated['recurrence_frequency'] === 'week'
-                ? $validated['recurrence_weekday']
-                : null,
-            'recurrence_month_day' => $isRecurring && $validated['recurrence_frequency'] === 'month'
-                ? $validated['recurrence_month_day']
-                : null,
-            'recurrence_limit_unit' => $isRecurring ? $validated['recurrence_limit_unit'] : null,
-            'recurrence_limit_value' => $isRecurring ? $validated['recurrence_limit_value'] : null,
-            'recurrence_ends_at' => null,
-            'next_occurrence_at' => null,
-        ]);
+        try {
+            $announcement = DB::transaction(function () use ($team, $request, $validated, $isRecurring, $requiresClockTime): Announcement {
+                $announcement = $team->announcements()->create([
+                    'user_id' => $request->user()->id,
+                    'title' => $validated['title'] ?? null,
+                    'content' => $validated['content'],
+                    'is_recurring' => $isRecurring,
+                    'recurrence_frequency' => $isRecurring ? $validated['recurrence_frequency'] : null,
+                    'recurrence_interval' => $isRecurring ? $validated['recurrence_interval'] : null,
+                    'recurrence_time' => $isRecurring && $requiresClockTime
+                        ? "{$validated['recurrence_time']}:00"
+                        : null,
+                    'recurrence_weekday' => $isRecurring && $validated['recurrence_frequency'] === 'week'
+                        ? $validated['recurrence_weekday']
+                        : null,
+                    'recurrence_month_day' => $isRecurring && $validated['recurrence_frequency'] === 'month'
+                        ? $validated['recurrence_month_day']
+                        : null,
+                    'recurrence_limit_unit' => $isRecurring ? $validated['recurrence_limit_unit'] : null,
+                    'recurrence_limit_value' => $isRecurring ? $validated['recurrence_limit_value'] : null,
+                    'recurrence_ends_at' => null,
+                    'next_occurrence_at' => null,
+                ]);
 
-        if ($announcement->is_recurring) {
-            $recurrenceEndsAt = $announcement->calculateRecurrenceEndsAt(now());
-            $announcement->recurrence_ends_at = $recurrenceEndsAt;
+                if ($announcement->is_recurring) {
+                    $recurrenceEndsAt = $announcement->calculateRecurrenceEndsAt(now());
+                    $announcement->recurrence_ends_at = $recurrenceEndsAt;
 
-            $announcement->update([
-                'recurrence_ends_at' => $recurrenceEndsAt,
-                'next_occurrence_at' => $announcement->calculateNextOccurrence(now()),
-            ]);
+                    $announcement->update([
+                        'recurrence_ends_at' => $recurrenceEndsAt,
+                        'next_occurrence_at' => $announcement->calculateNextOccurrence(now()),
+                    ]);
+                }
+
+                if ($request->hasFile('attachments')) {
+                    foreach ($request->file('attachments') as $file) {
+                        $announcement->addMedia($file)->toMediaCollection('attachments');
+                    }
+                }
+
+                ActivityLogger::log(
+                    event: 'created',
+                    logName: 'announcement',
+                    description: 'Membuat pengumuman baru',
+                    subject: $announcement,
+                    teamId: $team->id,
+                    properties: ['title' => $announcement->title]
+                );
+
+                return $announcement;
+            });
+        } catch (\Throwable $e) {
+            report($e);
+
+            return back()->withErrors(['error' => 'Gagal membuat pengumuman, silakan coba lagi.']);
         }
-
-        if ($request->hasFile('attachments')) {
-            foreach ($request->file('attachments') as $file) {
-                $announcement->addMedia($file)->toMediaCollection('attachments');
-            }
-        }
-
-        ActivityLogger::log(
-            event: 'created',
-            logName: 'announcement',
-            description: 'Membuat pengumuman baru',
-            subject: $announcement,
-            teamId: $team->id,
-            properties: ['title' => $announcement->title]
-        );
 
         return back();
     }
@@ -225,49 +236,57 @@ class AnnouncementController extends Controller
             || $announcement->recurrence_limit_unit !== $recurrenceLimitUnit
             || (int) $announcement->recurrence_limit_value !== (int) ($recurrenceLimitValue ?? 0);
 
-        $announcement->update([
-            'title' => $validated['title'] ?? null,
-            'content' => $validated['content'],
-            'is_recurring' => $isRecurring,
-            'recurrence_frequency' => $recurrenceFrequency,
-            'recurrence_interval' => $isRecurring ? $validated['recurrence_interval'] : null,
-            'recurrence_time' => $recurrenceTime,
-            'recurrence_weekday' => $recurrenceWeekday,
-            'recurrence_month_day' => $recurrenceMonthDay,
-            'recurrence_limit_unit' => $recurrenceLimitUnit,
-            'recurrence_limit_value' => $recurrenceLimitValue,
-            'recurrence_ends_at' => $isRecurring ? $announcement->recurrence_ends_at : null,
-            'next_occurrence_at' => $isRecurring ? $announcement->next_occurrence_at : null,
-        ]);
+        try {
+            DB::transaction(function () use ($announcement, $validated, $isRecurring, $recurrenceFrequency, $recurrenceWeekday, $recurrenceMonthDay, $recurrenceTime, $recurrenceLimitUnit, $recurrenceLimitValue, $recurrenceChanged, $request): void {
+                $announcement->update([
+                    'title' => $validated['title'] ?? null,
+                    'content' => $validated['content'],
+                    'is_recurring' => $isRecurring,
+                    'recurrence_frequency' => $recurrenceFrequency,
+                    'recurrence_interval' => $isRecurring ? $validated['recurrence_interval'] : null,
+                    'recurrence_time' => $recurrenceTime,
+                    'recurrence_weekday' => $recurrenceWeekday,
+                    'recurrence_month_day' => $recurrenceMonthDay,
+                    'recurrence_limit_unit' => $recurrenceLimitUnit,
+                    'recurrence_limit_value' => $recurrenceLimitValue,
+                    'recurrence_ends_at' => $isRecurring ? $announcement->recurrence_ends_at : null,
+                    'next_occurrence_at' => $isRecurring ? $announcement->next_occurrence_at : null,
+                ]);
 
-        if ($isRecurring && ($recurrenceChanged || ! $announcement->next_occurrence_at)) {
-            $recurrenceEndsAt = $announcement->calculateRecurrenceEndsAt(now());
-            $announcement->recurrence_ends_at = $recurrenceEndsAt;
+                if ($isRecurring && ($recurrenceChanged || ! $announcement->next_occurrence_at)) {
+                    $recurrenceEndsAt = $announcement->calculateRecurrenceEndsAt(now());
+                    $announcement->recurrence_ends_at = $recurrenceEndsAt;
 
-            $announcement->update([
-                'recurrence_ends_at' => $recurrenceEndsAt,
-                'next_occurrence_at' => $announcement->calculateNextOccurrence(now()),
-            ]);
+                    $announcement->update([
+                        'recurrence_ends_at' => $recurrenceEndsAt,
+                        'next_occurrence_at' => $announcement->calculateNextOccurrence(now()),
+                    ]);
+                }
+
+                if (! empty($validated['removed_media_ids'])) {
+                    $announcement->media()->whereIn('id', $validated['removed_media_ids'])->delete();
+                }
+
+                if ($request->hasFile('new_attachments')) {
+                    foreach ($request->file('new_attachments') as $file) {
+                        $announcement->addMedia($file)->toMediaCollection('attachments');
+                    }
+                }
+
+                ActivityLogger::log(
+                    event: 'updated',
+                    logName: 'announcement',
+                    description: 'Memperbarui pengumuman',
+                    subject: $announcement,
+                    teamId: $announcement->team_id,
+                    properties: ['title' => $announcement->title]
+                );
+            });
+        } catch (\Throwable $e) {
+            report($e);
+
+            return back()->withErrors(['error' => 'Gagal memperbarui pengumuman, silakan coba lagi.']);
         }
-
-        if (! empty($validated['removed_media_ids'])) {
-            $announcement->media()->whereIn('id', $validated['removed_media_ids'])->delete();
-        }
-
-        if ($request->hasFile('new_attachments')) {
-            foreach ($request->file('new_attachments') as $file) {
-                $announcement->addMedia($file)->toMediaCollection('attachments');
-            }
-        }
-
-        ActivityLogger::log(
-            event: 'updated',
-            logName: 'announcement',
-            description: 'Memperbarui pengumuman',
-            subject: $announcement,
-            teamId: $announcement->team_id,
-            properties: ['title' => $announcement->title]
-        );
 
         return back();
     }
@@ -279,16 +298,24 @@ class AnnouncementController extends Controller
         $teamId = $announcement->team_id;
         $title = $announcement->title;
 
-        $announcement->delete();
+        try {
+            DB::transaction(function () use ($announcement, $teamId, $title): void {
+                $announcement->delete();
 
-        ActivityLogger::log(
-            event: 'deleted',
-            logName: 'announcement',
-            description: 'Menghapus pengumuman',
-            subject: null,
-            teamId: $teamId,
-            properties: ['title' => $title]
-        );
+                ActivityLogger::log(
+                    event: 'deleted',
+                    logName: 'announcement',
+                    description: 'Menghapus pengumuman',
+                    subject: null,
+                    teamId: $teamId,
+                    properties: ['title' => $title]
+                );
+            });
+        } catch (\Throwable $e) {
+            report($e);
+
+            return back()->withErrors(['error' => 'Gagal menghapus pengumuman, silakan coba lagi.']);
+        }
 
         return back();
     }
