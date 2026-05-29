@@ -27,6 +27,13 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 
@@ -129,7 +136,7 @@ interface TaskDetailModalProps {
 }
 
 export function TaskDetailModal({ task, open, onClose }: TaskDetailModalProps) {
-    const { tags: globalTags = [], auth, team, uploads, errors } = usePage<any>().props;
+    const { tags: globalTags = [], auth, team, uploads, errors, spvSopSteps = [] } = usePage<any>().props;
 
     const isGlobalAdmin = auth?.roles?.some((r: string) =>
         ['superadmin', 'admin'].includes(r),
@@ -168,6 +175,7 @@ export function TaskDetailModal({ task, open, onClose }: TaskDetailModalProps) {
     const [saving, setSaving] = useState(false);
 
     const [commentText, setCommentText] = useState('');
+    const [selectedSopStepId, setSelectedSopStepId] = useState<string | null>(null);
     const [replyingTo, setReplyingTo] = useState<string | null>(null);
     const [sendingComment, setSendingComment] = useState(false);
     const [attachments, setAttachments] = useState<File[]>([]);
@@ -304,6 +312,7 @@ export function TaskDetailModal({ task, open, onClose }: TaskDetailModalProps) {
             {
                 content: cleanContent || '<p></p>',
                 parent_id: replyingTo,
+                document_sop_step_id: selectedSopStepId,
                 attachments: attachments,
                 attachment_dates: attachments.map(file => new Date(file.lastModified).toISOString()),
             },
@@ -314,6 +323,7 @@ export function TaskDetailModal({ task, open, onClose }: TaskDetailModalProps) {
                     setCommentText('');
                     setAttachments([]);
                     setReplyingTo(null);
+                    setSelectedSopStepId(null);
                     setSendingComment(false);
 
                     if (fileInputRef.current) {
@@ -747,6 +757,24 @@ export function TaskDetailModal({ task, open, onClose }: TaskDetailModalProps) {
                                         </div>
                                     )}
 
+                                    {spvSopSteps.length > 0 && (
+                                        <Select
+                                            value={selectedSopStepId ?? ''}
+                                            onValueChange={(v) => setSelectedSopStepId(v || null)}
+                                        >
+                                            <SelectTrigger className="h-8 text-xs">
+                                                <SelectValue placeholder="Pilih SOP (opsional)" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {spvSopSteps.map((step: any) => (
+                                                    <SelectItem key={step.id} value={step.id} className="text-xs">
+                                                        {step.sequence_order}. {step.name}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    )}
+
                                     <div className="mt-1 flex items-center justify-between">
                                         <div className="actions flex">
                                             <Button
@@ -1002,12 +1030,19 @@ export function TaskDetailModal({ task, open, onClose }: TaskDetailModalProps) {
                                                     </p>
                                                 </div>
                                             ) : (
-                                                <div
-                                                    className="text-sm text-slate-700 dark:text-slate-300 [&_em]:italic [&_li]:ml-4 [&_ol]:list-decimal [&_p]:m-0 [&_strong]:font-bold [&_ul]:list-disc"
-                                                    dangerouslySetInnerHTML={{
-                                                        __html: comment.content,
-                                                    }}
-                                                />
+                                                <>
+                                                    <div
+                                                        className="text-sm text-slate-700 dark:text-slate-300 [&_em]:italic [&_li]:ml-4 [&_ol]:list-decimal [&_p]:m-0 [&_strong]:font-bold [&_ul]:list-disc"
+                                                        dangerouslySetInnerHTML={{
+                                                            __html: comment.content,
+                                                        }}
+                                                    />
+                                                    {comment.sop_step && (
+                                                        <span className="mt-1.5 inline-flex items-center gap-1 rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-medium text-violet-700 dark:bg-violet-900/30 dark:text-violet-300">
+                                                            SOP {comment.sop_step.sequence_order}. {comment.sop_step.name}
+                                                        </span>
+                                                    )}
+                                                </>
                                             )}
                                             {comment.media &&
                                                 comment.media.length > 0 && (

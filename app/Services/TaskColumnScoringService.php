@@ -172,12 +172,7 @@ class TaskColumnScoringService
 
         $matchResult = $this->findMatchingComment($columnTitle, $task['comments'] ?? []);
 
-        // Jika task sudah mencapai atau melewati step terakhir
-        if ($isLastStep && $currentColumnOrder !== null && $currentColumnOrder >= $columnOrder) {
-            $skor = 10;
-            $level = 'sangat_baik';
-            $penjelasan = 'Auto max score karena sudah mencapai step terakhir';
-        } elseif ($matchResult !== null) {
+        if ($matchResult !== null) {
             if ($matchResult['has_attachment']) {
                 $skor = 10;
                 $level = 'sangat_baik';
@@ -187,6 +182,11 @@ class TaskColumnScoringService
                 $level = 'cukup';
                 $penjelasan = 'Hanya komentar (tanpa lampiran file)';
             }
+        } elseif ($isLastStep && $currentColumnOrder !== null && $currentColumnOrder > $columnOrder) {
+            // Auto max score hanya jika tidak ada komentar dan sudah melewati step terakhir
+            $skor = 10;
+            $level = 'sangat_baik';
+            $penjelasan = 'Auto max score karena sudah melewati step terakhir';
         } elseif ($this->isStepPassed($columnOrder, $currentColumnOrder)) {
             $skor = 3;
             $level = 'kurang';

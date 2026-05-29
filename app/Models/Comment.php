@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 
@@ -42,5 +43,10 @@ class Comment extends Model implements HasMedia
     public function replies()
     {
         return $this->hasMany(Comment::class, 'parent_id');
+    }
+
+    public function sopStep(): BelongsTo
+    {
+        return $this->belongsTo(DocumentSopStep::class, 'document_sop_step_id');
     }
 }

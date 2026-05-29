@@ -83,7 +83,7 @@ class ReportingController extends Controller
         return redirect()->route('reporting.show', $report);
     }
 
-    public function update(MonthlyTaskReport $monthlyTaskReport, Request $request): RedirectResponse
+    public function update(MonthlyTaskReport $monthlyTaskReport, Request $request, MonthlyTaskReportingService $reportingService): RedirectResponse
     {
         $validated = $request->validate([
             'teams' => ['required', 'array'],

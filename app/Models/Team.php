@@ -20,6 +20,7 @@ class Team extends Model
         return [
             'grouping' => GroupingType::class,
             'is_active' => 'boolean',
+            'is_spv_team' => 'boolean',
         ];
     }
 

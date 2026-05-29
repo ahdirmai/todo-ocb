@@ -37,7 +37,7 @@ class DocumentCommentController extends Controller
         return back();
     }
 
-    public function update(Request $request, Comment $comment)
+    public function update(Request $request, Document $document, Comment $comment)
     {
         abort_unless($comment->user_id === auth()->id(), 403);
 

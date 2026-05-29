@@ -121,6 +121,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::put('teams/{team}', [TeamController::class, 'update'])->name('teams.update');
         Route::patch('teams/{team}/archive', [TeamController::class, 'archive'])->name('teams.archive');
         Route::patch('teams/{team}/restore', [TeamController::class, 'restore'])->name('teams.restore');
+        Route::patch('teams/{team}/toggle-spv', [TeamController::class, 'toggleSpvTeam'])->middleware('role:superadmin')->name('teams.toggle-spv');
         Route::delete('teams/{team}', [TeamController::class, 'destroy'])->name('teams.destroy');
         // Activity Logs — admin & superadmin only
         Route::get('activity', [ActivityLogController::class, 'index'])->name('activity.index');

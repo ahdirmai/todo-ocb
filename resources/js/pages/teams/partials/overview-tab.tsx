@@ -4,6 +4,7 @@ import {
     UsersRound,
     Kanban,
     CheckSquare,
+    ShieldCheck,
 } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import {
@@ -15,6 +16,7 @@ import {
     Tooltip,
     ResponsiveContainer,
 } from 'recharts';
+import * as TeamActions from '@/actions/App/Http/Controllers/TeamController';
 import * as TeamMemberActions from '@/actions/App/Http/Controllers/TeamMemberController';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -23,6 +25,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import {
     Dialog,
     DialogContent,
+    DialogDescription,
+    DialogFooter,
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
@@ -34,9 +38,25 @@ const ROLE_STYLE: Record<string, string> = {
 };
 
 export function OverviewTab({ team }: { team: any }) {
-    const { auth, allUsers = [] } = usePage<any>().props;
+    const { auth, allUsers = [], currentSpvTeam = null } = usePage<any>().props;
     const isAdmin =
         auth?.roles?.includes('superadmin') || auth?.roles?.includes('admin');
+    const isSuperAdmin = auth?.roles?.includes('superadmin');
+
+    const [spvConfirmOpen, setSpvConfirmOpen] = useState(false);
+
+    const handleToggleSpv = () => {
+        if (!team.is_spv_team && currentSpvTeam) {
+            setSpvConfirmOpen(true);
+            return;
+        }
+        router.patch(TeamActions.toggleSpvTeam.url(team.id), {}, { preserveScroll: true });
+    };
+
+    const confirmToggleSpv = () => {
+        setSpvConfirmOpen(false);
+        router.patch(TeamActions.toggleSpvTeam.url(team.id), {}, { preserveScroll: true });
+    };
 
     const [inviteOpen, setInviteOpen] = useState(false);
     const [search, setSearch] = useState('');
@@ -97,6 +117,42 @@ export function OverviewTab({ team }: { team: any }) {
                     </div>
                 </div>
             </div>
+
+            {/* SPV Team Flag */}
+            {(isSuperAdmin || team.is_spv_team) && (
+                <div className="flex items-center justify-between rounded-xl border border-sidebar-border/70 bg-white px-5 py-4 dark:bg-zinc-900">
+                    <div className="flex items-center gap-3">
+                        <ShieldCheck className={`h-5 w-5 ${team.is_spv_team ? 'text-violet-500' : 'text-muted-foreground'}`} />
+                        <div>
+                            <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                                Tim SPV
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                                {team.is_spv_team
+                                    ? 'Tim ini adalah tim SPV aktif di sistem'
+                                    : 'Tim ini bukan tim SPV'}
+                            </p>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        {team.is_spv_team && (
+                            <Badge className="border-none bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300">
+                                SPV Aktif
+                            </Badge>
+                        )}
+                        {isSuperAdmin && (
+                            <Button
+                                size="sm"
+                                variant={team.is_spv_team ? 'outline' : 'default'}
+                                className="h-7 text-xs"
+                                onClick={handleToggleSpv}
+                            >
+                                {team.is_spv_team ? 'Nonaktifkan' : 'Jadikan SPV'}
+                            </Button>
+                        )}
+                    </div>
+                </div>
+            )}
 
             {/* Analytics */}
             {columnStats.length > 0 && (
@@ -349,6 +405,43 @@ export function OverviewTab({ team }: { team: any }) {
                             </Button>
                         </div>
                     </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* SPV Confirm Dialog */}
+            <Dialog open={spvConfirmOpen} onOpenChange={setSpvConfirmOpen}>
+                <DialogContent className="max-w-sm" aria-describedby="spv-confirm-desc">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <ShieldCheck className="h-5 w-5 text-amber-500" />
+                            Ganti Tim SPV?
+                        </DialogTitle>
+                        <DialogDescription id="spv-confirm-desc" className="pt-1 text-sm leading-relaxed text-muted-foreground">
+                            <span className="font-semibold text-slate-800 dark:text-slate-200">
+                                {currentSpvTeam?.name}
+                            </span>{' '}
+                            saat ini adalah tim SPV aktif. Mengganti tim SPV akan{' '}
+                            <span className="font-medium text-amber-600 dark:text-amber-400">
+                                mempengaruhi data penilaian
+                            </span>{' '}
+                            kedua tim — tim lama akan kehilangan status SPV beserta pengaruhnya terhadap penilaian, dan tim baru akan mulai digunakan sebagai acuan penilaian.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter className="mt-2 flex gap-2">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setSpvConfirmOpen(false)}
+                        >
+                            Batal
+                        </Button>
+                        <Button
+                            size="sm"
+                            onClick={confirmToggleSpv}
+                        >
+                            Ya, Ganti Tim SPV
+                        </Button>
+                    </DialogFooter>
                 </DialogContent>
             </Dialog>
         </div>

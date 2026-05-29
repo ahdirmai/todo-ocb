@@ -23,6 +23,7 @@ class CommentController extends Controller
         $validated = $request->validate([
             'content' => 'required|string',
             'parent_id' => 'nullable|exists:comments,id',
+            'document_sop_step_id' => 'nullable|exists:document_sop_steps,id',
             'attachments' => 'nullable|array',
             'attachments.*' => 'file|max:'.$this->attachmentMaxKilobytes(),
             'attachment_dates' => 'nullable|array',
@@ -46,6 +47,7 @@ class CommentController extends Controller
                     'user_id' => $request->user()?->id,
                     'content' => $validated['content'],
                     'parent_id' => $validated['parent_id'] ?? null,
+                    'document_sop_step_id' => $validated['document_sop_step_id'] ?? null,
                 ]);
 
                 if ($request->hasFile('attachments')) {

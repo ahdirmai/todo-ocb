@@ -27,6 +27,9 @@ class TeamController extends Controller
         $team->load(['users' => fn ($q) => $q->withPivot('role')])->loadCount('tasks');
         $isAdmin = auth()->user()->hasAnyRole(['superadmin', 'admin']);
 
+        /** @var array<string,mixed> $extraProps */
+        $extraProps = [];
+
         $taskMonth = null;
 
         if ($tab === 'task') {
@@ -54,8 +57,27 @@ class TeamController extends Controller
                 'kanbans.columns.tasks.media',
                 'kanbans.columns.tasks.comments.user',
                 'kanbans.columns.tasks.comments.media',
+                'kanbans.columns.tasks.comments.sopStep',
                 'kanbans.columns.tasks.assignees',
             ]);
+
+            if ($team->is_spv_team) {
+                $spvSopSteps = $team->documents()
+                    ->where('is_sop', true)
+                    ->latest()
+                    ->first()
+                    ?->sopSteps()
+                    ->orderBy('sequence_order')
+                    ->get(['id', 'name', 'sequence_order'])
+                    ->map(fn ($step) => [
+                        'id' => $step->id,
+                        'name' => $step->name,
+                        'sequence_order' => $step->sequence_order,
+                    ])
+                    ->toArray() ?? [];
+
+                $extraProps['spvSopSteps'] = $spvSopSteps;
+            }
         }
 
         if ($tab === 'overview') {
@@ -63,9 +85,6 @@ class TeamController extends Controller
                 'kanbans.columns' => fn ($q) => $q->withCount('tasks'),
             ]);
         }
-
-        /** @var array<string,mixed> $extraProps */
-        $extraProps = [];
 
         if ($tab === 'activity') {
             abort_unless($isAdmin, 403);
@@ -185,11 +204,17 @@ class TeamController extends Controller
             ];
         }
 
+        $currentSpvTeam = Team::where('is_spv_team', true)
+            ->where('id', '!=', $team->id)
+            ->select('id', 'name')
+            ->first();
+
         return Inertia::render('teams/show', [
             'team' => $team,
             'tab' => $tab,
             'item' => $item,
             'taskMonth' => $taskMonth?->format('Y-m'),
+            'currentSpvTeam' => $currentSpvTeam ? ['id' => $currentSpvTeam->id, 'name' => $currentSpvTeam->name] : null,
             ...$extraProps,
         ]);
     }
@@ -311,6 +336,18 @@ class TeamController extends Controller
         }
 
         return redirect($updatedPath);
+    }
+
+    public function toggleSpvTeam(Team $team)
+    {
+        if ($team->is_spv_team) {
+            $team->update(['is_spv_team' => false]);
+        } else {
+            Team::where('is_spv_team', true)->update(['is_spv_team' => false]);
+            $team->update(['is_spv_team' => true]);
+        }
+
+        return back();
     }
 
     public function archive(Team $team)
