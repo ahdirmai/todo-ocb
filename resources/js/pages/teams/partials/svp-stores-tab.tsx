@@ -1,63 +1,74 @@
 import { router, usePage } from '@inertiajs/react';
-import { Store, Plus, X } from 'lucide-react';
+import { Store, UserCheck, Search } from 'lucide-react';
 import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 
-interface Store {
+interface StoreData {
     id: number;
     branch_code: string;
     name: string;
     address: string;
-    svp_id: number | null;
-    svp?: {
+    spv_id: number | null;
+    spv?: {
         id: number;
         name: string;
     } | null;
 }
 
+interface SpvMember {
+    id: number;
+    name: string;
+    email: string;
+    stores_count: number;
+}
+
 export function SvpStoresTab({ team }: { team: any }) {
-    const { auth, assignedStores = [], availableStores = [] } = usePage<{
+    const { auth, stores = [], spvMembers = [] } = usePage<{
         auth: any;
-        assignedStores: Store[];
-        availableStores: Store[];
+        stores: StoreData[];
+        spvMembers: SpvMember[];
     }>().props;
 
     const isAdmin =
         auth?.roles?.includes('superadmin') || auth?.roles?.includes('admin');
 
-    const [assignModalOpen, setAssignModalOpen] = useState(false);
     const [search, setSearch] = useState('');
 
-    const filteredAvailable = availableStores.filter(
+    const filteredStores = stores.filter(
         (store) =>
             store.branch_code.toLowerCase().includes(search.toLowerCase()) ||
             store.name.toLowerCase().includes(search.toLowerCase()) ||
-            store.address.toLowerCase().includes(search.toLowerCase())
+            store.address.toLowerCase().includes(search.toLowerCase()) ||
+            store.spv?.name.toLowerCase().includes(search.toLowerCase())
     );
 
-    const handleAssign = (storeId: number) => {
+    const handleAssign = (storeId: number, spvId: string) => {
+        if (!spvId) {
+            return;
+        }
+
         router.post(
             `/teams/${team.slug}/svp-stores/assign`,
-            { store_id: storeId },
+            {
+                store_id: storeId,
+                spv_id: parseInt(spvId),
+            },
             {
                 preserveScroll: true,
-                onSuccess: () => {
-                    setSearch('');
-                },
             }
         );
     };
 
     const handleUnassign = (storeId: number) => {
-        if (!confirm('Lepas toko dari tim SVP ini?')) {
+        if (!confirm('Lepas toko dari SPV?')) {
             return;
         }
 
@@ -70,143 +81,210 @@ export function SvpStoresTab({ team }: { team: any }) {
         );
     };
 
+    // Calculate statistics
+    const totalStores = stores.length;
+    const assignedStores = stores.filter((s) => s.spv_id).length;
+    const unassignedStores = totalStores - assignedStores;
+
     return (
-        <>
-            <div className="flex flex-col gap-6">
-                {/* Header */}
-                <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-6">
+            {/* Header & Stats */}
+            <div>
+                <div className="flex flex-wrap items-center justify-between gap-4">
                     <div>
                         <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">
-                            Manajemen Toko SVP
+                            Manajemen Toko SPV
                         </h2>
                         <p className="mt-1 text-sm text-muted-foreground">
-                            {assignedStores.length} toko ditugaskan ke tim ini
+                            Atur penugasan SPV untuk setiap toko
                         </p>
                     </div>
-                    {isAdmin && (
-                        <Button
-                            onClick={() => setAssignModalOpen(true)}
-                            className="gap-2"
-                        >
-                            <Plus className="h-4 w-4" />
-                            Tambah Toko
-                        </Button>
-                    )}
+                    <div className="flex gap-3">
+                        <div className="rounded-lg border border-sidebar-border/70 bg-white px-4 py-2 dark:bg-zinc-900">
+                            <div className="text-xs text-muted-foreground">
+                                Total Toko
+                            </div>
+                            <div className="text-xl font-bold text-slate-900 dark:text-slate-100">
+                                {totalStores}
+                            </div>
+                        </div>
+                        <div className="rounded-lg border border-sidebar-border/70 bg-white px-4 py-2 dark:bg-zinc-900">
+                            <div className="text-xs text-muted-foreground">
+                                Terisi
+                            </div>
+                            <div className="text-xl font-bold text-green-600 dark:text-green-400">
+                                {assignedStores}
+                            </div>
+                        </div>
+                        <div className="rounded-lg border border-sidebar-border/70 bg-white px-4 py-2 dark:bg-zinc-900">
+                            <div className="text-xs text-muted-foreground">
+                                Kosong
+                            </div>
+                            <div className="text-xl font-bold text-amber-600 dark:text-amber-400">
+                                {unassignedStores}
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
-                {/* Assigned Stores List */}
-                {assignedStores.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-border py-16">
-                        <Store className="mb-4 h-12 w-12 text-muted-foreground/50" />
-                        <p className="text-sm text-muted-foreground">
-                            Belum ada toko yang ditugaskan ke tim ini
-                        </p>
-                        {isAdmin && (
-                            <Button
-                                variant="outline"
-                                className="mt-4"
-                                onClick={() => setAssignModalOpen(true)}
-                            >
-                                Tambah Toko
-                            </Button>
-                        )}
-                    </div>
-                ) : (
-                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                        {assignedStores.map((store) => (
+                {/* SPV Members Summary */}
+                {spvMembers.length > 0 && (
+                    <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                        {spvMembers.map((spv) => (
                             <div
-                                key={store.id}
-                                className="group relative rounded-lg border border-sidebar-border/70 bg-white p-4 transition-colors hover:border-primary/30 dark:bg-zinc-900"
+                                key={spv.id}
+                                className="flex items-center gap-3 rounded-lg border border-sidebar-border/70 bg-white p-3 dark:bg-zinc-900"
                             >
-                                <div className="mb-3 flex items-start justify-between">
-                                    <div>
-                                        <Badge
-                                            variant="secondary"
-                                            className="mb-2"
-                                        >
-                                            {store.branch_code}
-                                        </Badge>
-                                        <h3 className="font-semibold text-slate-900 dark:text-slate-100">
-                                            {store.name}
-                                        </h3>
+                                <UserCheck className="h-5 w-5 text-primary" />
+                                <div className="flex-1 min-w-0">
+                                    <div className="truncate font-medium text-slate-900 dark:text-slate-100">
+                                        {spv.name}
                                     </div>
-                                    {isAdmin && (
-                                        <button
-                                            onClick={() =>
-                                                handleUnassign(store.id)
-                                            }
-                                            className="rounded p-1 text-slate-400 opacity-0 transition-all hover:bg-red-50 hover:text-red-600 group-hover:opacity-100 dark:hover:bg-red-900/20"
-                                            title="Lepas toko"
-                                        >
-                                            <X className="h-4 w-4" />
-                                        </button>
-                                    )}
+                                    <div className="text-xs text-muted-foreground">
+                                        {spv.stores_count} toko
+                                    </div>
                                 </div>
-                                <p className="text-sm text-slate-600 dark:text-slate-400">
-                                    {store.address}
-                                </p>
                             </div>
                         ))}
                     </div>
                 )}
             </div>
 
-            {/* Assign Modal */}
-            <Dialog
-                open={assignModalOpen}
-                onOpenChange={(v) => !v && setAssignModalOpen(false)}
-            >
-                <DialogContent className="max-w-2xl">
-                    <DialogHeader>
-                        <DialogTitle>Tambah Toko ke Tim SVP</DialogTitle>
-                    </DialogHeader>
-                    <div className="mt-4 flex flex-col gap-4">
-                        <Input
-                            placeholder="Cari kode cabang, nama, atau alamat..."
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                        />
+            {/* Search */}
+            <div className="relative">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                    type="text"
+                    placeholder="Cari kode cabang, nama toko, alamat, atau SPV..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="pl-9"
+                />
+            </div>
 
-                        <div className="max-h-96 overflow-y-auto">
-                            {filteredAvailable.length === 0 ? (
-                                <p className="py-8 text-center text-sm text-muted-foreground">
-                                    {search
-                                        ? 'Tidak ada toko yang ditemukan'
-                                        : 'Semua toko sudah ditugaskan'}
-                                </p>
-                            ) : (
-                                <div className="flex flex-col gap-2">
-                                    {filteredAvailable.map((store) => (
-                                        <button
-                                            key={store.id}
-                                            onClick={() => {
-                                                handleAssign(store.id);
-                                                setAssignModalOpen(false);
-                                            }}
-                                            className="flex items-start gap-3 rounded-lg border border-sidebar-border/70 bg-white p-3 text-left transition-colors hover:border-primary/30 hover:bg-slate-50 dark:bg-zinc-900 dark:hover:bg-zinc-800"
-                                        >
-                                            <Store className="mt-0.5 h-5 w-5 shrink-0 text-slate-400" />
-                                            <div className="flex-1">
+            {/* Stores Table */}
+            {filteredStores.length === 0 ? (
+                <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-border py-16">
+                    <Store className="mb-4 h-12 w-12 text-muted-foreground/50" />
+                    <p className="text-sm text-muted-foreground">
+                        {search
+                            ? 'Tidak ada toko yang ditemukan'
+                            : 'Belum ada data toko'}
+                    </p>
+                </div>
+            ) : (
+                <div className="overflow-hidden rounded-lg border border-sidebar-border/70">
+                    <div className="overflow-x-auto">
+                        <table className="w-full">
+                            <thead className="bg-muted/50">
+                                <tr>
+                                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">
+                                        Kode
+                                    </th>
+                                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">
+                                        Nama Toko
+                                    </th>
+                                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">
+                                        Alamat
+                                    </th>
+                                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">
+                                        SPV
+                                    </th>
+                                    {isAdmin && (
+                                        <th className="w-48 px-4 py-3 text-left text-xs font-medium text-muted-foreground">
+                                            Aksi
+                                        </th>
+                                    )}
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-sidebar-border/70">
+                                {filteredStores.map((store) => (
+                                    <tr
+                                        key={store.id}
+                                        className="transition-colors hover:bg-muted/30"
+                                    >
+                                        <td className="px-4 py-3">
+                                            <Badge variant="secondary">
+                                                {store.branch_code}
+                                            </Badge>
+                                        </td>
+                                        <td className="px-4 py-3 text-sm font-medium text-slate-900 dark:text-slate-100">
+                                            {store.name}
+                                        </td>
+                                        <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-400">
+                                            {store.address}
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            {store.spv ? (
                                                 <div className="flex items-center gap-2">
-                                                    <Badge variant="secondary">
-                                                        {store.branch_code}
-                                                    </Badge>
-                                                    <span className="font-medium text-slate-900 dark:text-slate-100">
-                                                        {store.name}
+                                                    <UserCheck className="h-4 w-4 text-green-600 dark:text-green-400" />
+                                                    <span className="text-sm font-medium text-slate-900 dark:text-slate-100">
+                                                        {store.spv.name}
                                                     </span>
                                                 </div>
-                                                <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-                                                    {store.address}
-                                                </p>
-                                            </div>
-                                        </button>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
+                                            ) : (
+                                                <span className="text-sm text-muted-foreground">
+                                                    Belum ditugaskan
+                                                </span>
+                                            )}
+                                        </td>
+                                        {isAdmin && (
+                                            <td className="px-4 py-3">
+                                                <div className="flex items-center gap-2">
+                                                    <Select
+                                                        value={
+                                                            store.spv_id?.toString() ||
+                                                            ''
+                                                        }
+                                                        onValueChange={(v) =>
+                                                            handleAssign(
+                                                                store.id,
+                                                                v
+                                                            )
+                                                        }
+                                                    >
+                                                        <SelectTrigger className="h-8 text-xs">
+                                                            <SelectValue placeholder="Pilih SPV..." />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            {spvMembers.map(
+                                                                (spv) => (
+                                                                    <SelectItem
+                                                                        key={
+                                                                            spv.id
+                                                                        }
+                                                                        value={spv.id.toString()}
+                                                                    >
+                                                                        {
+                                                                            spv.name
+                                                                        }
+                                                                    </SelectItem>
+                                                                )
+                                                            )}
+                                                        </SelectContent>
+                                                    </Select>
+                                                    {store.spv_id && (
+                                                        <button
+                                                            onClick={() =>
+                                                                handleUnassign(
+                                                                    store.id
+                                                                )
+                                                            }
+                                                            className="rounded px-2 py-1 text-xs text-red-600 transition-colors hover:bg-red-50 dark:hover:bg-red-900/20"
+                                                        >
+                                                            Lepas
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </td>
+                                        )}
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
                     </div>
-                </DialogContent>
-            </Dialog>
-        </>
+                </div>
+            )}
+        </div>
     );
 }

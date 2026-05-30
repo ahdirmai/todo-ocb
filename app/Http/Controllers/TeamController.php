@@ -206,30 +206,30 @@ class TeamController extends Controller
         }
 
         if ($tab === 'svp-stores' && $team->is_spv_team) {
-            $extraProps['assignedStores'] = Store::where('svp_id', $team->id)
-                ->with('svp')
+            // Get all stores with their assigned SPV
+            $extraProps['stores'] = Store::with('spv')
+                ->orderBy('branch_code')
                 ->get()
                 ->map(fn ($store) => [
                     'id' => $store->id,
                     'branch_code' => $store->branch_code,
                     'name' => $store->name,
                     'address' => $store->address,
-                    'svp_id' => $store->svp_id,
-                    'svp' => $store->svp ? [
-                        'id' => $store->svp->id,
-                        'name' => $store->svp->name,
+                    'spv_id' => $store->spv_id,
+                    'spv' => $store->spv ? [
+                        'id' => $store->spv->id,
+                        'name' => $store->spv->name,
                     ] : null,
                 ]);
 
-            $extraProps['availableStores'] = Store::whereNull('svp_id')
+            // Get SPV team members
+            $extraProps['spvMembers'] = $team->users()
                 ->get()
-                ->map(fn ($store) => [
-                    'id' => $store->id,
-                    'branch_code' => $store->branch_code,
-                    'name' => $store->name,
-                    'address' => $store->address,
-                    'svp_id' => null,
-                    'svp' => null,
+                ->map(fn ($user) => [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'stores_count' => Store::where('spv_id', $user->id)->count(),
                 ]);
         }
 
