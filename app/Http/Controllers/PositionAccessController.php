@@ -10,11 +10,12 @@ use Inertia\Inertia;
 class PositionAccessController extends Controller
 {
     private array $availableRoutes = [
-        [
-            'key' => 'pengawas-svp',
-            'label' => 'Pengawas SVP Area',
-            'description' => 'Akses ke area pengawasan SVP',
-        ],
+        // Temporarily hidden - Pengawas SVP
+        // [
+        //     'key' => 'pengawas-svp',
+        //     'label' => 'Pengawas SVP Area',
+        //     'description' => 'Akses ke area pengawasan SVP',
+        // ],
         [
             'key' => 'hr',
             'label' => 'HR Area',
