@@ -16,6 +16,18 @@ class KpiDashboardController extends Controller
 {
     public function __construct(protected KpiScoringService $scoringService) {}
 
+    protected function getPositionArea(): string
+    {
+        $user = auth()->user();
+        $positionName = $user->jobPosition?->name;
+
+        return match ($positionName) {
+            'Manager HR' => 'hr',
+            'Manager Operasional' => 'operational',
+            default => throw new \Exception('Position tidak memiliki akses KPI'),
+        };
+    }
+
     public function index(): Response
     {
         $user = auth()->user();
@@ -24,7 +36,9 @@ class KpiDashboardController extends Controller
         $team = $user->teams()->where('is_spv_team', true)->first();
 
         if (! $team) {
-            return Inertia::render('kpi/no-access', [
+            $area = $this->getPositionArea();
+
+            return Inertia::render("{$area}/kpi/no-access", [
                 'message' => 'Anda tidak terdaftar dalam tim SPV',
             ]);
         }
@@ -64,8 +78,9 @@ class KpiDashboardController extends Controller
             ->first();
 
         $categoryBreakdown = $todayScore?->category_breakdown ?? [];
+        $area = $this->getPositionArea();
 
-        return Inertia::render('kpi/dashboard', [
+        return Inertia::render("{$area}/kpi/dashboard", [
             'todayScore' => $todayScore,
             'todayTasks' => $todayTasks,
             'weeklyScores' => $weeklyScores,
@@ -83,7 +98,9 @@ class KpiDashboardController extends Controller
             ->where('score_date', $scoreDate->toDateString())
             ->first();
 
-        return Inertia::render('kpi/daily-detail', [
+        $area = $this->getPositionArea();
+
+        return Inertia::render("{$area}/kpi/daily-detail", [
             'score' => $score,
             'date' => $scoreDate->toDateString(),
         ]);
@@ -99,7 +116,9 @@ class KpiDashboardController extends Controller
             ->where('week_start_date', $weekStartDate->toDateString())
             ->first();
 
-        return Inertia::render('kpi/weekly-detail', [
+        $area = $this->getPositionArea();
+
+        return Inertia::render("{$area}/kpi/weekly-detail", [
             'score' => $score,
             'weekStart' => $weekStartDate->toDateString(),
         ]);
@@ -115,7 +134,9 @@ class KpiDashboardController extends Controller
             ->where('month', $monthStart->toDateString())
             ->first();
 
-        return Inertia::render('kpi/monthly-detail', [
+        $area = $this->getPositionArea();
+
+        return Inertia::render("{$area}/kpi/monthly-detail", [
             'score' => $score,
             'month' => $monthStart->toDateString(),
         ]);

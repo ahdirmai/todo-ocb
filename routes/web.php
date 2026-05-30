@@ -165,31 +165,46 @@ Route::middleware(['auth', 'verified'])->group(function () {
         });
     });
 
-    // KPI User Routes — for Manager positions
-    Route::prefix('kpi')->middleware('auth')->group(function () {
-        Route::get('dashboard', [KpiDashboardController::class, 'index'])->name('kpi.dashboard');
-        Route::get('daily/{date?}', [KpiDashboardController::class, 'daily'])->name('kpi.daily');
-        Route::get('weekly/{weekStart?}', [KpiDashboardController::class, 'weekly'])->name('kpi.weekly');
-        Route::get('monthly/{month?}', [KpiDashboardController::class, 'monthly'])->name('kpi.monthly');
-        Route::post('tasks/{task}/verify', [KpiDashboardController::class, 'verifyTask'])->name('kpi.tasks.verify');
-
-        Route::get('report/create', [KpiReportController::class, 'create'])->name('kpi.report.create');
-        Route::post('report/submit', [KpiReportController::class, 'submit'])->name('kpi.report.submit');
-        Route::get('reports', [KpiReportController::class, 'index'])->name('kpi.reports');
-    });
-
     // Position-Based Access Routes
     Route::get('pengawas-svp', PengawasSvpController::class)
         ->middleware('position:pengawas-svp')
         ->name('pengawas-svp.index');
 
-    Route::get('hr', HrController::class)
-        ->middleware('position:hr')
-        ->name('hr.index');
+    // HR Area - Manager HR
+    Route::prefix('hr')->middleware('position:hr')->group(function () {
+        Route::get('/', HrController::class)->name('hr.index');
 
-    Route::get('operational', OperationalController::class)
-        ->middleware('position:operational')
-        ->name('operational.index');
+        // HR KPI Routes
+        Route::prefix('kpi')->group(function () {
+            Route::get('dashboard', [KpiDashboardController::class, 'index'])->name('hr.kpi.dashboard');
+            Route::get('daily/{date?}', [KpiDashboardController::class, 'daily'])->name('hr.kpi.daily');
+            Route::get('weekly/{weekStart?}', [KpiDashboardController::class, 'weekly'])->name('hr.kpi.weekly');
+            Route::get('monthly/{month?}', [KpiDashboardController::class, 'monthly'])->name('hr.kpi.monthly');
+            Route::post('tasks/{task}/verify', [KpiDashboardController::class, 'verifyTask'])->name('hr.kpi.tasks.verify');
+
+            Route::get('report/create', [KpiReportController::class, 'create'])->name('hr.kpi.report.create');
+            Route::post('report/submit', [KpiReportController::class, 'submit'])->name('hr.kpi.report.submit');
+            Route::get('reports', [KpiReportController::class, 'index'])->name('hr.kpi.reports');
+        });
+    });
+
+    // Operational Area - Manager Operasional
+    Route::prefix('operational')->middleware('position:operational')->group(function () {
+        Route::get('/', OperationalController::class)->name('operational.index');
+
+        // Operational KPI Routes
+        Route::prefix('kpi')->group(function () {
+            Route::get('dashboard', [KpiDashboardController::class, 'index'])->name('operational.kpi.dashboard');
+            Route::get('daily/{date?}', [KpiDashboardController::class, 'daily'])->name('operational.kpi.daily');
+            Route::get('weekly/{weekStart?}', [KpiDashboardController::class, 'weekly'])->name('operational.kpi.weekly');
+            Route::get('monthly/{month?}', [KpiDashboardController::class, 'monthly'])->name('operational.kpi.monthly');
+            Route::post('tasks/{task}/verify', [KpiDashboardController::class, 'verifyTask'])->name('operational.kpi.tasks.verify');
+
+            Route::get('report/create', [KpiReportController::class, 'create'])->name('operational.kpi.report.create');
+            Route::post('report/submit', [KpiReportController::class, 'submit'])->name('operational.kpi.report.submit');
+            Route::get('reports', [KpiReportController::class, 'index'])->name('operational.kpi.reports');
+        });
+    });
 });
 
 require __DIR__.'/settings.php';

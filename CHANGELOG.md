@@ -96,11 +96,42 @@ All notable changes to this project will be documented in this file.
     - Tasks require comment + attachment for verification
     - Auto-verification via `KpiScoringService::verifyTaskEvidence()`
     - Tasks marked with `is_verified` flag and `verified_at` timestamp
-  - **Routes:**
-    - User routes: `/kpi/dashboard`, `/kpi/daily`, `/kpi/weekly`, `/kpi/monthly`, `/kpi/report/*`
+  - **Routes (Restructured):**
+    - HR routes: `/hr/kpi/*` - Manager HR dashboard, scores, reports
+    - Operational routes: `/operational/kpi/*` - Manager Operasional dashboard, scores, reports
     - Admin routes: `/kpi/admin/definitions`, `/kpi/admin/scores`
     - CEO routes (superadmin only): `/kpi/ceo/dashboard`, `/kpi/ceo/daily-reports`, `/kpi/ceo/alerts`
-  - **Note:** Frontend implementation pending - backend API complete and ready
+  - **Controllers:**
+    - Position-aware rendering via `getPositionArea()` helper method
+    - Automatically detects Manager HR vs Manager Operasional
+    - Renders pages in correct namespace: `{area}/kpi/{page}`
+    - Route names: `{area}.kpi.{action}` (hr.kpi.dashboard, operational.kpi.dashboard)
+
+- **KPI Evaluation System (Frontend)**: Complete React/TypeScript UI for Manager HR and Manager Operasional
+  - **Pages (7 per position area):**
+    - `dashboard.tsx` - Main KPI dashboard with today's score, task list, weekly/monthly summary
+    - `daily-detail.tsx` - Daily score breakdown with task details
+    - `weekly-detail.tsx` - Weekly average scores (Mon-Sun)
+    - `monthly-detail.tsx` - Monthly score with consistency bonus display
+    - `report-form.tsx` - CEO daily report submission form with deadline warnings
+    - `reports.tsx` - Report history with pagination
+    - `no-access.tsx` - Access denied message for users not in SPV team
+  - **Shared Components:**
+    - `kpi/grade-badge.tsx` - Color-coded grade badges (A+: green, D: red)
+    - `kpi/score-card.tsx` - Score display card with progress bar and grade
+  - **Features:**
+    - Task list grouped by category with completion indicators
+    - Category breakdown with progress visualization
+    - Verification status badges (Verified, Selesai - Perlu Bukti, Belum Selesai)
+    - Late submission warnings (22:30 WITA deadline) with real-time clock
+    - Responsive grid layout for scores and categories
+    - Navigation breadcrumbs with back buttons
+    - Pagination for report history
+  - **Deployment:**
+    - HR Area: `resources/js/pages/hr/kpi/*`
+    - Operational Area: `resources/js/pages/operational/kpi/*`
+    - Both areas share same components and logic
+    - Routes automatically adjusted per position
 
 ### Fixed
 - **TaskColumnScoringService**: Corrected auto-scoring logic for last step

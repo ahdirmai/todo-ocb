@@ -13,6 +13,18 @@ class KpiReportController extends Controller
 {
     public function __construct(protected KpiReportingService $reportingService) {}
 
+    protected function getPositionArea(): string
+    {
+        $user = auth()->user();
+        $positionName = $user->jobPosition?->name;
+
+        return match ($positionName) {
+            'Manager HR' => 'hr',
+            'Manager Operasional' => 'operational',
+            default => throw new \Exception('Position tidak memiliki akses KPI'),
+        };
+    }
+
     public function create(): Response
     {
         $user = auth()->user();
@@ -24,7 +36,9 @@ class KpiReportController extends Controller
             ->where('report_date', $today->toDateString())
             ->first();
 
-        return Inertia::render('kpi/report-form', [
+        $area = $this->getPositionArea();
+
+        return Inertia::render("{$area}/kpi/report-form", [
             'template' => $template,
             'existingReport' => $existingReport,
         ]);
@@ -55,7 +69,10 @@ class KpiReportController extends Controller
             ? 'Laporan berhasil dikirim (TERLAMBAT - lewat 22:30 WITA)'
             : 'Laporan berhasil dikirim ke CEO';
 
-        return redirect()->route('kpi.dashboard')->with('success', $message);
+        $area = $this->getPositionArea();
+        $routeName = "{$area}.kpi.dashboard";
+
+        return redirect()->route($routeName)->with('success', $message);
     }
 
     public function index(): Response
@@ -66,7 +83,9 @@ class KpiReportController extends Controller
             ->latest('report_date')
             ->paginate(20);
 
-        return Inertia::render('kpi/reports', [
+        $area = $this->getPositionArea();
+
+        return Inertia::render("{$area}/kpi/reports", [
             'reports' => $reports,
         ]);
     }
