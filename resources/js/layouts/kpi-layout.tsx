@@ -1,6 +1,8 @@
 import { Link, usePage } from '@inertiajs/react';
 import { cn } from '@/lib/utils';
-import AppLayout from './app-layout';
+import { AppShell } from '@/components/app-shell';
+import { AppSidebar } from '@/components/app-sidebar';
+import { AppContent } from '@/components/app-content';
 import { BarChart3, FileText, TrendingUp, Calendar, ClipboardList } from 'lucide-react';
 
 interface KpiLayoutProps {
@@ -52,33 +54,36 @@ export default function KpiLayout({ children, area }: KpiLayoutProps) {
   ];
 
   return (
-    <AppLayout>
-      {/* Tab Navigation */}
-      <div className="border-b -mx-4 -mt-4 px-4">
-        <nav className="flex gap-1 overflow-x-auto">
-          {tabs.map((tab) => {
-            const Icon = tab.icon;
-            return (
-              <Link
-                key={tab.href}
-                href={tab.href}
-                className={cn(
-                  'flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap',
-                  tab.active
-                    ? 'border-primary text-primary'
-                    : 'border-transparent text-muted-foreground hover:text-foreground hover:border-muted-foreground/50'
-                )}
-              >
-                <Icon className="h-4 w-4" />
-                {tab.label}
-              </Link>
-            );
-          })}
-        </nav>
-      </div>
+    <AppShell variant="sidebar">
+      <AppSidebar />
+      <AppContent variant="sidebar" className="overflow-x-hidden">
+        {/* Tab Navigation */}
+        <div className="border-b">
+          <nav className="flex gap-1 overflow-x-auto">
+            {tabs.map((tab) => {
+              const Icon = tab.icon;
+              return (
+                <Link
+                  key={tab.href}
+                  href={tab.href}
+                  className={cn(
+                    'flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap',
+                    tab.active
+                      ? 'border-primary text-primary'
+                      : 'border-transparent text-muted-foreground hover:text-foreground hover:border-muted-foreground/50'
+                  )}
+                >
+                  <Icon className="h-4 w-4" />
+                  {tab.label}
+                </Link>
+              );
+            })}
+          </nav>
+        </div>
 
-      {/* Main Content */}
-      <div className="mt-6">{children}</div>
-    </AppLayout>
+        {/* Main Content */}
+        <div className="p-4">{children}</div>
+      </AppContent>
+    </AppShell>
   );
 }
