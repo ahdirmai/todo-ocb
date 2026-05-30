@@ -1,11 +1,11 @@
 import KpiLayout from '@/layouts/kpi-layout';
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScoreCard } from '@/components/kpi/score-card';
 import { GradeBadge } from '@/components/kpi/grade-badge';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle2, Circle, FileText, TrendingUp } from 'lucide-react';
+import { CheckCircle2, Circle, FileText, TrendingUp, Plus } from 'lucide-react';
 
 interface Task {
   id: string;
@@ -58,6 +58,7 @@ interface Props {
   weeklyScores: WeeklyScore[];
   monthlyScore: MonthlyScore | null;
   categoryBreakdown: DailyScore['category_breakdown'];
+  hasTasksToday: boolean;
 }
 
 export default function HrKpiDashboard({
@@ -66,6 +67,7 @@ export default function HrKpiDashboard({
   weeklyScores,
   monthlyScore,
   categoryBreakdown,
+  hasTasksToday,
 }: Props) {
   const groupedTasks = todayTasks.reduce(
     (acc, task) => {
@@ -89,12 +91,23 @@ export default function HrKpiDashboard({
             <h1 className="text-2xl font-bold">KPI Dashboard</h1>
             <p className="text-muted-foreground">Manager Operasional - Evaluasi Kinerja Harian</p>
           </div>
-          <Link href="/operational/kpi/report/create">
-            <Button>
-              <FileText className="mr-2 h-4 w-4" />
-              Kirim Laporan CEO
-            </Button>
-          </Link>
+          <div className="flex gap-2">
+            {!hasTasksToday && (
+              <Button
+                variant="outline"
+                onClick={() => router.post('/operational/kpi/tasks/generate')}
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Generate Task Hari Ini
+              </Button>
+            )}
+            <Link href="/operational/kpi/report/create">
+              <Button>
+                <FileText className="mr-2 h-4 w-4" />
+                Kirim Laporan CEO
+              </Button>
+            </Link>
+          </div>
         </div>
 
         {/* Score Overview */}

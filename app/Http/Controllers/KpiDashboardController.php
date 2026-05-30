@@ -7,14 +7,19 @@ use App\Models\KpiMonthlyScore;
 use App\Models\KpiWeeklyScore;
 use App\Models\Task;
 use App\Services\KpiScoringService;
+use App\Services\KpiTaskGenerationService;
 use Carbon\Carbon;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class KpiDashboardController extends Controller
 {
-    public function __construct(protected KpiScoringService $scoringService) {}
+    public function __construct(
+        protected KpiScoringService $scoringService,
+        protected KpiTaskGenerationService $taskGenerationService
+    ) {}
 
     protected function getPositionArea(): string
     {
@@ -90,6 +95,7 @@ class KpiDashboardController extends Controller
 
         $categoryBreakdown = $todayScore?->category_breakdown ?? [];
         $area = $this->getPositionArea();
+        $hasTasksToday = $todayTasks->isNotEmpty();
 
         return Inertia::render("{$area}/kpi/dashboard", [
             'todayScore' => $todayScore,
@@ -97,6 +103,7 @@ class KpiDashboardController extends Controller
             'weeklyScores' => $weeklyScores,
             'monthlyScore' => $monthlyScore,
             'categoryBreakdown' => $categoryBreakdown,
+            'hasTasksToday' => $hasTasksToday,
         ]);
     }
 
@@ -171,5 +178,31 @@ class KpiDashboardController extends Controller
         }
 
         return back()->with('success', 'Task berhasil diverifikasi');
+    }
+
+    public function generateTasks(): RedirectResponse
+    {
+        $user = auth()->user();
+        $team = $user->teams()->where('is_spv_team', true)->first();
+
+        if (! $team) {
+            return back()->withErrors(['error' => 'Anda tidak terdaftar dalam tim SPV']);
+        }
+
+        // Check if tasks already exist for today
+        $today = now();
+        $existingTasks = Task::where('is_kpi_task', true)
+            ->where('team_id', $team->id)
+            ->whereDate('created_at', $today)
+            ->exists();
+
+        if ($existingTasks) {
+            return back()->withErrors(['error' => 'Task untuk hari ini sudah dibuat']);
+        }
+
+        // Generate tasks
+        $this->taskGenerationService->generateDailyTasksForUser($user, $today, $team);
+
+        return back()->with('success', 'Task KPI berhasil dibuat');
     }
 }

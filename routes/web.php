@@ -181,6 +181,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::get('weekly/{weekStart?}', [KpiDashboardController::class, 'weekly'])->name('hr.kpi.weekly');
             Route::get('monthly/{month?}', [KpiDashboardController::class, 'monthly'])->name('hr.kpi.monthly');
             Route::post('tasks/{task}/verify', [KpiDashboardController::class, 'verifyTask'])->name('hr.kpi.tasks.verify');
+            Route::post('tasks/generate', [KpiDashboardController::class, 'generateTasks'])->name('hr.kpi.tasks.generate');
 
             Route::get('report/create', [KpiReportController::class, 'create'])->name('hr.kpi.report.create');
             Route::post('report/submit', [KpiReportController::class, 'submit'])->name('hr.kpi.report.submit');
@@ -199,6 +200,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::get('weekly/{weekStart?}', [KpiDashboardController::class, 'weekly'])->name('operational.kpi.weekly');
             Route::get('monthly/{month?}', [KpiDashboardController::class, 'monthly'])->name('operational.kpi.monthly');
             Route::post('tasks/{task}/verify', [KpiDashboardController::class, 'verifyTask'])->name('operational.kpi.tasks.verify');
+            Route::post('tasks/generate', [KpiDashboardController::class, 'generateTasks'])->name('operational.kpi.tasks.generate');
 
             Route::get('report/create', [KpiReportController::class, 'create'])->name('operational.kpi.report.create');
             Route::post('report/submit', [KpiReportController::class, 'submit'])->name('operational.kpi.report.submit');
