@@ -184,6 +184,12 @@ All notable changes to this project will be documented in this file.
     - Report submission timeline tracking
 
 ### Fixed
+- **KPI Admin Access**: Admin/superadmin can access KPI routes without position requirement
+  - Uses Spatie `hasAnyRole()` method instead of non-existent role field
+  - Admin users access area based on URL path (hr/ or operational/)
+  - Bypasses position validation for admin/superadmin roles
+  - Fixes 500 error when admin users access KPI dashboards
+
 - **KPI Position Access Control**: Validate URL area matches user position
   - HR managers blocked from accessing `/operational/kpi/*` routes
   - Operational managers blocked from accessing `/hr/kpi/*` routes

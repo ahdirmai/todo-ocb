@@ -24,6 +24,19 @@ class KpiDashboardController extends Controller
     protected function getPositionArea(): string
     {
         $user = auth()->user();
+        $path = request()->path();
+
+        // Admin/superadmin can access any area based on URL
+        if ($user->hasAnyRole(['admin', 'superadmin'])) {
+            if (str_starts_with($path, 'hr/')) {
+                return 'hr';
+            }
+            if (str_starts_with($path, 'operational/')) {
+                return 'operational';
+            }
+        }
+
+        // Regular users: validate position
         $positionName = $user->jobPosition?->name;
 
         $expectedArea = match ($positionName) {
@@ -32,7 +45,6 @@ class KpiDashboardController extends Controller
             default => throw new \Exception('Position tidak memiliki akses KPI'),
         };
 
-        $path = request()->path();
         $urlArea = null;
 
         if (str_starts_with($path, 'hr/')) {
