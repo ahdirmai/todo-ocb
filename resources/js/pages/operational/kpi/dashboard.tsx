@@ -5,7 +5,27 @@ import { ScoreCard } from '@/components/kpi/score-card';
 import { GradeBadge } from '@/components/kpi/grade-badge';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle2, Circle, FileText, TrendingUp, Plus } from 'lucide-react';
+import { CheckCircle2, Circle, FileText, TrendingUp, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
+import { KpiTaskModal } from '@/components/kpi/kpi-task-modal';
+import { useState } from 'react';
+
+interface Media {
+  id: number;
+  name: string;
+  url: string;
+  mime_type: string;
+}
+
+interface Comment {
+  id: string;
+  content: string;
+  created_at: string;
+  user: {
+    name: string;
+    email: string;
+  };
+  media: Media[];
+}
 
 interface Task {
   id: string;
@@ -18,6 +38,7 @@ interface Task {
   is_verified: boolean;
   comment_count: number;
   has_media: boolean;
+  comments: Comment[];
 }
 
 interface DailyScore {
@@ -53,23 +74,29 @@ interface MonthlyScore {
 }
 
 interface Props {
-  todayScore: DailyScore | null;
-  todayTasks: Task[];
+  selectedDate: string;
+  dateScore: DailyScore | null;
+  dateTasks: Task[];
   weeklyScores: WeeklyScore[];
   monthlyScore: MonthlyScore | null;
   categoryBreakdown: DailyScore['category_breakdown'];
-  hasTasksToday: boolean;
+  hasTasksForDate: boolean;
+  canGenerateForDate: boolean;
 }
 
-export default function HrKpiDashboard({
-  todayScore,
-  todayTasks,
+export default function OperationalKpiDashboard({
+  selectedDate,
+  dateScore,
+  dateTasks,
   weeklyScores,
   monthlyScore,
   categoryBreakdown,
-  hasTasksToday,
+  hasTasksForDate,
+  canGenerateForDate,
 }: Props) {
-  const groupedTasks = todayTasks.reduce(
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+
+  const groupedTasks = dateTasks.reduce(
     (acc, task) => {
       if (!acc[task.category]) {
         acc[task.category] = [];
@@ -80,25 +107,47 @@ export default function HrKpiDashboard({
     {} as Record<string, Task[]>
   );
 
+  const formatDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    return new Intl.DateTimeFormat('id-ID', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    }).format(date);
+  };
+
+  const navigateDate = (days: number) => {
+    const date = new Date(selectedDate);
+    date.setDate(date.getDate() + days);
+    router.get('/operational/kpi/dashboard', { date: date.toISOString().split('T')[0] }, { preserveState: true });
+  };
+
+  const handleGenerateTasks = () => {
+    router.post('/operational/kpi/tasks/generate', { date: selectedDate });
+  };
+
+  const isToday = selectedDate === new Date().toISOString().split('T')[0];
+
   return (
     <KpiLayout area="operational">
       <Head title="KPI Dashboard - Manager Operasional" />
 
       <div className="space-y-6">
-        {/* Header */}
+        {/* Header with Date Navigation */}
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold">KPI Dashboard</h1>
             <p className="text-muted-foreground">Manager Operasional - Evaluasi Kinerja Harian</p>
           </div>
           <div className="flex gap-2">
-            {!hasTasksToday && (
+            {!hasTasksForDate && canGenerateForDate && (
               <Button
                 variant="outline"
-                onClick={() => router.post('/operational/kpi/tasks/generate')}
+                onClick={handleGenerateTasks}
               >
                 <Plus className="mr-2 h-4 w-4" />
-                Generate Task Hari Ini
+                Generate Task
               </Button>
             )}
             <Link href="/operational/kpi/report/create">
@@ -110,22 +159,57 @@ export default function HrKpiDashboard({
           </div>
         </div>
 
+        {/* Date Navigation */}
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigateDate(-1)}
+              >
+                <ChevronLeft className="h-4 w-4" />
+                Hari Sebelumnya
+              </Button>
+
+              <div className="text-center">
+                <p className="text-lg font-semibold">{formatDate(selectedDate)}</p>
+                {isToday && (
+                  <Badge variant="secondary" className="mt-1">
+                    Hari Ini
+                  </Badge>
+                )}
+              </div>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigateDate(1)}
+                disabled={isToday}
+              >
+                Hari Berikutnya
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Score Overview */}
         <div className="grid gap-6 md:grid-cols-3">
-          {todayScore ? (
+          {dateScore ? (
             <ScoreCard
-              title="Skor Hari Ini"
-              score={todayScore.total_score}
-              grade={todayScore.grade}
-              description={`${todayScore.verified_tasks}/${todayScore.total_tasks} task terverifikasi`}
+              title={isToday ? 'Skor Hari Ini' : 'Skor Tanggal Ini'}
+              score={dateScore.total_score}
+              grade={dateScore.grade}
+              description={`${dateScore.verified_tasks}/${dateScore.total_tasks} task terverifikasi`}
             />
           ) : (
             <Card>
               <CardHeader>
-                <CardTitle>Skor Hari Ini</CardTitle>
+                <CardTitle>{isToday ? 'Skor Hari Ini' : 'Skor Tanggal Ini'}</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-muted-foreground">Belum ada skor untuk hari ini</p>
+                <p className="text-muted-foreground">Belum ada skor untuk tanggal ini</p>
               </CardContent>
             </Card>
           )}
@@ -203,10 +287,10 @@ export default function HrKpiDashboard({
           </Card>
         )}
 
-        {/* Today's Tasks */}
+        {/* Date Tasks */}
         <Card>
           <CardHeader>
-            <CardTitle>Task Hari Ini ({todayTasks.length})</CardTitle>
+            <CardTitle>Task Tanggal Ini ({dateTasks.length})</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-6">
@@ -217,7 +301,8 @@ export default function HrKpiDashboard({
                     {tasks.map((task) => (
                       <div
                         key={task.id}
-                        className="flex items-start gap-3 p-3 rounded-lg border hover:bg-accent transition-colors"
+                        onClick={() => setSelectedTask(task)}
+                        className="flex items-start gap-3 p-3 rounded-lg border hover:bg-accent transition-colors cursor-pointer"
                       >
                         <div className="mt-1">
                           {task.is_verified ? (
@@ -261,16 +346,26 @@ export default function HrKpiDashboard({
                 </div>
               ))}
 
-              {todayTasks.length === 0 && (
+              {dateTasks.length === 0 && (
                 <div className="text-center py-8 text-muted-foreground">
-                  <p>Belum ada task untuk hari ini</p>
-                  <p className="text-sm mt-1">Task akan digenerate otomatis setiap hari jam 00:01 WITA</p>
+                  <p>Belum ada task untuk tanggal ini</p>
+                  {canGenerateForDate ? (
+                    <p className="text-sm mt-1">Klik tombol "Generate Task" untuk membuat task</p>
+                  ) : (
+                    <p className="text-sm mt-1">Tidak dapat generate task untuk hari esok</p>
+                  )}
                 </div>
               )}
             </div>
           </CardContent>
         </Card>
       </div>
+
+      <KpiTaskModal
+        task={selectedTask}
+        area="operational"
+        onClose={() => setSelectedTask(null)}
+      />
     </KpiLayout>
   );
 }

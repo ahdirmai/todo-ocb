@@ -5,6 +5,38 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- **KPI Dashboard Date Navigation**: Navigate to previous/future dates with task generation
+  - Dashboard date selector with prev/next day buttons
+  - Generate tasks for past dates (future dates blocked)
+  - Each user sees only their own position-specific tasks
+  - Date-aware score display with "no data" fallback
+  
+- **KPI Detail Page Navigation**: Browse historical scores with period navigation
+  - Daily detail: Prev/next day navigation
+  - Weekly detail: Prev/next week navigation (±7 days)
+  - Monthly detail: Prev/next month navigation
+  - All detail pages show period range in header
+  - Navigation buttons positioned next to page title
+
+- **KPI Evidence Verification with Partial Credit**:
+  - Full credit (100% weight): Comment + file attachment
+  - Partial credit (30% weight): Comment only (no attachment)
+  - No credit (0% weight): No evidence submitted
+  - Auto-verification after evidence upload via modal
+  - Cascading score calculation: daily → weekly → monthly
+  - Evidence display in task modal with media preview
+
+- **Position-Specific CEO Reports**: Different report formats for HR vs Ops managers
+  - Manager Operasional report: 5 fields (status_34_tasks, spv_status, issues, follow_up, action_plan)
+  - Manager HR report: 7 nested sections (absensi, disiplin, performance_sales, compliance, training, recruitment, notes)
+  - Report data stored in `report_data` JSON field with position-specific structure
+  - File attachment support with preview and removal
+  - Report history with dialog modal for viewing full report content
+
+- **KPI Sidebar Navigation**: Position-aware KPI dashboard links
+  - "KPI Dashboard" link appears in main sidebar for managers
+  - Link URL determined by user position (hr/kpi or operational/kpi)
+  - Only visible to Manager HR and Manager Operasional positions
 - **Position Management System**: Complete CRUD for hierarchical position structure
   - Position groups (Direktur, Manager, SPV, Staff, Tim) managed in dedicated page
   - User-specific position names stored separately in users table
@@ -152,6 +184,30 @@ All notable changes to this project will be documented in this file.
     - Report submission timeline tracking
 
 ### Fixed
+- **KPI Position Access Control**: Validate URL area matches user position
+  - HR managers blocked from accessing `/operational/kpi/*` routes
+  - Operational managers blocked from accessing `/hr/kpi/*` routes
+  - Returns 403 error with position name when mismatch detected
+  - Position detected first, then validated against URL path
+
+- **KPI Task Generation User Filtering**: Each user generates only their position-specific tasks
+  - Added `creator_id` filter to existing task check in controller
+  - Added `creator_id` filter to existing task check in service
+  - Prevents HR user task generation from blocking Ops user generation
+  - Each user can independently generate tasks for same date
+  - Task queries filtered by `creator_id` to show only user's own tasks
+
+- **KPI Task Timestamp Consistency**: Explicitly set created_at to target date
+  - Prevents Laravel auto-timestamp from using current datetime
+  - Tasks generated for date X appear on date X (not today)
+  - Fixed duplicate task bug when navigating dates
+
+- **KPI Score Type Casting**: Cast Eloquent decimal fields to float
+  - Laravel returns decimals as strings by default
+  - Added explicit `(float)` cast to all score fields in controllers
+  - Applied to nested arrays (daily_scores, weekly_scores)
+  - Fixes `.toFixed() is not a function` errors in frontend
+
 - **TaskColumnScoringService**: Corrected auto-scoring logic for last step
   - Changed condition from `>=` to `>` to only award max score when task has PASSED the last step, not when currently AT it
   - Fixes failing tests in `MonthlyTaskReportingTest`

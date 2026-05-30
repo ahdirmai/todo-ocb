@@ -24,8 +24,9 @@ class KpiScoringService
 
         $tasks = Task::where('is_kpi_task', true)
             ->where('team_id', $team->id)
+            ->where('creator_id', $user->id)
             ->whereDate('created_at', $scoreDate)
-            ->with(['kpiDefinition', 'comments', 'kanbanColumn'])
+            ->with(['kpiDefinition', 'comments'])
             ->get();
 
         $totalTasks = $tasks->count();
@@ -54,22 +55,30 @@ class KpiScoringService
             $categoryBreakdown[$category]['total_weight'] += (float) $definition->weight;
             $categoryBreakdown[$category]['total_tasks']++;
 
-            $isCompleted = $task->kanbanColumn && $task->kanbanColumn->is_done;
-            $hasEvidence = $this->verifyTaskEvidence($task);
+            $evidenceStatus = $this->verifyTaskEvidence($task);
+            $weightMultiplier = 0;
 
-            if ($isCompleted) {
-                $completedTasks++;
-                if ($hasEvidence) {
-                    $verifiedTasks++;
+            if ($evidenceStatus === 'full') {
+                $weightMultiplier = 1.0; // 100% weight
+                if (! $task->is_verified) {
                     $task->update([
                         'is_verified' => true,
                         'verified_at' => now(),
                     ]);
-
-                    $completedWeight += (float) $definition->weight;
-                    $categoryBreakdown[$category]['completed_weight'] += (float) $definition->weight;
-                    $categoryBreakdown[$category]['completed_tasks']++;
                 }
+            } elseif ($evidenceStatus === 'partial') {
+                $weightMultiplier = 0.3; // 30% weight
+            }
+
+            if ($weightMultiplier > 0) {
+                $completedTasks++;
+                if ($evidenceStatus === 'full') {
+                    $verifiedTasks++;
+                }
+                $earnedWeight = (float) $definition->weight * $weightMultiplier;
+                $completedWeight += $earnedWeight;
+                $categoryBreakdown[$category]['completed_weight'] += $earnedWeight;
+                $categoryBreakdown[$category]['completed_tasks']++;
             }
 
             $taskDetails[] = [
@@ -77,8 +86,9 @@ class KpiScoringService
                 'task_name' => $definition->task_name,
                 'category' => $category,
                 'weight' => $definition->weight,
-                'completed' => $isCompleted,
-                'verified' => $hasEvidence,
+                'completed' => $weightMultiplier > 0,
+                'verified' => $evidenceStatus === 'full',
+                'evidence_status' => $evidenceStatus,
             ];
         }
 
@@ -209,12 +219,20 @@ class KpiScoringService
         );
     }
 
-    public function verifyTaskEvidence(Task $task): bool
+    public function verifyTaskEvidence(Task $task): string
     {
         $commentCount = $task->comments()->count();
         $hasMedia = $task->comments()->whereHas('media')->exists();
 
-        return $commentCount > 0 && $hasMedia;
+        if ($commentCount > 0 && $hasMedia) {
+            return 'full'; // Comment + attachment = 100% weight
+        }
+
+        if ($commentCount > 0) {
+            return 'partial'; // Only comment = 30% weight
+        }
+
+        return 'none'; // No comment = 0% weight
     }
 
     public function determineGrade(float $score): string

@@ -3,9 +3,10 @@ import { Head, useForm } from '@inertiajs/react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Clock, Send } from 'lucide-react';
+import { Clock, Send, Paperclip, X } from 'lucide-react';
 
 interface ReportTemplate {
   report_date: string;
@@ -39,7 +40,20 @@ export default function HrKpiReportForm({ template, existingReport }: Props) {
     issues_today: existingReport?.issues_today || '',
     follow_up: existingReport?.follow_up || '',
     action_plan: existingReport?.action_plan || '',
+    attachments: [] as File[],
   });
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const newFiles = Array.from(e.target.files);
+      setData('attachments', [...data.attachments, ...newFiles]);
+    }
+  };
+
+  const removeFile = (index: number) => {
+    const newFiles = data.attachments.filter((_, i) => i !== index);
+    setData('attachments', newFiles);
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,7 +71,7 @@ export default function HrKpiReportForm({ template, existingReport }: Props) {
     <KpiLayout area="operational">
       <Head title="Laporan Harian CEO - Manager Operasional" />
 
-      <div className="max-w-4xl mx-auto space-y-6">
+      <div className="space-y-6">
         {/* Header */}
         <div>
           <h1 className="text-2xl font-bold">Laporan Harian CEO</h1>
@@ -175,6 +189,41 @@ export default function HrKpiReportForm({ template, existingReport }: Props) {
                   rows={3}
                 />
               </div>
+
+              {/* Attachments */}
+              <div className="space-y-2">
+                <Label htmlFor="attachments">Lampiran (Screenshot Bukti Verifikasi)</Label>
+                <Input
+                  id="attachments"
+                  type="file"
+                  accept=".jpg,.jpeg,.png,.pdf"
+                  multiple
+                  onChange={handleFileChange}
+                />
+                <p className="text-xs text-muted-foreground">JPG, PNG, PDF - Max 5MB per file</p>
+              </div>
+
+              {data.attachments.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">File Terlampir:</p>
+                  {data.attachments.map((file, index) => (
+                    <div key={index} className="flex items-center justify-between bg-muted p-2 rounded">
+                      <div className="flex items-center gap-2">
+                        <Paperclip className="h-4 w-4" />
+                        <span className="text-sm">{file.name}</span>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeFile(index)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
 

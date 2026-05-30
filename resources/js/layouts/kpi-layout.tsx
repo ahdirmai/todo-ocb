@@ -55,7 +55,6 @@ export default function KpiLayout({ children, area }: KpiLayoutProps) {
 
   return (
     <AppShell variant="sidebar">
-      <AppSidebar />
       <AppContent variant="sidebar" className="overflow-x-hidden">
         {/* Tab Navigation */}
         <div className="border-b">

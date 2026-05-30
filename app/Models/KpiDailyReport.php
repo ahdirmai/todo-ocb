@@ -19,6 +19,7 @@ class KpiDailyReport extends Model
         'issues_today',
         'follow_up',
         'action_plan',
+        'report_data',
         'attachments',
         'submitted_at',
         'is_late',
@@ -26,6 +27,7 @@ class KpiDailyReport extends Model
 
     protected $casts = [
         'report_date' => 'date',
+        'report_data' => 'array',
         'attachments' => 'array',
         'submitted_at' => 'datetime',
         'is_late' => 'boolean',

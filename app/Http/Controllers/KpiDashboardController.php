@@ -24,30 +24,37 @@ class KpiDashboardController extends Controller
     protected function getPositionArea(): string
     {
         $user = auth()->user();
-        $path = request()->path();
-
-        // Detect area from URL path first
-        if (str_starts_with($path, 'hr/')) {
-            return 'hr';
-        }
-        if (str_starts_with($path, 'operational/')) {
-            return 'operational';
-        }
-
-        // Fallback: detect from position name
         $positionName = $user->jobPosition?->name;
 
-        return match ($positionName) {
+        $expectedArea = match ($positionName) {
             'Manager HR' => 'hr',
             'Manager Operasional' => 'operational',
             default => throw new \Exception('Position tidak memiliki akses KPI'),
         };
+
+        $path = request()->path();
+        $urlArea = null;
+
+        if (str_starts_with($path, 'hr/')) {
+            $urlArea = 'hr';
+        } elseif (str_starts_with($path, 'operational/')) {
+            $urlArea = 'operational';
+        }
+
+        // Validate URL area matches user position
+        if ($urlArea && $urlArea !== $expectedArea) {
+            abort(403, 'Akses ditolak. Posisi Anda: '.$positionName);
+        }
+
+        return $expectedArea;
     }
 
-    public function index(): Response
+    public function index(Request $request): Response
     {
         $user = auth()->user();
-        $today = now()->toDateString();
+        $selectedDate = $request->input('date')
+            ? Carbon::parse($request->input('date'))->toDateString()
+            : now()->toDateString();
 
         $team = $user->teams()->where('is_spv_team', true)->first();
 
@@ -59,14 +66,27 @@ class KpiDashboardController extends Controller
             ]);
         }
 
-        $todayScore = KpiDailyScore::where('user_id', $user->id)
-            ->where('score_date', $today)
+        $dailyScore = KpiDailyScore::where('user_id', $user->id)
+            ->where('score_date', $selectedDate)
             ->first();
 
-        $todayTasks = Task::where('is_kpi_task', true)
+        $dateScore = $dailyScore ? [
+            'score_date' => $dailyScore->score_date,
+            'total_score' => (float) $dailyScore->total_score,
+            'completed_weight' => (float) $dailyScore->completed_weight,
+            'total_weight' => (float) $dailyScore->total_weight,
+            'total_tasks' => $dailyScore->total_tasks,
+            'completed_tasks' => $dailyScore->completed_tasks,
+            'verified_tasks' => $dailyScore->verified_tasks,
+            'grade' => $dailyScore->grade,
+            'category_breakdown' => $dailyScore->category_breakdown,
+        ] : null;
+
+        $dateTasks = Task::where('is_kpi_task', true)
             ->where('team_id', $team->id)
-            ->whereDate('created_at', $today)
-            ->with(['kpiDefinition', 'kanbanColumn', 'comments'])
+            ->where('creator_id', $user->id)
+            ->whereDate('created_at', $selectedDate)
+            ->with(['kpiDefinition', 'comments.user', 'comments.media'])
             ->orderBy('order_position')
             ->get()
             ->map(function ($task) {
@@ -77,33 +97,70 @@ class KpiDashboardController extends Controller
                     'task_name' => $task->kpiDefinition?->task_name,
                     'weight' => $task->kpiDefinition?->weight,
                     'description' => $task->description,
-                    'is_done' => $task->kanbanColumn?->is_done ?? false,
+                    'is_done' => $task->is_verified,
                     'is_verified' => $task->is_verified,
                     'comment_count' => $task->comments->count(),
-                    'has_media' => $task->comments->whereNotEmpty('media')->isNotEmpty(),
+                    'has_media' => $task->comments->some(fn ($c) => $c->hasMedia()),
+                    'comments' => $task->comments->map(fn ($comment) => [
+                        'id' => $comment->id,
+                        'content' => $comment->content,
+                        'created_at' => $comment->created_at->toDateTimeString(),
+                        'user' => [
+                            'name' => $comment->user->name,
+                            'email' => $comment->user->email,
+                        ],
+                        'media' => $comment->getMedia()->map(fn ($media) => [
+                            'id' => $media->id,
+                            'name' => $media->file_name,
+                            'url' => $media->getUrl(),
+                            'mime_type' => $media->mime_type,
+                        ]),
+                    ]),
                 ];
             });
 
         $weeklyScores = KpiWeeklyScore::where('user_id', $user->id)
             ->latest('week_start_date')
             ->take(4)
-            ->get();
+            ->get()
+            ->map(function ($score) {
+                return [
+                    'week_start_date' => $score->week_start_date,
+                    'week_end_date' => $score->week_end_date,
+                    'average_score' => (float) $score->average_score,
+                    'grade' => $score->grade,
+                ];
+            });
 
         $monthlyScore = KpiMonthlyScore::where('user_id', $user->id)
             ->whereMonth('month', now())
             ->first();
 
-        $categoryBreakdown = $todayScore?->category_breakdown ?? [];
+        if ($monthlyScore) {
+            $monthlyScore = [
+                'month' => $monthlyScore->month,
+                'average_score' => (float) $monthlyScore->average_score,
+                'consistency_bonus' => (float) $monthlyScore->consistency_bonus,
+                'final_score' => (float) $monthlyScore->final_score,
+                'grade' => $monthlyScore->grade,
+                'has_grade_d' => (bool) $monthlyScore->has_grade_d,
+            ];
+        }
+
+        $categoryBreakdown = $dateScore?->category_breakdown ?? [];
         $area = $this->getPositionArea();
-        $hasTasksToday = $todayTasks->isNotEmpty();
+        $hasTasksForDate = $dateTasks->isNotEmpty();
+        $canGenerateForDate = ! Carbon::parse($selectedDate)->isFuture();
 
         return Inertia::render("{$area}/kpi/dashboard", [
-            'todayScore' => $todayScore,
-            'todayTasks' => $todayTasks,
+            'selectedDate' => $selectedDate,
+            'dateScore' => $dateScore,
+            'dateTasks' => $dateTasks,
             'weeklyScores' => $weeklyScores,
             'monthlyScore' => $monthlyScore,
             'categoryBreakdown' => $categoryBreakdown,
-            'hasTasksToday' => $hasTasksToday,
+            'hasTasksForDate' => $hasTasksForDate,
+            'canGenerateForDate' => $canGenerateForDate,
         ]);
     }
 
@@ -112,9 +169,22 @@ class KpiDashboardController extends Controller
         $user = auth()->user();
         $scoreDate = $date ? Carbon::parse($date) : now();
 
-        $score = KpiDailyScore::where('user_id', $user->id)
+        $dailyScore = KpiDailyScore::where('user_id', $user->id)
             ->where('score_date', $scoreDate->toDateString())
             ->first();
+
+        $score = $dailyScore ? [
+            'score_date' => $dailyScore->score_date,
+            'total_score' => (float) $dailyScore->total_score,
+            'completed_weight' => (float) $dailyScore->completed_weight,
+            'total_weight' => (float) $dailyScore->total_weight,
+            'total_tasks' => $dailyScore->total_tasks,
+            'completed_tasks' => $dailyScore->completed_tasks,
+            'verified_tasks' => $dailyScore->verified_tasks,
+            'grade' => $dailyScore->grade,
+            'category_breakdown' => $dailyScore->category_breakdown,
+            'task_details' => $dailyScore->task_details,
+        ] : null;
 
         $area = $this->getPositionArea();
 
@@ -130,9 +200,22 @@ class KpiDashboardController extends Controller
         $week = $weekStart ? Carbon::parse($weekStart) : now();
         $weekStartDate = $week->copy()->startOfWeek(Carbon::MONDAY);
 
-        $score = KpiWeeklyScore::where('user_id', $user->id)
+        $weeklyScore = KpiWeeklyScore::where('user_id', $user->id)
             ->where('week_start_date', $weekStartDate->toDateString())
             ->first();
+
+        $score = $weeklyScore ? [
+            'week_start_date' => $weeklyScore->week_start_date,
+            'week_end_date' => $weeklyScore->week_end_date,
+            'average_score' => (float) $weeklyScore->average_score,
+            'grade' => $weeklyScore->grade,
+            'daily_scores' => collect($weeklyScore->daily_scores)->map(fn ($day) => [
+                'date' => $day['date'],
+                'score' => (float) $day['score'],
+                'grade' => $day['grade'],
+            ])->toArray(),
+            'category_breakdown' => $weeklyScore->category_breakdown,
+        ] : null;
 
         $area = $this->getPositionArea();
 
@@ -148,9 +231,25 @@ class KpiDashboardController extends Controller
         $monthDate = $month ? Carbon::parse($month) : now();
         $monthStart = $monthDate->copy()->startOfMonth();
 
-        $score = KpiMonthlyScore::where('user_id', $user->id)
+        $monthlyScore = KpiMonthlyScore::where('user_id', $user->id)
             ->where('month', $monthStart->toDateString())
             ->first();
+
+        $score = $monthlyScore ? [
+            'month' => $monthlyScore->month,
+            'average_score' => (float) $monthlyScore->average_score,
+            'consistency_bonus' => (float) $monthlyScore->consistency_bonus,
+            'final_score' => (float) $monthlyScore->final_score,
+            'grade' => $monthlyScore->grade,
+            'has_grade_d' => (bool) $monthlyScore->has_grade_d,
+            'weekly_scores' => collect($monthlyScore->weekly_scores)->map(fn ($week) => [
+                'week_start' => $week['week_start'],
+                'week_end' => $week['week_end'],
+                'score' => (float) $week['score'],
+                'grade' => $week['grade'],
+            ])->toArray(),
+            'category_breakdown' => $monthlyScore->category_breakdown,
+        ] : null;
 
         $area = $this->getPositionArea();
 
@@ -175,12 +274,33 @@ class KpiDashboardController extends Controller
                 'is_verified' => true,
                 'verified_at' => now(),
             ]);
+
+            // Calculate scores after verification
+            $taskDate = $task->created_at;
+
+            // Calculate daily score
+            $this->scoringService->calculateDailyScore($user, $taskDate);
+
+            // Calculate weekly score if there are daily scores
+            $weekStart = $taskDate->copy()->startOfWeek(Carbon::MONDAY);
+            try {
+                $this->scoringService->calculateWeeklyScore($user, $weekStart);
+            } catch (\Exception $e) {
+                // Weekly score calculation might fail if not enough daily scores
+            }
+
+            // Calculate monthly score if there are weekly scores
+            try {
+                $this->scoringService->calculateMonthlyScore($user, $taskDate);
+            } catch (\Exception $e) {
+                // Monthly score calculation might fail if not enough weekly scores
+            }
         }
 
         return back()->with('success', 'Task berhasil diverifikasi');
     }
 
-    public function generateTasks(): RedirectResponse
+    public function generateTasks(Request $request): RedirectResponse
     {
         $user = auth()->user();
         $team = $user->teams()->where('is_spv_team', true)->first();
@@ -189,19 +309,28 @@ class KpiDashboardController extends Controller
             return back()->withErrors(['error' => 'Anda tidak terdaftar dalam tim SPV']);
         }
 
-        // Check if tasks already exist for today
-        $today = now();
+        $targetDate = $request->input('date')
+            ? Carbon::parse($request->input('date'))
+            : now();
+
+        // Prevent generating for future dates
+        if ($targetDate->isFuture()) {
+            return back()->withErrors(['error' => 'Tidak dapat generate task untuk hari esok']);
+        }
+
+        // Check if tasks already exist for the date
         $existingTasks = Task::where('is_kpi_task', true)
             ->where('team_id', $team->id)
-            ->whereDate('created_at', $today)
+            ->where('creator_id', $user->id)
+            ->whereDate('created_at', $targetDate->toDateString())
             ->exists();
 
         if ($existingTasks) {
-            return back()->withErrors(['error' => 'Task untuk hari ini sudah dibuat']);
+            return back()->withErrors(['error' => 'Task untuk tanggal ini sudah dibuat']);
         }
 
         // Generate tasks
-        $this->taskGenerationService->generateDailyTasksForUser($user, $today, $team);
+        $this->taskGenerationService->generateDailyTasksForUser($user, $targetDate, $team);
 
         return back()->with('success', 'Task KPI berhasil dibuat');
     }

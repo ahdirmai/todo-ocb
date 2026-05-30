@@ -1,9 +1,9 @@
 import KpiLayout from '@/layouts/kpi-layout';
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScoreCard } from '@/components/kpi/score-card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface DailyScore {
   total_score: number;
@@ -28,21 +28,39 @@ interface Props {
 }
 
 export default function HrKpiDailyDetail({ score, date }: Props) {
+  const navigateDate = (days: number) => {
+    const currentDate = new Date(date);
+    currentDate.setDate(currentDate.getDate() + days);
+    router.get(`/operational/kpi/daily/${currentDate.toISOString().split('T')[0]}`, {}, { preserveState: true });
+  };
+
   return (
     <KpiLayout area="operational">
       <Head title={`Skor Harian - ${date}`} />
 
-      <div className="max-w-5xl mx-auto space-y-6">
-        <div className="flex items-center gap-4">
+      <div className="space-y-6">
+        <div className="space-y-4">
           <Link href="/operational/kpi/dashboard">
             <Button variant="ghost" size="sm">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Kembali
             </Button>
           </Link>
-          <div>
-            <h1 className="text-2xl font-bold">Skor Harian</h1>
-            <p className="text-muted-foreground">{new Date(date).toLocaleDateString('id-ID', { dateStyle: 'long' })}</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold">Skor Harian</h1>
+              <p className="text-muted-foreground">{new Date(date).toLocaleDateString('id-ID', { dateStyle: 'long' })}</p>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => navigateDate(-1)}>
+                <ChevronLeft className="h-4 w-4" />
+                Hari Sebelumnya
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => navigateDate(1)}>
+                Hari Berikutnya
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </div>
 

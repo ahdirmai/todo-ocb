@@ -34,6 +34,7 @@ class KpiReportingService
                 'issues_today' => $data['issues_today'] ?? null,
                 'follow_up' => $data['follow_up'] ?? null,
                 'action_plan' => $data['action_plan'] ?? null,
+                'report_data' => $data['report_data'] ?? null,
                 'attachments' => $data['attachments'] ?? null,
                 'submitted_at' => $submittedAt,
                 'is_late' => $isLate,
@@ -51,6 +52,7 @@ class KpiReportingService
 
         $tasks = Task::where('is_kpi_task', true)
             ->where('team_id', $team->id)
+            ->where('creator_id', $user->id)
             ->whereDate('created_at', $date->toDateString())
             ->with(['kpiDefinition', 'kanbanColumn'])
             ->get();
@@ -69,7 +71,7 @@ class KpiReportingService
             'completed_tasks' => $completedTasks,
             'verified_tasks' => $verifiedTasks,
             'completion_percentage' => $totalTasks > 0 ? round(($verifiedTasks / $totalTasks) * 100, 2) : 0,
-            'total_score' => $dailyScore?->total_score ?? 0,
+            'total_score' => $dailyScore ? (float) $dailyScore->total_score : 0,
             'grade' => $dailyScore?->grade ?? '-',
             'category_breakdown' => $dailyScore?->category_breakdown ?? [],
         ];

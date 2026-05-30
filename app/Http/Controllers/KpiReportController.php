@@ -57,20 +57,40 @@ class KpiReportController extends Controller
 
     public function submit(Request $request): RedirectResponse
     {
-        $validated = $request->validate([
-            'status_34_tasks' => 'required|string',
-            'spv_status' => 'nullable|string',
-            'issues_today' => 'nullable|string',
-            'follow_up' => 'nullable|string',
-            'action_plan' => 'nullable|string',
-            'attachments' => 'nullable|array',
-            'attachments.*' => 'file|mimes:jpg,jpeg,png,pdf|max:5120',
-        ]);
+        $user = auth()->user();
+        $area = $this->getPositionArea();
+
+        // Position-specific validation
+        if ($area === 'operational') {
+            $validated = $request->validate([
+                'status_34_tasks' => 'required|string',
+                'spv_status' => 'nullable|string',
+                'issues_today' => 'nullable|string',
+                'follow_up' => 'nullable|string',
+                'action_plan' => 'nullable|string',
+                'attachments' => 'nullable|array',
+                'attachments.*' => 'file|mimes:jpg,jpeg,png,pdf|max:5120',
+            ]);
+        } else {
+            // HR validation
+            $validated = $request->validate([
+                'report_data' => 'required|array',
+                'report_data.absensi' => 'required|array',
+                'report_data.disiplin' => 'required|array',
+                'report_data.performance_sales' => 'required|array',
+                'report_data.compliance' => 'required|array',
+                'report_data.training' => 'required|array',
+                'report_data.recruitment' => 'required|array',
+                'action_plan' => 'nullable|string',
+                'attachments' => 'nullable|array',
+                'attachments.*' => 'file|mimes:jpg,jpeg,png,pdf|max:5120',
+            ]);
+        }
 
         $submittedAt = now();
         $isLate = $submittedAt->format('H:i') > '22:30';
 
-        $this->reportingService->createDailyReport(auth()->user(), array_merge($validated, [
+        $this->reportingService->createDailyReport($user, array_merge($validated, [
             'report_date' => now()->toDateString(),
             'submitted_at' => $submittedAt,
             'is_late' => $isLate,
@@ -80,7 +100,6 @@ class KpiReportController extends Controller
             ? 'Laporan berhasil dikirim (TERLAMBAT - lewat 22:30 WITA)'
             : 'Laporan berhasil dikirim ke CEO';
 
-        $area = $this->getPositionArea();
         $routeName = "{$area}.kpi.dashboard";
 
         return redirect()->route($routeName)->with('success', $message);

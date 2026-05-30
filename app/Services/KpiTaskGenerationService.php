@@ -38,16 +38,6 @@ class KpiTaskGenerationService
             throw new \Exception('User must be in SPV team');
         }
 
-        $kanban = $spvTeam->kanbans()->first();
-        if (! $kanban) {
-            throw new \Exception('SPV team must have kanban');
-        }
-
-        $firstColumn = $kanban->columns()->orderBy('order')->first();
-        if (! $firstColumn) {
-            throw new \Exception('Kanban must have at least one column');
-        }
-
         $definitions = $this->getActiveDefinitionsForPosition($user->position_id);
 
         $tasks = collect();
@@ -57,6 +47,7 @@ class KpiTaskGenerationService
             $existingTask = Task::where('is_kpi_task', true)
                 ->where('kpi_task_definition_id', $definition->id)
                 ->where('team_id', $spvTeam->id)
+                ->where('creator_id', $user->id)
                 ->whereDate('created_at', $date->toDateString())
                 ->first();
 
@@ -68,7 +59,7 @@ class KpiTaskGenerationService
 
             $task = Task::create([
                 'team_id' => $spvTeam->id,
-                'kanban_column_id' => $firstColumn->id,
+                'kanban_column_id' => null,
                 'kpi_task_definition_id' => $definition->id,
                 'is_kpi_task' => true,
                 'title' => "[{$definition->category}] {$definition->task_name}",
@@ -76,6 +67,8 @@ class KpiTaskGenerationService
                 'due_date' => $date->endOfDay(),
                 'order_position' => $order++,
                 'creator_id' => $user->id,
+                'created_at' => $date,
+                'updated_at' => $date,
             ]);
 
             $task->assignees()->attach($user->id);
