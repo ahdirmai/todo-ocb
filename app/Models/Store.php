@@ -19,8 +19,8 @@ class Store extends Model
         'svp_id',
     ];
 
-    public function svp(): BelongsTo
+    public function spv(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'svp_id');
+        return $this->belongsTo(User::class, 'spv_id');
     }
 }
