@@ -39,6 +39,13 @@ class KpiReportController extends Controller
     public function create(): Response
     {
         $user = auth()->user();
+
+        // Only Manager HR and Manager Operasional can create reports
+        $positionName = $user->jobPosition?->name;
+        if (!in_array($positionName, ['Manager HR', 'Manager Operasional'])) {
+            abort(403, 'Hanya Manager HR dan Manager Operasional yang dapat mengisi laporan');
+        }
+
         $today = now();
 
         $template = $this->reportingService->getDailyReportTemplate($user, $today);
@@ -58,6 +65,13 @@ class KpiReportController extends Controller
     public function submit(Request $request): RedirectResponse
     {
         $user = auth()->user();
+
+        // Only Manager HR and Manager Operasional can submit reports
+        $positionName = $user->jobPosition?->name;
+        if (!in_array($positionName, ['Manager HR', 'Manager Operasional'])) {
+            abort(403, 'Hanya Manager HR dan Manager Operasional yang dapat mengisi laporan');
+        }
+
         $area = $this->getPositionArea();
 
         // Position-specific validation
@@ -108,6 +122,12 @@ class KpiReportController extends Controller
     public function index(): Response
     {
         $user = auth()->user();
+
+        // Only Manager HR and Manager Operasional can view reports
+        $positionName = $user->jobPosition?->name;
+        if (!in_array($positionName, ['Manager HR', 'Manager Operasional'])) {
+            abort(403, 'Hanya Manager HR dan Manager Operasional yang dapat melihat laporan');
+        }
 
         $reports = KpiDailyReport::where('user_id', $user->id)
             ->latest('report_date')
