@@ -1,4 +1,4 @@
-import AppLayout from '@/layouts/app-layout';
+import KpiLayout from '@/layouts/kpi-layout';
 import { Head, Link } from '@inertiajs/react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScoreCard } from '@/components/kpi/score-card';
@@ -79,7 +79,7 @@ export default function HrKpiDashboard({
   );
 
   return (
-    <AppLayout>
+    <KpiLayout area="operational">
       <Head title="KPI Dashboard - Manager Operasional" />
 
       <div className="space-y-6">
@@ -258,6 +258,6 @@ export default function HrKpiDashboard({
           </CardContent>
         </Card>
       </div>
-    </AppLayout>
+    </KpiLayout>
   );
 }

@@ -1,4 +1,4 @@
-import AppLayout from '@/layouts/app-layout';
+import KpiLayout from '@/layouts/kpi-layout';
 import { Head, Link } from '@inertiajs/react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -25,7 +25,7 @@ interface Props {
 
 export default function HrKpiReports({ reports }: Props) {
   return (
-    <AppLayout>
+    <KpiLayout area="operational">
       <Head title="Riwayat Laporan CEO" />
 
       <div className="max-w-5xl mx-auto space-y-6">
@@ -103,6 +103,6 @@ export default function HrKpiReports({ reports }: Props) {
           </div>
         )}
       </div>
-    </AppLayout>
+    </KpiLayout>
   );
 }

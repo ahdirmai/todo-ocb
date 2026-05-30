@@ -1,4 +1,4 @@
-import AppLayout from '@/layouts/app-layout';
+import KpiLayout from '@/layouts/kpi-layout';
 import { Head, Link } from '@inertiajs/react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,7 +10,7 @@ interface Props {
 
 export default function HrKpiNoAccess({ message }: Props) {
   return (
-    <AppLayout>
+    <KpiLayout area="hr">
       <Head title="Akses Ditolak - KPI" />
 
       <div className="max-w-2xl mx-auto py-12">
@@ -29,6 +29,6 @@ export default function HrKpiNoAccess({ message }: Props) {
           </CardContent>
         </Card>
       </div>
-    </AppLayout>
+    </KpiLayout>
   );
 }

@@ -1,4 +1,4 @@
-import AppLayout from '@/layouts/app-layout';
+import KpiLayout from '@/layouts/kpi-layout';
 import { Head, Link } from '@inertiajs/react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScoreCard } from '@/components/kpi/score-card';
@@ -29,7 +29,7 @@ interface Props {
 
 export default function HrKpiDailyDetail({ score, date }: Props) {
   return (
-    <AppLayout>
+    <KpiLayout area="hr">
       <Head title={`Skor Harian - ${date}`} />
 
       <div className="max-w-5xl mx-auto space-y-6">
@@ -87,6 +87,6 @@ export default function HrKpiDailyDetail({ score, date }: Props) {
           </Card>
         )}
       </div>
-    </AppLayout>
+    </KpiLayout>
   );
 }

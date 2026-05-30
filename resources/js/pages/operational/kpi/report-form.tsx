@@ -1,4 +1,4 @@
-import AppLayout from '@/layouts/app-layout';
+import KpiLayout from '@/layouts/kpi-layout';
 import { Head, useForm } from '@inertiajs/react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -54,7 +54,7 @@ export default function HrKpiReportForm({ template, existingReport }: Props) {
   const isNearDeadline = parseInt(currentTime.split(':')[0]) >= 21;
 
   return (
-    <AppLayout>
+    <KpiLayout area="operational">
       <Head title="Laporan Harian CEO - Manager Operasional" />
 
       <div className="max-w-4xl mx-auto space-y-6">
@@ -202,6 +202,6 @@ export default function HrKpiReportForm({ template, existingReport }: Props) {
           </Alert>
         )}
       </div>
-    </AppLayout>
+    </KpiLayout>
   );
 }

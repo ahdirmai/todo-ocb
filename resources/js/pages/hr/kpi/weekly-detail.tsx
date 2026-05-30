@@ -1,4 +1,4 @@
-import AppLayout from '@/layouts/app-layout';
+import KpiLayout from '@/layouts/kpi-layout';
 import { Head, Link } from '@inertiajs/react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScoreCard } from '@/components/kpi/score-card';
@@ -25,7 +25,7 @@ export default function HrKpiWeeklyDetail({ score, weekStart }: Props) {
   weekEnd.setDate(weekEnd.getDate() + 6);
 
   return (
-    <AppLayout>
+    <KpiLayout area="hr">
       <Head title={`Skor Mingguan - ${weekStart}`} />
 
       <div className="max-w-5xl mx-auto space-y-6">
@@ -89,6 +89,6 @@ export default function HrKpiWeeklyDetail({ score, weekStart }: Props) {
           </Card>
         )}
       </div>
-    </AppLayout>
+    </KpiLayout>
   );
 }

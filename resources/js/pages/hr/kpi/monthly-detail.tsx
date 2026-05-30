@@ -1,4 +1,4 @@
-import AppLayout from '@/layouts/app-layout';
+import KpiLayout from '@/layouts/kpi-layout';
 import { Head, Link } from '@inertiajs/react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScoreCard } from '@/components/kpi/score-card';
@@ -29,7 +29,7 @@ export default function HrKpiMonthlyDetail({ score, month }: Props) {
   const monthDate = new Date(month);
 
   return (
-    <AppLayout>
+    <KpiLayout area="hr">
       <Head title={`Skor Bulanan - ${month}`} />
 
       <div className="max-w-5xl mx-auto space-y-6">
@@ -116,6 +116,6 @@ export default function HrKpiMonthlyDetail({ score, month }: Props) {
           </Card>
         )}
       </div>
-    </AppLayout>
+    </KpiLayout>
   );
 }
