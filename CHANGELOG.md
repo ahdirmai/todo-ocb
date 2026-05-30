@@ -11,6 +11,11 @@ All notable changes to this project will be documented in this file.
   - Bypasses normal password check for admin access
 
 ### Fixed
+- **KPI Task Generation Permission**: Fixed task generation blocked for admin/superadmin with manager position
+  - Removed SPV team membership requirement for task generation
+  - Any user with Manager HR or Manager Operasional position can now generate tasks
+  - Includes admin/superadmin users assigned to manager positions
+  
 - **KPI Task Modal Access Control**: Fixed readOnly logic for admin users with manager positions
   - Admin/superadmin WITH manager position (Manager HR, Manager Operasional) can edit their KPI tasks
   - Admin/superadmin WITHOUT manager position can only monitor (read-only)

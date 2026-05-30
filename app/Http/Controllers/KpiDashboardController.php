@@ -261,8 +261,8 @@ class KpiDashboardController extends Controller
         $hasTasksForDate = $dateTasks->isNotEmpty();
         $canGenerateForDate = ! Carbon::parse($selectedDate)->isFuture();
 
-        // Only actual Manager HR/Ops can generate (not admins, not SPVs viewing)
-        $canGenerateTasks = $isSpv && in_array($positionName, ['Manager HR', 'Manager Operasional']);
+        // Only Manager HR/Ops can generate tasks (includes admin/superadmin with manager position)
+        $canGenerateTasks = in_array($positionName, ['Manager HR', 'Manager Operasional']);
 
         return Inertia::render("{$area}/kpi/dashboard", [
             'selectedDate' => $selectedDate,
