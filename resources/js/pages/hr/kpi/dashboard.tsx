@@ -82,6 +82,7 @@ interface Props {
   categoryBreakdown: DailyScore['category_breakdown'];
   hasTasksForDate: boolean;
   canGenerateForDate: boolean;
+  canGenerateTasks: boolean;
 }
 
 export default function HrKpiDashboard({
@@ -93,6 +94,7 @@ export default function HrKpiDashboard({
   categoryBreakdown,
   hasTasksForDate,
   canGenerateForDate,
+  canGenerateTasks,
 }: Props) {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 
@@ -141,7 +143,7 @@ export default function HrKpiDashboard({
             <p className="text-muted-foreground">Manager HR - Evaluasi Kinerja Harian</p>
           </div>
           <div className="flex flex-col sm:flex-row gap-2">
-            {!hasTasksForDate && canGenerateForDate && (
+            {!hasTasksForDate && canGenerateForDate && canGenerateTasks && (
               <Button
                 variant="outline"
                 onClick={handleGenerateTasks}

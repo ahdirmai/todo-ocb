@@ -82,6 +82,7 @@ interface Props {
   categoryBreakdown: DailyScore['category_breakdown'];
   hasTasksForDate: boolean;
   canGenerateForDate: boolean;
+  canGenerateTasks: boolean;
 }
 
 export default function OperationalKpiDashboard({
@@ -93,6 +94,7 @@ export default function OperationalKpiDashboard({
   categoryBreakdown,
   hasTasksForDate,
   canGenerateForDate,
+  canGenerateTasks,
 }: Props) {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 
@@ -141,7 +143,7 @@ export default function OperationalKpiDashboard({
             <p className="text-muted-foreground">Manager Operasional - Evaluasi Kinerja Harian</p>
           </div>
           <div className="flex flex-col sm:flex-row gap-2">
-            {!hasTasksForDate && canGenerateForDate && (
+            {!hasTasksForDate && canGenerateForDate && canGenerateTasks && (
               <Button
                 variant="outline"
                 onClick={handleGenerateTasks}

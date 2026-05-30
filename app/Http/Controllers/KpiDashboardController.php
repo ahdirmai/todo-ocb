@@ -167,6 +167,10 @@ class KpiDashboardController extends Controller
         $hasTasksForDate = $dateTasks->isNotEmpty();
         $canGenerateForDate = ! Carbon::parse($selectedDate)->isFuture();
 
+        // Only show generate button for actual Manager HR/Ops, not admins viewing
+        $positionName = $user->jobPosition?->name;
+        $canGenerateTasks = in_array($positionName, ['Manager HR', 'Manager Operasional']);
+
         return Inertia::render("{$area}/kpi/dashboard", [
             'selectedDate' => $selectedDate,
             'dateScore' => $dateScore,
@@ -176,6 +180,7 @@ class KpiDashboardController extends Controller
             'categoryBreakdown' => $categoryBreakdown,
             'hasTasksForDate' => $hasTasksForDate,
             'canGenerateForDate' => $canGenerateForDate,
+            'canGenerateTasks' => $canGenerateTasks,
         ]);
     }
 
