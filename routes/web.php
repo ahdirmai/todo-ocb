@@ -19,6 +19,7 @@ use App\Http\Controllers\PengawasSvpController;
 use App\Http\Controllers\PositionAccessController;
 use App\Http\Controllers\PositionController;
 use App\Http\Controllers\ReportingController;
+use App\Http\Controllers\StoreController;
 use App\Http\Controllers\TagController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\TeamController;
@@ -163,6 +164,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::get('daily-reports', [KpiCeoController::class, 'dailyReports'])->name('kpi.ceo.reports');
             Route::get('alerts', [KpiCeoController::class, 'alerts'])->name('kpi.ceo.alerts');
         });
+
+        // Store Management — admin & superadmin only
+        Route::resource('stores', StoreController::class);
     });
 
     // Position-Based Access Routes

@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- **Store Management System**: CRUD for managing store locations (admin/superadmin only)
+  - Store CRUD with branch code, name, and address fields
+  - Search functionality across all store fields
+  - Pagination support (20 stores per page)
+  - Activity logging for all store operations
+  - 40 initial stores seeded (OC1-OC40)
+  - Sidebar menu item under Administrasi section
+  - Comprehensive test coverage (15 Pest tests)
+  - Access control: admin/superadmin only, regular users blocked (403)
+  
 - **KPI Mobile Responsiveness**: Optimized UI/UX for mobile devices
   - Responsive header layouts with stacked buttons on mobile
   - Shortened button labels for small screens

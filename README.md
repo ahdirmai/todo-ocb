@@ -10,6 +10,7 @@ Laravel-based task management system with advanced KPI tracking, position-based 
 - **Document Attachments**: File uploads with media library integration
 - **Comments & Discussions**: Task-level commenting with SOP step linking
 - **Monthly Reporting**: Automated monthly task aggregation and scoring
+- **Store Management**: CRUD for managing store locations with search and pagination
 
 ### Position Management System
 - **Hierarchical Positions**: 5-tier structure (Direktur, Manager, SPV, Staff, Tim)

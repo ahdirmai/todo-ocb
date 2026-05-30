@@ -12,6 +12,7 @@ import {
     Briefcase,
     Settings,
     Lock,
+    Store,
 } from 'lucide-react';
 import { useState } from 'react';
 import * as ReportingActions from '@/actions/App/Http/Controllers/ReportingController';
@@ -162,6 +163,14 @@ export function AppSidebar() {
                                         <Link href="/tags">
                                             <Tag className="h-4 w-4" />
                                             <span>Manajemen Tag</span>
+                                        </Link>
+                                    </SidebarMenuButton>
+                                </SidebarMenuItem>
+                                <SidebarMenuItem>
+                                    <SidebarMenuButton asChild>
+                                        <Link href="/stores">
+                                            <Store className="h-4 w-4" />
+                                            <span>Manajemen Toko</span>
                                         </Link>
                                     </SidebarMenuButton>
                                 </SidebarMenuItem>
