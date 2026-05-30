@@ -31,9 +31,10 @@ interface ExistingReport {
 interface Props {
   template: ReportTemplate;
   existingReport: ExistingReport | null;
+  canSubmit: boolean;
 }
 
-export default function HrKpiReportForm({ template, existingReport }: Props) {
+export default function HrKpiReportForm({ template, existingReport, canSubmit }: Props) {
   const { data, setData, post, processing, errors } = useForm({
     status_34_tasks: existingReport?.status_34_tasks || '',
     spv_status: existingReport?.spv_status || '',
@@ -228,11 +229,18 @@ export default function HrKpiReportForm({ template, existingReport }: Props) {
           </Card>
 
           {/* Submit */}
+          {!canSubmit && (
+            <Alert>
+              <AlertDescription>
+                Hanya Manager Operasional yang dapat mengisi dan mengirim laporan. Anda hanya dapat melihat.
+              </AlertDescription>
+            </Alert>
+          )}
           <div className="flex justify-end gap-3">
             <Button type="button" variant="outline" onClick={() => window.history.back()}>
               Batal
             </Button>
-            <Button type="submit" disabled={processing}>
+            <Button type="submit" disabled={processing || !canSubmit}>
               <Send className="mr-2 h-4 w-4" />
               {processing ? 'Mengirim...' : 'Kirim Laporan'}
             </Button>

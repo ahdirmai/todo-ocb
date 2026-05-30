@@ -56,9 +56,10 @@ interface ExistingReport {
 interface Props {
   template: ReportTemplate;
   existingReport: ExistingReport | null;
+  canSubmit: boolean;
 }
 
-export default function HrKpiReportForm({ template, existingReport }: Props) {
+export default function HrKpiReportForm({ template, existingReport, canSubmit }: Props) {
   const { data, setData, post, processing, errors } = useForm({
     report_data: existingReport?.report_data || {
       absensi: {
@@ -186,6 +187,7 @@ export default function HrKpiReportForm({ template, existingReport }: Props) {
                       absensi: { ...data.report_data.absensi, hadir_tepat_waktu: e.target.value }
                     })}
                     placeholder="Jumlah karyawan"
+                    disabled={!canSubmit}
                   />
                 </div>
                 <div className="space-y-2">
@@ -198,6 +200,7 @@ export default function HrKpiReportForm({ template, existingReport }: Props) {
                       absensi: { ...data.report_data.absensi, telat: e.target.value }
                     })}
                     placeholder="Jumlah + nama toko"
+                    disabled={!canSubmit}
                   />
                 </div>
                 <div className="space-y-2">
@@ -210,6 +213,7 @@ export default function HrKpiReportForm({ template, existingReport }: Props) {
                       absensi: { ...data.report_data.absensi, alpha: e.target.value }
                     })}
                     placeholder="Jumlah karyawan"
+                    disabled={!canSubmit}
                   />
                 </div>
                 <div className="space-y-2">
@@ -222,6 +226,7 @@ export default function HrKpiReportForm({ template, existingReport }: Props) {
                       absensi: { ...data.report_data.absensi, sakit_izin: e.target.value }
                     })}
                     placeholder="Jumlah karyawan"
+                    disabled={!canSubmit}
                   />
                 </div>
               </div>
@@ -472,11 +477,18 @@ export default function HrKpiReportForm({ template, existingReport }: Props) {
           </Card>
 
           {/* Submit */}
+          {!canSubmit && (
+            <Alert>
+              <AlertDescription>
+                Hanya Manager HR yang dapat mengisi dan mengirim laporan. Anda hanya dapat melihat.
+              </AlertDescription>
+            </Alert>
+          )}
           <div className="flex flex-col sm:flex-row justify-end gap-3">
             <Button type="button" variant="outline" onClick={() => window.history.back()} className="w-full sm:w-auto">
               Batal
             </Button>
-            <Button type="submit" disabled={processing} className="w-full sm:w-auto">
+            <Button type="submit" disabled={processing || !canSubmit} className="w-full sm:w-auto">
               <Send className="mr-2 h-4 w-4" />
               {processing ? 'Mengirim...' : 'Kirim Laporan'}
             </Button>

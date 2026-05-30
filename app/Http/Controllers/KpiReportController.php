@@ -39,13 +39,6 @@ class KpiReportController extends Controller
     public function create(): Response
     {
         $user = auth()->user();
-
-        // Only Manager HR and Manager Operasional can create reports
-        $positionName = $user->jobPosition?->name;
-        if (!in_array($positionName, ['Manager HR', 'Manager Operasional'])) {
-            abort(403, 'Hanya Manager HR dan Manager Operasional yang dapat mengisi laporan');
-        }
-
         $today = now();
 
         $template = $this->reportingService->getDailyReportTemplate($user, $today);
@@ -56,9 +49,14 @@ class KpiReportController extends Controller
 
         $area = $this->getPositionArea();
 
+        // Check if user can submit (only Manager HR/Ops)
+        $positionName = $user->jobPosition?->name;
+        $canSubmit = in_array($positionName, ['Manager HR', 'Manager Operasional']);
+
         return Inertia::render("{$area}/kpi/report-form", [
             'template' => $template,
             'existingReport' => $existingReport,
+            'canSubmit' => $canSubmit,
         ]);
     }
 
