@@ -5,6 +5,7 @@ namespace App\Models;
 use Database\Factories\StoreFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Store extends Model
 {
@@ -15,5 +16,11 @@ class Store extends Model
         'branch_code',
         'name',
         'address',
+        'svp_id',
     ];
+
+    public function svp(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'svp_id');
+    }
 }

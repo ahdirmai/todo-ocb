@@ -15,6 +15,7 @@ import { DokumenTab } from './partials/dokumen-tab';
 import { OverviewTab } from './partials/overview-tab';
 import { PengumumanTab } from './partials/pengumuman-tab';
 import { SopTab } from './partials/sop-tab';
+import { SvpStoresTab } from './partials/svp-stores-tab';
 import { TugasTab } from './partials/tugas-tab';
 
 type Tab =
@@ -24,7 +25,8 @@ type Tab =
     | 'announcement'
     | 'document'
     | 'sop'
-    | 'activity';
+    | 'activity'
+    | 'svp-stores';
 
 const TAB_LABELS: Record<Tab, string> = {
     overview: 'Overview',
@@ -34,6 +36,7 @@ const TAB_LABELS: Record<Tab, string> = {
     document: 'Dokumen & File',
     sop: 'SOP',
     activity: 'Aktivitas',
+    'svp-stores': 'Manajemen Toko',
 };
 
 export default function TeamShow({
@@ -54,6 +57,10 @@ export default function TeamShow({
         (key) => {
             if (key === 'activity' || key === 'sop') {
                 return isAdmin;
+            }
+
+            if (key === 'svp-stores') {
+                return team.is_spv_team;
             }
 
             return true;
@@ -174,6 +181,12 @@ export default function TeamShow({
                             className="m-0 flex h-full flex-col overflow-y-auto p-6"
                         >
                             <ActivityTab />
+                        </TabsContent>
+                        <TabsContent
+                            value="svp-stores"
+                            className="m-0 flex h-full flex-col overflow-y-auto p-6"
+                        >
+                            <SvpStoresTab team={team} />
                         </TabsContent>
                     </div>
                 </Tabs>

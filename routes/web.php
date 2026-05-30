@@ -20,6 +20,7 @@ use App\Http\Controllers\PositionAccessController;
 use App\Http\Controllers\PositionController;
 use App\Http\Controllers\ReportingController;
 use App\Http\Controllers\StoreController;
+use App\Http\Controllers\SvpStoreController;
 use App\Http\Controllers\TagController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\TeamController;
@@ -146,6 +147,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::patch('teams/{team}/restore', [TeamController::class, 'restore'])->name('teams.restore');
         Route::patch('teams/{team}/toggle-spv', [TeamController::class, 'toggleSpvTeam'])->middleware('role:superadmin')->name('teams.toggle-spv');
         Route::delete('teams/{team}', [TeamController::class, 'destroy'])->name('teams.destroy');
+
+        // SVP Store Management — admin & superadmin only
+        Route::post('teams/{team:slug}/svp-stores/assign', [SvpStoreController::class, 'assign'])->name('teams.svp-stores.assign');
+        Route::post('teams/{team:slug}/svp-stores/unassign', [SvpStoreController::class, 'unassign'])->name('teams.svp-stores.unassign');
         // Activity Logs — admin & superadmin only
         Route::get('activity', [ActivityLogController::class, 'index'])->name('activity.index');
 

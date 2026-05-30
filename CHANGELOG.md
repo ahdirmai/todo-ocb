@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- **SVP Store Assignment**: Assign stores to SVP teams for territory management
+  - New "Manajemen Toko" tab on is_spv_team teams
+  - Assign/unassign stores to SVP teams
+  - Search functionality for available stores
+  - Grid display of assigned stores
+  - Activity logging for assignments
+  - `svp_id` column added to stores table (nullable FK to users)
+  - Admin/superadmin only access to assign/unassign
+  - Visual feedback with store cards showing branch code, name, address
+
 - **Store Management System**: CRUD for managing store locations (admin/superadmin only)
   - Store CRUD with branch code, name, and address fields
   - Search functionality across all store fields

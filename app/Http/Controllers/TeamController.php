@@ -7,6 +7,7 @@ use App\Models\ActivityLog;
 use App\Models\Announcement;
 use App\Models\Kanban;
 use App\Models\KanbanColumn;
+use App\Models\Store;
 use App\Models\Team;
 use App\Models\TeamMessage;
 use App\Services\AiReportingService;
@@ -202,6 +203,34 @@ class TeamController extends Controller
                 'platforms' => $platforms,
                 'default_platform' => $platforms[0]['value'] ?? null,
             ];
+        }
+
+        if ($tab === 'svp-stores' && $team->is_spv_team) {
+            $extraProps['assignedStores'] = Store::where('svp_id', $team->id)
+                ->with('svp')
+                ->get()
+                ->map(fn ($store) => [
+                    'id' => $store->id,
+                    'branch_code' => $store->branch_code,
+                    'name' => $store->name,
+                    'address' => $store->address,
+                    'svp_id' => $store->svp_id,
+                    'svp' => $store->svp ? [
+                        'id' => $store->svp->id,
+                        'name' => $store->svp->name,
+                    ] : null,
+                ]);
+
+            $extraProps['availableStores'] = Store::whereNull('svp_id')
+                ->get()
+                ->map(fn ($store) => [
+                    'id' => $store->id,
+                    'branch_code' => $store->branch_code,
+                    'name' => $store->name,
+                    'address' => $store->address,
+                    'svp_id' => null,
+                    'svp' => null,
+                ]);
         }
 
         $currentSpvTeam = Team::where('is_spv_team', true)
