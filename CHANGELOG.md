@@ -133,6 +133,24 @@ All notable changes to this project will be documented in this file.
     - Both areas share same components and logic
     - Routes automatically adjusted per position
 
+- **KPI Admin & CEO Dashboards**: Management and oversight interfaces
+  - **Admin Pages:**
+    - `kpi/admin/definitions.tsx` - Task definition CRUD with position selector and weight validation
+    - `kpi/admin/scores.tsx` - View all daily scores with sorting and statistics
+  - **CEO Pages:**
+    - `kpi/ceo-dashboard.tsx` - Executive overview with grade distribution, top performers, critical alerts
+    - `kpi/ceo-reports.tsx` - Daily reports inbox with on-time/late status
+    - `kpi/ceo-alerts.tsx` - Critical alerts dashboard (Grade D, late reports, missing reports)
+  - **Features:**
+    - Task definition management with inline edit/delete
+    - Total weight validation (must equal 100%)
+    - Position-based task filtering (Manager HR vs Manager Operasional)
+    - Real-time alert counting and categorization
+    - Grade distribution visualization
+    - Top performers leaderboard
+    - Critical alerts with recommended actions
+    - Report submission timeline tracking
+
 ### Fixed
 - **TaskColumnScoringService**: Corrected auto-scoring logic for last step
   - Changed condition from `>=` to `>` to only award max score when task has PASSED the last step, not when currently AT it
