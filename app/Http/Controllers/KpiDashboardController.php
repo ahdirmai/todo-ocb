@@ -19,6 +19,18 @@ class KpiDashboardController extends Controller
     protected function getPositionArea(): string
     {
         $user = auth()->user();
+
+        // Superadmin can access via URL path (e.g., /hr/kpi or /operational/kpi)
+        if ($user->hasRole('superadmin')) {
+            $path = request()->path();
+            if (str_starts_with($path, 'hr/')) {
+                return 'hr';
+            }
+            if (str_starts_with($path, 'operational/')) {
+                return 'operational';
+            }
+        }
+
         $positionName = $user->jobPosition?->name;
 
         return match ($positionName) {
