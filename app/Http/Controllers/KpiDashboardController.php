@@ -124,7 +124,7 @@ class KpiDashboardController extends Controller
                             'name' => $comment->user->name,
                             'email' => $comment->user->email,
                         ],
-                        'media' => $comment->getMedia()->map(fn ($media) => [
+                        'media' => $comment->getMedia('documents')->map(fn ($media) => [
                             'id' => $media->id,
                             'name' => $media->file_name,
                             'url' => $media->getUrl(),
