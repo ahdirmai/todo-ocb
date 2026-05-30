@@ -105,11 +105,13 @@ export default function HrKpiMonthlyDetail({ score, month }: Props) {
               <CardContent>
                 <div className="space-y-2">
                   {score.weekly_scores?.map((week, idx) => (
-                    <div key={idx} className="flex items-center justify-between py-3 border-b last:border-0">
-                      <span className="font-medium">
-                        Minggu {idx + 1}: {new Date(week.week_start).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })} - {new Date(week.week_end).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
+                    <div key={idx} className="flex items-center justify-between gap-2 md:gap-4 py-3 border-b last:border-0">
+                      <span className="text-sm sm:text-base font-medium">
+                        <span className="hidden sm:inline">Minggu {idx + 1}: </span>
+                        <span className="sm:hidden">M{idx + 1}: </span>
+                        {new Date(week.week_start).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })} - {new Date(week.week_end).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
                       </span>
-                      <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-2 md:gap-4">
                         <span className="text-lg font-bold">{week.score.toFixed(2)}%</span>
                         <span className={`text-sm font-medium px-2 py-1 rounded ${
                           week.grade === 'A+' || week.grade === 'A' ? 'bg-green-100 text-green-800' :

@@ -109,7 +109,7 @@ export function KpiTaskModal({ task, area, onClose }: KpiTaskModalProps) {
 
   return (
     <Dialog open={!!task} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto mx-4">
+      <DialogContent className="max-w-full sm:max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1">
@@ -180,7 +180,7 @@ export function KpiTaskModal({ task, area, onClose }: KpiTaskModalProps) {
                                 className="flex items-center gap-2 px-3 py-2 bg-background border rounded hover:bg-accent"
                               >
                                 <Paperclip className="h-4 w-4" />
-                                <span className="text-sm truncate max-w-[150px]">{media.name}</span>
+                                <span className="text-sm truncate max-w-[100px] sm:max-w-[150px]">{media.name}</span>
                                 <Download className="h-3 w-3" />
                               </a>
                             )}

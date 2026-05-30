@@ -9,12 +9,15 @@ All notable changes to this project will be documented in this file.
   - Responsive header layouts with stacked buttons on mobile
   - Shortened button labels for small screens
   - Proper grid breakpoints (grid-cols-1 → md:grid-cols-2)
-  - Reduced gaps on mobile (gap-3 → md:gap-6)
+  - Reduced gaps on mobile (gap-3 → md:gap-6, gap-2 md:gap-4)
   - Full-width buttons on mobile (w-full sm:w-auto)
-  - Responsive font sizing (text-2xl md:text-4xl)
-  - Modal padding adjustments (mx-4 for mobile)
+  - Responsive font sizing (text-2xl md:text-4xl, text-sm sm:text-base)
+  - Modal padding adjustments (mx-4 for mobile, max-w-full sm:max-w-2xl)
   - Flex layout wrapping for action buttons
   - Touch-friendly spacing and sizing
+  - Short date formats on mobile (weekday: 'short' instead of 'long')
+  - Abbreviated week labels (M1, M2 vs Minggu 1, 2)
+  - Responsive file name truncation (100px mobile, 150px desktop)
   - Applied across all 13 KPI page files
 
 - **KPI Dashboard Date Navigation**: Navigate to previous/future dates with task generation

@@ -313,7 +313,7 @@ export default function HrKpiDashboard({
                           )}
                         </div>
                         <div className="flex-1 space-y-1">
-                          <div className="flex items-start justify-between gap-4">
+                          <div className="flex items-start justify-between gap-2 md:gap-4">
                             <p className="font-medium">{task.task_name}</p>
                             <Badge variant="secondary">{task.weight}%</Badge>
                           </div>
