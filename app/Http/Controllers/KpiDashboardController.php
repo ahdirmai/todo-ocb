@@ -34,6 +34,9 @@ class KpiDashboardController extends Controller
             if (str_starts_with($path, 'operational/')) {
                 return 'operational';
             }
+
+            // Admin accessing non-KPI area route, fallback to operational
+            return 'operational';
         }
 
         // Regular users: validate position
