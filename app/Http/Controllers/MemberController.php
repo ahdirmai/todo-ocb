@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Position;
 use App\Models\User;
 use App\Services\ActivityLogger;
 use Illuminate\Http\Request;
@@ -12,20 +13,24 @@ class MemberController extends Controller
 {
     public function index()
     {
-        $members = User::with('roles')->orderBy('name')->get()->map(fn ($u) => [
+        $members = User::with(['roles', 'jobPosition'])->orderBy('name')->get()->map(fn ($u) => [
             'id' => $u->id,
             'name' => $u->name,
             'email' => $u->email,
             'avatar_url' => $u->avatar_url,
+            'position_group' => $u->jobPosition?->name,
             'position' => $u->position,
+            'position_id' => $u->position_id,
             'role' => $u->roles->first()?->name ?? 'member',
         ]);
 
         $roles = Role::orderBy('name')->pluck('name');
+        $positions = Position::orderBy('name')->get(['id', 'name']);
 
         return Inertia::render('members/index', [
             'members' => $members,
             'roles' => $roles,
+            'positions' => $positions,
         ]);
     }
 
@@ -35,6 +40,7 @@ class MemberController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
             'password' => 'required|string|min:8',
+            'position_id' => 'nullable|exists:positions,id',
             'position' => 'nullable|string|max:255',
             'role' => 'required|string|exists:roles,name',
         ]);
@@ -43,6 +49,7 @@ class MemberController extends Controller
             'name' => $validated['name'],
             'email' => $validated['email'],
             'password' => bcrypt($validated['password']),
+            'position_id' => $validated['position_id'] ?? null,
             'position' => $validated['position'] ?? null,
         ]);
 
@@ -61,13 +68,15 @@ class MemberController extends Controller
     public function update(Request $request, User $user)
     {
         $validated = $request->validate([
+            'position_id' => 'nullable|exists:positions,id',
             'position' => 'nullable|string|max:255',
             'role' => 'required|string|exists:roles,name',
         ]);
 
         $oldRole = $user->roles->first()?->name ?? '-';
         $user->update([
-            'position' => $validated['position'] ?? $user->position,
+            'position_id' => $validated['position_id'] ?? null,
+            'position' => $validated['position'] ?? null,
         ]);
         $user->syncRoles($validated['role']);
 

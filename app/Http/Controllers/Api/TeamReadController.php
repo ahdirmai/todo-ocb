@@ -60,7 +60,8 @@ class TeamReadController extends Controller
         $team->loadCount(['tasks', 'users', 'documents', 'kanbans', 'announcements', 'messages']);
         $team->load([
             'users' => fn ($query) => $query
-                ->select('users.id', 'users.name', 'users.email', 'users.position')
+                ->select('users.id', 'users.name', 'users.email', 'users.position_id')
+                ->with('jobPosition:id,name')
                 ->withPivot('role')
                 ->orderBy('users.name'),
             'kanbans.columns' => fn ($query) => $query->withCount('tasks')->orderBy('order'),
@@ -166,7 +167,8 @@ class TeamReadController extends Controller
     public function members(Request $request, Team $team)
     {
         $members = $team->users()
-            ->select('users.id', 'users.name', 'users.email', 'users.position')
+            ->select('users.id', 'users.name', 'users.email', 'users.position_id')
+            ->with('jobPosition:id,name')
             ->withPivot('role')
             ->orderBy('users.name')
             ->paginate($request->integer('per_page', 50));
@@ -345,7 +347,8 @@ class TeamReadController extends Controller
             ]);
 
         $members = $team->users()
-            ->select('users.id', 'users.name', 'users.email', 'users.position')
+            ->select('users.id', 'users.name', 'users.email', 'users.position_id')
+            ->with('jobPosition:id,name')
             ->where(function ($memberQuery) use ($query) {
                 $memberQuery
                     ->where('users.name', 'like', '%'.$query.'%')
@@ -359,7 +362,7 @@ class TeamReadController extends Controller
                 'id' => $member->id,
                 'label' => $member->name,
                 'description' => $member->email,
-                'meta' => ['position' => $member->position],
+                'meta' => ['position' => $member->jobPosition?->name ?? $member->position],
                 'links' => [],
             ]);
 
@@ -479,7 +482,8 @@ class TeamReadController extends Controller
             ]);
 
         $memberMatches = $team->users()
-            ->select('users.id', 'users.name', 'users.email', 'users.position')
+            ->select('users.id', 'users.name', 'users.email', 'users.position_id')
+            ->with('jobPosition:id,name')
             ->where(function ($query) use ($text) {
                 $query
                     ->whereRaw('LOWER(users.name) like ?', ['%'.$text.'%'])
@@ -493,7 +497,7 @@ class TeamReadController extends Controller
                 'label' => $member->name,
                 'description' => $member->email,
                 'meta' => [
-                    'position' => $member->position,
+                    'position' => $member->jobPosition?->name ?? $member->position,
                     'confidence' => 0.85,
                 ],
                 'links' => [],

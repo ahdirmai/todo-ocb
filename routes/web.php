@@ -9,6 +9,7 @@ use App\Http\Controllers\KanbanBoardController;
 use App\Http\Controllers\KanbanColumnController;
 use App\Http\Controllers\MemberController;
 use App\Http\Controllers\NightwatchController;
+use App\Http\Controllers\PositionController;
 use App\Http\Controllers\ReportingController;
 use App\Http\Controllers\TagController;
 use App\Http\Controllers\TaskController;
@@ -115,6 +116,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('tags', [TagController::class, 'store'])->name('tags.store');
         Route::put('tags/{tag}', [TagController::class, 'update'])->name('tags.update');
         Route::delete('tags/{tag}', [TagController::class, 'destroy'])->name('tags.destroy');
+
+        Route::get('positions', [PositionController::class, 'index'])->name('positions.index');
+        Route::post('positions', [PositionController::class, 'store'])->name('positions.store');
+        Route::put('positions/{position}', [PositionController::class, 'update'])->name('positions.update');
+        Route::delete('positions/{position}', [PositionController::class, 'destroy'])->name('positions.destroy');
+        Route::post('positions/{position}/assign-user', [PositionController::class, 'assignUser'])->name('positions.assign-user');
+        Route::delete('positions/{position}/remove-user', [PositionController::class, 'removeUser'])->name('positions.remove-user');
+        Route::get('positions/users-without-position', [PositionController::class, 'usersWithoutPosition'])->name('positions.users-without-position');
 
         // Team Management
         Route::post('teams', [TeamController::class, 'store'])->name('teams.store');

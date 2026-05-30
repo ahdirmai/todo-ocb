@@ -21,7 +21,7 @@ class AuthController extends Controller
         ]);
 
         /** @var User|null $user */
-        $user = User::query()->where('email', $validated['email'])->first();
+        $user = User::query()->with('jobPosition:id,name')->where('email', $validated['email'])->first();
 
         if (! $user || ! Hash::check($validated['password'], $user->password)) {
             throw ValidationException::withMessages([
@@ -52,8 +52,11 @@ class AuthController extends Controller
 
     public function me(Request $request)
     {
+        $user = $request->user();
+        $user?->load('jobPosition:id,name');
+
         return response()->json([
-            'data' => $this->userPayload($request->user()),
+            'data' => $this->userPayload($user),
         ]);
     }
 
@@ -79,7 +82,7 @@ class AuthController extends Controller
             'id' => $user?->id,
             'name' => $user?->name,
             'email' => $user?->email,
-            'position' => $user?->position,
+            'position' => $user?->jobPosition?->name ?? $user?->position,
             'avatar_url' => $user?->avatar_url,
             'roles' => $user?->roles()->pluck('name')->values()->all() ?? [],
         ];

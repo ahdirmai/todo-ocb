@@ -9,6 +9,7 @@ import {
     Activity,
     Binoculars,
     FileBarChart2,
+    Briefcase,
 } from 'lucide-react';
 import { useState } from 'react';
 import * as ReportingActions from '@/actions/App/Http/Controllers/ReportingController';
@@ -154,6 +155,14 @@ export function AppSidebar() {
                                         <Link href="/tags">
                                             <Tag className="h-4 w-4" />
                                             <span>Manajemen Tag</span>
+                                        </Link>
+                                    </SidebarMenuButton>
+                                </SidebarMenuItem>
+                                <SidebarMenuItem>
+                                    <SidebarMenuButton asChild>
+                                        <Link href="/positions">
+                                            <Briefcase className="h-4 w-4" />
+                                            <span>Manajemen Posisi</span>
                                         </Link>
                                     </SidebarMenuButton>
                                 </SidebarMenuItem>

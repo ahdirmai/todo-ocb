@@ -26,8 +26,15 @@ interface Member {
     name: string;
     email: string;
     avatar_url?: string | null;
+    position_group?: string | null;
     position?: string | null;
+    position_id?: string | null;
     role: string;
+}
+
+interface Position {
+    id: string;
+    name: string;
 }
 
 const ROLE_CONFIG: Record<string, { label: string; color: string; icon: any }> =
@@ -52,9 +59,11 @@ const ROLE_CONFIG: Record<string, { label: string; color: string; icon: any }> =
 export default function MembersIndex({
     members,
     roles,
+    positions,
 }: {
     members: Member[];
     roles: string[];
+    positions: Position[];
 }) {
     const { auth } = usePage<any>().props;
 
@@ -68,10 +77,12 @@ export default function MembersIndex({
         name: '',
         email: '',
         password: '',
+        position_id: null as string | null,
         position: '',
         role: 'member',
     });
     const [editForm, setEditForm] = useState({
+        position_id: null as string | null,
         position: '',
         role: '',
     });
@@ -80,7 +91,7 @@ export default function MembersIndex({
         router.post(MemberActions.store.url(), form, {
             onSuccess: () => {
                 setInviteOpen(false);
-                setForm({ name: '', email: '', password: '', position: '', role: 'member' });
+                setForm({ name: '', email: '', password: '', position_id: null, position: '', role: 'member' });
                 toast.success('Email berhasil didaftarkan');
             },
         });
@@ -190,7 +201,9 @@ return;
                                                 {m.email}
                                             </td>
                                             <td className="px-4 py-3 text-slate-600 dark:text-slate-400">
-                                                {m.position || '-'}
+                                                {m.position_group && m.position
+                                                    ? `${m.position_group} - ${m.position}`
+                                                    : m.position_group || m.position || '-'}
                                             </td>
                                             <td className="px-4 py-3">
                                                 <Badge
@@ -213,6 +226,7 @@ return;
                                                                         m,
                                                                     );
                                                                     setEditForm({
+                                                                        position_id: m.position_id || '',
                                                                         position: m.position || '',
                                                                         role: m.role,
                                                                     });
@@ -299,17 +313,42 @@ return;
                         </div>
                         <div>
                             <label className="mb-1 block text-xs font-medium text-muted-foreground">
-                                Posisi
+                                Kelompok Posisi (Opsional)
+                            </label>
+                            <Select
+                                value={form.position_id || 'none'}
+                                onValueChange={(v) =>
+                                    setForm({
+                                        ...form,
+                                        position_id: v === 'none' ? null : v,
+                                    })
+                                }
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Pilih kelompok..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="none">
+                                        Tidak ada
+                                    </SelectItem>
+                                    {positions.map((p) => (
+                                        <SelectItem key={p.id} value={p.id}>
+                                            {p.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div>
+                            <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                                Nama Posisi Spesifik (Opsional)
                             </label>
                             <Input
                                 value={form.position}
                                 onChange={(e) =>
-                                    setForm({
-                                        ...form,
-                                        position: e.target.value,
-                                    })
+                                    setForm({ ...form, position: e.target.value })
                                 }
-                                placeholder="Contoh: Senior Developer"
+                                placeholder="Contoh: SPV Marketing, Manager Sales..."
                             />
                         </div>
                         <div>
@@ -361,17 +400,42 @@ return;
                     <div className="mt-2 flex flex-col gap-3">
                         <div>
                             <label className="mb-1 block text-xs font-medium text-muted-foreground">
-                                Posisi
+                                Kelompok Posisi (Opsional)
+                            </label>
+                            <Select
+                                value={editForm.position_id || 'none'}
+                                onValueChange={(v) =>
+                                    setEditForm({
+                                        ...editForm,
+                                        position_id: v === 'none' ? null : v,
+                                    })
+                                }
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Pilih kelompok..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="none">
+                                        Tidak ada
+                                    </SelectItem>
+                                    {positions.map((p) => (
+                                        <SelectItem key={p.id} value={p.id}>
+                                            {p.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div>
+                            <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                                Nama Posisi Spesifik (Opsional)
                             </label>
                             <Input
                                 value={editForm.position}
                                 onChange={(e) =>
-                                    setEditForm({
-                                        ...editForm,
-                                        position: e.target.value,
-                                    })
+                                    setEditForm({ ...editForm, position: e.target.value })
                                 }
-                                placeholder="Contoh: Senior Developer"
+                                placeholder="Contoh: SPV Marketing, Manager Sales..."
                             />
                         </div>
                         <div>

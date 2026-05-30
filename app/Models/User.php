@@ -16,7 +16,7 @@ use Spatie\MediaLibrary\InteractsWithMedia;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 use Spatie\Permission\Traits\HasRoles;
 
-#[Fillable(['name', 'email', 'password', 'position'])]
+#[Fillable(['name', 'email', 'password', 'position', 'position_id'])]
 #[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
 class User extends Authenticatable implements HasMedia
 {
@@ -62,6 +62,11 @@ class User extends Authenticatable implements HasMedia
     public function getAvatarUrlAttribute(): ?string
     {
         return $this->getFirstMediaUrl('avatar', 'thumb') ?: null;
+    }
+
+    public function jobPosition()
+    {
+        return $this->belongsTo(Position::class, 'position_id');
     }
 
     public function assignedTasks()
