@@ -8,11 +8,12 @@ use App\Models\KpiWeeklyScore;
 use App\Models\Task;
 use App\Models\User;
 use Carbon\Carbon;
+use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
 
 class KpiScoringService
 {
-    public function calculateDailyScore(User $user, Carbon $date): KpiDailyScore
+    public function calculateDailyScore(User $user, CarbonInterface $date): KpiDailyScore
     {
         $scoreDate = $date->toDateString();
         $team = $user->teams()->where('is_spv_team', true)->first();
@@ -105,7 +106,7 @@ class KpiScoringService
         );
     }
 
-    public function calculateWeeklyScore(User $user, Carbon $weekStart): KpiWeeklyScore
+    public function calculateWeeklyScore(User $user, CarbonInterface $weekStart): KpiWeeklyScore
     {
         $weekStart = $weekStart->copy()->startOfWeek(Carbon::MONDAY);
         $weekEnd = $weekStart->copy()->endOfWeek(Carbon::SUNDAY);
@@ -149,7 +150,7 @@ class KpiScoringService
         );
     }
 
-    public function calculateMonthlyScore(User $user, Carbon $month): KpiMonthlyScore
+    public function calculateMonthlyScore(User $user, CarbonInterface $month): KpiMonthlyScore
     {
         $monthStart = $month->copy()->startOfMonth();
         $monthEnd = $month->copy()->endOfMonth();

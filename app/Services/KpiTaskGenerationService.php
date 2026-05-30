@@ -6,12 +6,12 @@ use App\Models\KpiTaskDefinition;
 use App\Models\Task;
 use App\Models\Team;
 use App\Models\User;
-use Carbon\Carbon;
+use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
 
 class KpiTaskGenerationService
 {
-    public function generateDailyTasksForTeam(Team $spvTeam, Carbon $date): void
+    public function generateDailyTasksForTeam(Team $spvTeam, CarbonInterface $date): void
     {
         if (! $spvTeam->is_spv_team) {
             throw new \Exception('Team must be SPV team');
@@ -24,7 +24,7 @@ class KpiTaskGenerationService
         }
     }
 
-    public function generateDailyTasksForUser(User $user, Carbon $date, ?Team $spvTeam = null): Collection
+    public function generateDailyTasksForUser(User $user, CarbonInterface $date, ?Team $spvTeam = null): Collection
     {
         if (! $user->position_id) {
             throw new \Exception('User must have position');
@@ -43,7 +43,7 @@ class KpiTaskGenerationService
             throw new \Exception('SPV team must have kanban');
         }
 
-        $firstColumn = $kanban->columns()->orderBy('order_position')->first();
+        $firstColumn = $kanban->columns()->orderBy('order')->first();
         if (! $firstColumn) {
             throw new \Exception('Kanban must have at least one column');
         }

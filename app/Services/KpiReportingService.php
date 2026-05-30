@@ -6,7 +6,7 @@ use App\Models\KpiDailyReport;
 use App\Models\KpiDailyScore;
 use App\Models\Task;
 use App\Models\User;
-use Carbon\Carbon;
+use Carbon\CarbonInterface;
 
 class KpiReportingService
 {
@@ -41,7 +41,7 @@ class KpiReportingService
         );
     }
 
-    public function getDailyReportTemplate(User $user, Carbon $date): array
+    public function getDailyReportTemplate(User $user, CarbonInterface $date): array
     {
         $team = $user->teams()->where('is_spv_team', true)->first();
 
@@ -75,7 +75,7 @@ class KpiReportingService
         ];
     }
 
-    public function checkReportDeadline(Carbon $submittedAt): bool
+    public function checkReportDeadline(CarbonInterface $submittedAt): bool
     {
         $deadline = $submittedAt->copy()->setTime(22, 30, 0);
 
