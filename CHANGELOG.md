@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Fixed
+- **KPI Dashboard Date Navigation**: Fixed UTC timezone bug preventing next day navigation
+  - `isToday` check now uses local browser time instead of UTC
+  - When 01:31 Asia/Makassar (2026-05-31), UTC showed 17:31 (2026-05-30)
+  - App incorrectly thought previous day was "today" and disabled next button
+  - Fixed in both HR and Operational KPI dashboards
+  
 - **Store Visit Date Filtering**: Fixed timezone conversion issue preventing store-date validation
   - `visit_date` and `due_date` now use raw Y-m-d format instead of UTC-converted ISO strings
   - Store filtering logic now correctly prevents double-booking same store on same date

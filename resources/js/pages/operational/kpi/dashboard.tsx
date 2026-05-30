@@ -162,7 +162,9 @@ export default function OperationalKpiDashboard({
     router.post('/operational/kpi/tasks/generate', { date: selectedDate });
   };
 
-  const isToday = selectedDate === new Date().toISOString().split('T')[0];
+  const today = new Date();
+  const todayString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  const isToday = selectedDate === todayString;
 
   return (
     <KpiLayout area="operational">
