@@ -16,18 +16,17 @@ class KpiReportController extends Controller
     protected function getPositionArea(): string
     {
         $user = auth()->user();
+        $path = request()->path();
 
-        // Superadmin can access via URL path (e.g., /hr/kpi or /operational/kpi)
-        if ($user->hasRole('superadmin')) {
-            $path = request()->path();
-            if (str_starts_with($path, 'hr/')) {
-                return 'hr';
-            }
-            if (str_starts_with($path, 'operational/')) {
-                return 'operational';
-            }
+        // Detect area from URL path first
+        if (str_starts_with($path, 'hr/')) {
+            return 'hr';
+        }
+        if (str_starts_with($path, 'operational/')) {
+            return 'operational';
         }
 
+        // Fallback: detect from position name
         $positionName = $user->jobPosition?->name;
 
         return match ($positionName) {
