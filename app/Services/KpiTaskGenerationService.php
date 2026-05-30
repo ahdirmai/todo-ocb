@@ -30,11 +30,15 @@ class KpiTaskGenerationService
             throw new \Exception('User must have position');
         }
 
-        if (! $spvTeam) {
+        // For managers (admin/superadmin or actual managers), team is optional
+        $positionName = $user->jobPosition?->name;
+        $isManager = in_array($positionName, ['Manager HR', 'Manager Operasional']);
+
+        if (! $spvTeam && ! $isManager) {
             $spvTeam = $user->teams()->where('is_spv_team', true)->first();
         }
 
-        if (! $spvTeam) {
+        if (! $spvTeam && ! $isManager) {
             throw new \Exception('User must be in SPV team');
         }
 
@@ -44,12 +48,16 @@ class KpiTaskGenerationService
         $order = 0;
 
         foreach ($definitions as $definition) {
-            $existingTask = Task::where('is_kpi_task', true)
+            $existingTaskQuery = Task::where('is_kpi_task', true)
                 ->where('kpi_task_definition_id', $definition->id)
-                ->where('team_id', $spvTeam->id)
                 ->where('creator_id', $user->id)
-                ->whereDate('created_at', $date->toDateString())
-                ->first();
+                ->whereDate('created_at', $date->toDateString());
+
+            if ($spvTeam) {
+                $existingTaskQuery->where('team_id', $spvTeam->id);
+            }
+
+            $existingTask = $existingTaskQuery->first();
 
             if ($existingTask) {
                 $tasks->push($existingTask);
@@ -58,7 +66,7 @@ class KpiTaskGenerationService
             }
 
             $task = Task::create([
-                'team_id' => $spvTeam->id,
+                'team_id' => $spvTeam?->id,
                 'kanban_column_id' => null,
                 'kpi_task_definition_id' => $definition->id,
                 'is_kpi_task' => true,

@@ -14,7 +14,9 @@ All notable changes to this project will be documented in this file.
 - **KPI Dashboard Access for Admin**: Admin/superadmin no longer require SPV team assignment
   - Admin/superadmin can access KPI dashboard without being assigned to SPV team
   - Access check now allows: admin/superadmin, manager position, OR SPV team member
-  - Fixes "no access" error for admin users without team assignment
+  - Task generation works for managers without team assignment (team_id set to null)
+  - Service and controller updated to handle optional team for Manager HR/Operasional
+  - Fixes "Anda tidak terdaftar dalam tim SPV" error for admin/manager users
 
 - **KPI Task Generation Permission**: Fixed task generation blocked for admin/superadmin with manager position
   - Removed SPV team membership requirement for task generation

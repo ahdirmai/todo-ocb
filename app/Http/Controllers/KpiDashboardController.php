@@ -420,9 +420,13 @@ class KpiDashboardController extends Controller
     public function generateTasks(Request $request): RedirectResponse
     {
         $user = auth()->user();
+        $positionName = $user->jobPosition?->name;
+        $isManager = in_array($positionName, ['Manager HR', 'Manager Operasional']);
+
         $team = $user->teams()->where('is_spv_team', true)->first();
 
-        if (! $team) {
+        // Only require team for non-managers
+        if (! $team && ! $isManager) {
             return back()->withErrors(['error' => 'Anda tidak terdaftar dalam tim SPV']);
         }
 
@@ -436,17 +440,19 @@ class KpiDashboardController extends Controller
         }
 
         // Check if tasks already exist for the date
-        $existingTasks = Task::where('is_kpi_task', true)
-            ->where('team_id', $team->id)
+        $existingTasksQuery = Task::where('is_kpi_task', true)
             ->where('creator_id', $user->id)
-            ->whereDate('created_at', $targetDate->toDateString())
-            ->exists();
+            ->whereDate('created_at', $targetDate->toDateString());
 
-        if ($existingTasks) {
+        if ($team) {
+            $existingTasksQuery->where('team_id', $team->id);
+        }
+
+        if ($existingTasksQuery->exists()) {
             return back()->withErrors(['error' => 'Task untuk tanggal ini sudah dibuat']);
         }
 
-        // Generate tasks
+        // Generate tasks (team can be null for managers)
         $this->taskGenerationService->generateDailyTasksForUser($user, $targetDate, $team);
 
         return back()->with('success', 'Task KPI berhasil dibuat');
