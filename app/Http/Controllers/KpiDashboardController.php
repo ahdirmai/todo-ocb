@@ -287,34 +287,35 @@ class KpiDashboardController extends Controller
             abort(403, 'Task tidak ditugaskan kepada Anda');
         }
 
-        $hasEvidence = $this->scoringService->verifyTaskEvidence($task);
+        $evidenceStatus = $this->scoringService->verifyTaskEvidence($task);
 
-        if ($hasEvidence) {
+        // Only mark as verified if there's full evidence (comment + attachment)
+        if ($evidenceStatus === 'full') {
             $task->update([
                 'is_verified' => true,
                 'verified_at' => now(),
             ]);
+        }
 
-            // Calculate scores after verification
-            $taskDate = $task->created_at;
+        // Calculate scores regardless of evidence status (partial gets 30%, none gets 0%)
+        $taskDate = $task->created_at;
 
-            // Calculate daily score
-            $this->scoringService->calculateDailyScore($user, $taskDate);
+        // Calculate daily score
+        $this->scoringService->calculateDailyScore($user, $taskDate);
 
-            // Calculate weekly score if there are daily scores
-            $weekStart = $taskDate->copy()->startOfWeek(Carbon::MONDAY);
-            try {
-                $this->scoringService->calculateWeeklyScore($user, $weekStart);
-            } catch (\Exception $e) {
-                // Weekly score calculation might fail if not enough daily scores
-            }
+        // Calculate weekly score if there are daily scores
+        $weekStart = $taskDate->copy()->startOfWeek(Carbon::MONDAY);
+        try {
+            $this->scoringService->calculateWeeklyScore($user, $weekStart);
+        } catch (\Exception $e) {
+            // Weekly score calculation might fail if not enough daily scores
+        }
 
-            // Calculate monthly score if there are weekly scores
-            try {
-                $this->scoringService->calculateMonthlyScore($user, $taskDate);
-            } catch (\Exception $e) {
-                // Monthly score calculation might fail if not enough weekly scores
-            }
+        // Calculate monthly score if there are weekly scores
+        try {
+            $this->scoringService->calculateMonthlyScore($user, $taskDate);
+        } catch (\Exception $e) {
+            // Monthly score calculation might fail if not enough weekly scores
         }
 
         return back()->with('success', 'Task berhasil diverifikasi');
