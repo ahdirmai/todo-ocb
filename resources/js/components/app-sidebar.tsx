@@ -10,7 +10,6 @@ import {
     Binoculars,
     FileBarChart2,
     Briefcase,
-    Eye,
     Settings,
     Lock,
 } from 'lucide-react';
@@ -205,7 +204,8 @@ export function AppSidebar() {
                     )}
 
                     {/* Position-Based Areas */}
-                    {hasAccess('pengawas-svp') && (
+                    {/* Temporarily hidden - Pengawas SVP */}
+                    {/* {hasAccess('pengawas-svp') && (
                         <SidebarGroup>
                             <SidebarGroupLabel>Pengawas SVP</SidebarGroupLabel>
                             <SidebarMenu>
@@ -219,7 +219,7 @@ export function AppSidebar() {
                                 </SidebarMenuItem>
                             </SidebarMenu>
                         </SidebarGroup>
-                    )}
+                    )} */}
 
                     {hasAccess('hr') && (
                         <SidebarGroup>
