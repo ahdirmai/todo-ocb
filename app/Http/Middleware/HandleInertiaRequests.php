@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\PositionPermission;
 use App\Models\Tag;
 use App\Models\Team;
 use App\Models\User;
@@ -52,6 +53,14 @@ class HandleInertiaRequests extends Middleware
         // All application users for invite dropdowns (shared to all pages)
         $allUsers = rescue(fn () => User::with('roles:id,name')->orderBy('name')->get(['id', 'name', 'email']), []);
 
+        // Get user's position-based route access
+        $positionAccess = [];
+        if ($user && $user->position_id) {
+            $positionAccess = PositionPermission::where('position_id', $user->position_id)
+                ->pluck('route_key')
+                ->toArray();
+        }
+
         return [
             ...parent::share($request),
             'name' => config('app.name'),
@@ -61,6 +70,7 @@ class HandleInertiaRequests extends Middleware
                 ]) : null,
                 'roles' => $user ? $user->getRoleNames() : [],
                 'permissions' => $user ? $user->getAllPermissions()->pluck('name') : [],
+                'positionAccess' => $positionAccess,
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
             'teamsData' => [

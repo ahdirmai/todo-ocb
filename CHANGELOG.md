@@ -23,6 +23,20 @@ All notable changes to this project will be documented in this file.
   - Member management updated to use position dropdown + specific name input
   - Navigation: Added "Manajemen Posisi" to admin sidebar
 
+- **Position-Based Access Control (RBAC)**: Restrict page access based on user position
+  - New model: `PositionPermission` for position-route access mapping
+  - New controller: `PositionAccessController` for managing permissions
+  - New middleware: `CheckPositionAccess` validates position-based route access
+  - New migration: `create_position_permissions_table`
+  - RBAC management page (`/rbac`) for admin/superadmin to assign permissions
+  - Three new protected areas: Pengawas SVP, HR Area, Operational Area
+  - Placeholder pages for new areas with development notices
+  - Sidebar conditionally renders based on user's position permissions
+  - Superadmin/admin bypass position checks automatically
+  - Position permissions shared globally via `HandleInertiaRequests`
+  - Middleware parameter support: `Route::middleware('position:route-key')`
+  - Available route keys: `pengawas-svp`, `hr`, `operational`
+
 - **SPV Team Flag**: Teams can now be designated as SPV (Supervisor) team
   - Only one team can be SPV at a time
   - Toggle SPV status restricted to superadmin role

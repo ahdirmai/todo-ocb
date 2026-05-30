@@ -5,10 +5,14 @@ use App\Http\Controllers\AnnouncementController;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DocumentCommentController;
+use App\Http\Controllers\HrController;
 use App\Http\Controllers\KanbanBoardController;
 use App\Http\Controllers\KanbanColumnController;
 use App\Http\Controllers\MemberController;
 use App\Http\Controllers\NightwatchController;
+use App\Http\Controllers\OperationalController;
+use App\Http\Controllers\PengawasSvpController;
+use App\Http\Controllers\PositionAccessController;
 use App\Http\Controllers\PositionController;
 use App\Http\Controllers\ReportingController;
 use App\Http\Controllers\TagController;
@@ -125,6 +129,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::delete('positions/{position}/remove-user', [PositionController::class, 'removeUser'])->name('positions.remove-user');
         Route::get('positions/users-without-position', [PositionController::class, 'usersWithoutPosition'])->name('positions.users-without-position');
 
+        // RBAC - Position Access Control
+        Route::get('rbac', [PositionAccessController::class, 'index'])->name('rbac.index');
+        Route::post('rbac', [PositionAccessController::class, 'store'])->name('rbac.store');
+        Route::delete('rbac', [PositionAccessController::class, 'destroy'])->name('rbac.destroy');
+
         // Team Management
         Route::post('teams', [TeamController::class, 'store'])->name('teams.store');
         Route::put('teams/{team}', [TeamController::class, 'update'])->name('teams.update');
@@ -135,6 +144,19 @@ Route::middleware(['auth', 'verified'])->group(function () {
         // Activity Logs — admin & superadmin only
         Route::get('activity', [ActivityLogController::class, 'index'])->name('activity.index');
     });
+
+    // Position-Based Access Routes
+    Route::get('pengawas-svp', PengawasSvpController::class)
+        ->middleware('position:pengawas-svp')
+        ->name('pengawas-svp.index');
+
+    Route::get('hr', HrController::class)
+        ->middleware('position:hr')
+        ->name('hr.index');
+
+    Route::get('operational', OperationalController::class)
+        ->middleware('position:operational')
+        ->name('operational.index');
 });
 
 require __DIR__.'/settings.php';

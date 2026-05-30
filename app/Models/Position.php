@@ -27,4 +27,9 @@ class Position extends Model
     {
         return $this->hasMany(User::class, 'position_id');
     }
+
+    public function permissions(): HasMany
+    {
+        return $this->hasMany(PositionPermission::class);
+    }
 }

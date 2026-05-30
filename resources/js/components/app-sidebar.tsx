@@ -10,6 +10,9 @@ import {
     Binoculars,
     FileBarChart2,
     Briefcase,
+    Eye,
+    Settings,
+    Lock,
 } from 'lucide-react';
 import { useState } from 'react';
 import * as ReportingActions from '@/actions/App/Http/Controllers/ReportingController';
@@ -59,6 +62,11 @@ export function AppSidebar() {
         auth?.roles?.includes('superadmin') || auth?.roles?.includes('admin');
     const isSuperadmin = auth?.roles?.includes('superadmin');
     const { appearance, updateAppearance } = useAppearance();
+
+    // Check if user has access to a route (admin/superadmin bypass OR has position permission)
+    const hasAccess = (routeKey: string) => {
+        return isAdmin || auth?.positionAccess?.includes(routeKey);
+    };
 
     const [open, setOpen] = useState(false);
     const [form, setForm] = useState({
@@ -166,6 +174,14 @@ export function AppSidebar() {
                                         </Link>
                                     </SidebarMenuButton>
                                 </SidebarMenuItem>
+                                <SidebarMenuItem>
+                                    <SidebarMenuButton asChild>
+                                        <Link href="/rbac">
+                                            <Lock className="h-4 w-4" />
+                                            <span>RBAC</span>
+                                        </Link>
+                                    </SidebarMenuButton>
+                                </SidebarMenuItem>
                                 {isSuperadmin && (
                                     <SidebarMenuItem>
                                         <SidebarMenuButton asChild>
@@ -181,6 +197,55 @@ export function AppSidebar() {
                                         <Link href="/activity">
                                             <Activity className="h-4 w-4" />
                                             <span>Log Aktivitas</span>
+                                        </Link>
+                                    </SidebarMenuButton>
+                                </SidebarMenuItem>
+                            </SidebarMenu>
+                        </SidebarGroup>
+                    )}
+
+                    {/* Position-Based Areas */}
+                    {hasAccess('pengawas-svp') && (
+                        <SidebarGroup>
+                            <SidebarGroupLabel>Pengawas SVP</SidebarGroupLabel>
+                            <SidebarMenu>
+                                <SidebarMenuItem>
+                                    <SidebarMenuButton asChild>
+                                        <Link href="/pengawas-svp">
+                                            <Eye className="h-4 w-4" />
+                                            <span>Dashboard SVP</span>
+                                        </Link>
+                                    </SidebarMenuButton>
+                                </SidebarMenuItem>
+                            </SidebarMenu>
+                        </SidebarGroup>
+                    )}
+
+                    {hasAccess('hr') && (
+                        <SidebarGroup>
+                            <SidebarGroupLabel>HR Area</SidebarGroupLabel>
+                            <SidebarMenu>
+                                <SidebarMenuItem>
+                                    <SidebarMenuButton asChild>
+                                        <Link href="/hr">
+                                            <Users2 className="h-4 w-4" />
+                                            <span>Dashboard HR</span>
+                                        </Link>
+                                    </SidebarMenuButton>
+                                </SidebarMenuItem>
+                            </SidebarMenu>
+                        </SidebarGroup>
+                    )}
+
+                    {hasAccess('operational') && (
+                        <SidebarGroup>
+                            <SidebarGroupLabel>Operational</SidebarGroupLabel>
+                            <SidebarMenu>
+                                <SidebarMenuItem>
+                                    <SidebarMenuButton asChild>
+                                        <Link href="/operational">
+                                            <Settings className="h-4 w-4" />
+                                            <span>Dashboard Operasional</span>
                                         </Link>
                                     </SidebarMenuButton>
                                 </SidebarMenuItem>
