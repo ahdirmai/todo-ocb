@@ -7,9 +7,16 @@ import { Input } from '@/components/ui/input';
 interface Props {
     team: any;
     taskMonth: string | null;
+    isSpvTeam?: boolean;
+    myStores?: Array<{ id: number; branch_code: string; name: string }>;
 }
 
-export function TugasTab({ team, taskMonth }: Props) {
+export function TugasTab({
+    team,
+    taskMonth,
+    isSpvTeam = false,
+    myStores = [],
+}: Props) {
     const kanban = team.kanbans?.[0];
 
     const applyMonth = (value: string | null) => {
@@ -46,7 +53,11 @@ export function TugasTab({ team, taskMonth }: Props) {
                 )}
             </div>
             {kanban ? (
-                <KanbanBoard kanban={kanban} />
+                <KanbanBoard
+                    kanban={kanban}
+                    isSpvTeam={isSpvTeam}
+                    myStores={myStores}
+                />
             ) : (
                 <div className="m-6 flex h-full items-center justify-center rounded-xl border-2 border-dashed border-sidebar-border/70 text-muted-foreground">
                     Belum ada papan Kanban untuk tim ini.

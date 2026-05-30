@@ -10,8 +10,13 @@ Laravel-based task management system with advanced KPI tracking, position-based 
 - **Document Attachments**: File uploads with media library integration
 - **Comments & Discussions**: Task-level commenting with SOP step linking
 - **Monthly Reporting**: Automated monthly task aggregation and scoring
-- **Store Management**: CRUD for managing store locations with search and pagination
-- **SVP Territory Management**: Assign stores to SVP teams for territory oversight
+- **Store Management**: CRUD for managing store locations with search and pagination (40 stores: OC1-OC40)
+- **SPV Territory Management**: Assign stores to SPV teams for territory oversight
+- **SPV Task Creation**: Modal-based store visit task creation
+  - Store selection (admin sees all, SPV sees assigned stores)
+  - Visit date picker with auto due date (H+1)
+  - Auto-assignment of store's SPV to task
+  - First column only restriction
 
 ### Position Management System
 - **Hierarchical Positions**: 5-tier structure (Direktur, Manager, SPV, Staff, Tim)

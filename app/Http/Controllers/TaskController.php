@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\KanbanColumn;
+use App\Models\Store;
 use App\Models\Task;
 use App\Services\ActivityLogger;
+use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -27,12 +29,19 @@ class TaskController extends Controller
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
             'due_date' => 'nullable|date',
+            'store_id' => 'nullable|exists:stores,id',
+            'visit_date' => 'nullable|date',
             'attachments' => 'nullable|array',
             'attachments.*' => 'file|max:'.$this->attachmentMaxKilobytes(),
         ]);
 
         $attachments = $request->file('attachments');
         unset($validated['attachments']);
+
+        // Auto-set due_date to visit_date + 1 day if visit_date is provided
+        if (isset($validated['visit_date']) && ! isset($validated['due_date'])) {
+            $validated['due_date'] = Carbon::parse($validated['visit_date'])->addDay();
+        }
 
         try {
             DB::transaction(function () use ($validated, $request, $attachments): void {
@@ -44,8 +53,23 @@ class TaskController extends Controller
                     'order_position' => $maxOrder + 1,
                 ]);
 
+                // Auto-assign based on store's SPV
+                $assigneeIds = [];
+
                 if ($request->user()) {
-                    $task->assignees()->attach($request->user()->id);
+                    $assigneeIds[] = $request->user()->id;
+                }
+
+                if (isset($validated['store_id'])) {
+                    $store = Store::find($validated['store_id']);
+
+                    if ($store && $store->spv_id && ! in_array($store->spv_id, $assigneeIds)) {
+                        $assigneeIds[] = $store->spv_id;
+                    }
+                }
+
+                if ($assigneeIds) {
+                    $task->assignees()->attach($assigneeIds);
                 }
 
                 if ($attachments) {
@@ -90,6 +114,8 @@ class TaskController extends Controller
             'title' => 'sometimes|string|max:255',
             'description' => 'nullable|string',
             'due_date' => 'nullable|date',
+            'store_id' => 'nullable|exists:stores,id',
+            'visit_date' => 'nullable|date',
             'kanban_column_id' => [
                 'sometimes',
                 Rule::exists('kanban_columns', 'id')->where(

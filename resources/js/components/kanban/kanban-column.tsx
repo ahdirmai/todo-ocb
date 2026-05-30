@@ -4,6 +4,13 @@ import { MoreHorizontal, Pencil, Trash2, Check, X, Plus, CircleCheckBig } from '
 import { useState, useRef } from 'react';
 import * as ColumnActions from '@/actions/App/Http/Controllers/KanbanColumnController';
 import * as TaskActions from '@/actions/App/Http/Controllers/TaskController';
+import { Button } from '@/components/ui/button';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -12,6 +19,13 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { KanbanCard } from './kanban-card';
 
 interface Props {
@@ -22,6 +36,9 @@ interface Props {
     onCardClick: (task: any) => void;
     onMoveTask: (taskId: string, destinationColumnId: string) => void;
     onTaskCreated: (task: any) => void;
+    isSpvTeam?: boolean;
+    myStores?: Array<{ id: number; branch_code: string; name: string }>;
+    columnIndex?: number;
 }
 
 export function KanbanColumn({
@@ -32,15 +49,21 @@ export function KanbanColumn({
     onCardClick,
     onMoveTask,
     onTaskCreated,
+    isSpvTeam = false,
+    myStores = [],
+    columnIndex = 0,
 }: Props) {
     const { uploads } = usePage().props as any;
     const maxFileLabel = `${((uploads?.documents?.maxFileKb ?? 20480) / 1024).toFixed(1)} MB`;
     const [editing, setEditing] = useState(false);
     const [title, setTitle] = useState(column.title);
     const [addingTask, setAddingTask] = useState(false);
+    const [showTaskModal, setShowTaskModal] = useState(false);
     const [newTaskTitle, setNewTaskTitle] = useState('');
     const [savingTask, setSavingTask] = useState(false);
     const [newTaskAttachments, setNewTaskAttachments] = useState<File[]>([]);
+    const [newTaskStoreId, setNewTaskStoreId] = useState<string>('');
+    const [newTaskVisitDate, setNewTaskVisitDate] = useState<string>('');
     const taskFileInputRef = useRef<HTMLInputElement>(null);
 
     const handleToggleDoneColumn = () => {
@@ -90,8 +113,15 @@ export function KanbanColumn({
     };
 
     const handleAddTask = () => {
-        if (!newTaskTitle.trim() || savingTask) {
-            return;
+        // For SPV teams, validate store and visit date
+        if (isSpvTeam) {
+            if (!newTaskStoreId || !newTaskVisitDate || savingTask) {
+                return;
+            }
+        } else {
+            if (!newTaskTitle.trim() || savingTask) {
+                return;
+            }
         }
 
         setSavingTask(true);
@@ -99,7 +129,21 @@ export function KanbanColumn({
         const formData = new FormData();
         formData.append('kanban_column_id', column.id);
         formData.append('team_id', teamId);
-        formData.append('title', newTaskTitle.trim());
+
+        if (isSpvTeam) {
+            // For SPV teams, generate title from store and date
+            const selectedStore = myStores.find(
+                (s) => s.id.toString() === newTaskStoreId,
+            );
+            const title = selectedStore
+                ? `${selectedStore.branch_code} - ${selectedStore.name} (${newTaskVisitDate})`
+                : `Kunjungan ${newTaskVisitDate}`;
+            formData.append('title', title);
+            formData.append('store_id', newTaskStoreId);
+            formData.append('visit_date', newTaskVisitDate);
+        } else {
+            formData.append('title', newTaskTitle.trim());
+        }
 
         newTaskAttachments.forEach((file, index) => {
             formData.append(`attachments[${index}]`, file);
@@ -118,8 +162,11 @@ export function KanbanColumn({
 
                 setSavingTask(false);
                 setNewTaskTitle('');
+                setNewTaskStoreId('');
+                setNewTaskVisitDate('');
                 setNewTaskAttachments([]);
                 setAddingTask(false);
+                setShowTaskModal(false);
 
                 if (taskFileInputRef.current) {
                     taskFileInputRef.current.value = '';
@@ -245,8 +292,8 @@ export function KanbanColumn({
                             ))}
                             {provided.placeholder}
 
-                            {/* Add Task Inline */}
-                            {addingTask ? (
+                            {/* Add Task Inline - Non-SPV only */}
+                            {addingTask && !isSpvTeam ? (
                                 <div className="flex flex-col gap-2 rounded-xl border border-sidebar-border/70 bg-white p-3 dark:bg-zinc-900">
                                     <Input
                                         autoFocus
@@ -353,9 +400,13 @@ export function KanbanColumn({
                                         Maks. {maxFileLabel} per file.
                                     </p>
                                 </div>
-                            ) : (
+                            ) : isSpvTeam && columnIndex !== 0 ? null : (
                                 <button
-                                    onClick={() => setAddingTask(true)}
+                                    onClick={() =>
+                                        isSpvTeam
+                                            ? setShowTaskModal(true)
+                                            : setAddingTask(true)
+                                    }
                                     className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-slate-300 bg-transparent py-3 text-sm font-medium text-slate-500 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-900"
                                 >
                                     <Plus className="h-4 w-4" /> Add Card
@@ -365,6 +416,138 @@ export function KanbanColumn({
                     </ScrollArea>
                 )}
             </Droppable>
+
+            {/* SPV Task Creation Modal */}
+            {isSpvTeam && (
+                <Dialog open={showTaskModal} onOpenChange={setShowTaskModal}>
+                    <DialogContent className="max-w-md">
+                        <DialogHeader>
+                            <DialogTitle>Tambah Kunjungan Toko</DialogTitle>
+                        </DialogHeader>
+                        <div className="flex flex-col gap-4">
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium">
+                                    Pilih Toko
+                                </label>
+                                <Select
+                                    value={newTaskStoreId}
+                                    onValueChange={setNewTaskStoreId}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Pilih Toko..." />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {myStores.map((store) => (
+                                            <SelectItem
+                                                key={store.id}
+                                                value={store.id.toString()}
+                                            >
+                                                {store.branch_code} -{' '}
+                                                {store.name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium">
+                                    Tanggal Kunjungan
+                                </label>
+                                <Input
+                                    type="date"
+                                    value={newTaskVisitDate}
+                                    onChange={(e) =>
+                                        setNewTaskVisitDate(e.target.value)
+                                    }
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium">
+                                    Lampiran (Opsional)
+                                </label>
+                                <input
+                                    type="file"
+                                    multiple
+                                    className="hidden"
+                                    ref={taskFileInputRef}
+                                    onChange={(e) => {
+                                        if (e.target.files?.length) {
+                                            setNewTaskAttachments([
+                                                ...newTaskAttachments,
+                                                ...Array.from(e.target.files),
+                                            ]);
+                                        }
+                                    }}
+                                />
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() =>
+                                        taskFileInputRef.current?.click()
+                                    }
+                                    className="w-full"
+                                >
+                                    <Plus className="mr-2 h-4 w-4" />
+                                    Tambah Lampiran
+                                </Button>
+
+                                {newTaskAttachments.length > 0 && (
+                                    <div className="mt-2 flex flex-wrap gap-2">
+                                        {newTaskAttachments.map((f, i) => (
+                                            <span
+                                                key={i}
+                                                className="flex items-center gap-1 rounded bg-slate-100 px-2 py-1 text-xs dark:bg-zinc-800"
+                                            >
+                                                {f.name}
+                                                <button
+                                                    onClick={() =>
+                                                        setNewTaskAttachments(
+                                                            newTaskAttachments.filter(
+                                                                (_, idx) =>
+                                                                    idx !== i,
+                                                            ),
+                                                        )
+                                                    }
+                                                    className="ml-1 text-red-500 hover:text-red-700"
+                                                >
+                                                    <X className="h-3 w-3" />
+                                                </button>
+                                            </span>
+                                        ))}
+                                    </div>
+                                )}
+                                <p className="text-xs text-muted-foreground">
+                                    Maks. {maxFileLabel} per file.
+                                </p>
+                            </div>
+
+                            <div className="flex gap-2">
+                                <Button
+                                    onClick={() => setShowTaskModal(false)}
+                                    variant="outline"
+                                    className="flex-1"
+                                    disabled={savingTask}
+                                >
+                                    Batal
+                                </Button>
+                                <Button
+                                    onClick={handleAddTask}
+                                    disabled={
+                                        savingTask ||
+                                        !newTaskStoreId ||
+                                        !newTaskVisitDate
+                                    }
+                                    className="flex-1"
+                                >
+                                    {savingTask ? 'Menyimpan...' : 'Tambah'}
+                                </Button>
+                            </div>
+                        </div>
+                    </DialogContent>
+                </Dialog>
+            )}
         </div>
     );
 }

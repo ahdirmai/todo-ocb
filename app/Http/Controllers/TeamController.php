@@ -78,6 +78,19 @@ class TeamController extends Controller
                     ->toArray() ?? [];
 
                 $extraProps['spvSopSteps'] = $spvSopSteps;
+
+                // Load stores - all for admin/superadmin, user's assigned stores otherwise
+                $storesQuery = Store::orderBy('branch_code')->select(['id', 'branch_code', 'name']);
+
+                if (! $isAdmin) {
+                    $storesQuery->where('spv_id', auth()->id());
+                }
+
+                $extraProps['myStores'] = $storesQuery->get()->map(fn ($store) => [
+                    'id' => $store->id,
+                    'branch_code' => $store->branch_code,
+                    'name' => $store->name,
+                ]);
             }
         }
 

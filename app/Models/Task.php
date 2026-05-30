@@ -20,6 +20,7 @@ class Task extends Model implements HasMedia
     {
         return [
             'due_date' => 'datetime',
+            'visit_date' => 'date',
             'is_kpi_task' => 'boolean',
             'is_verified' => 'boolean',
             'verified_at' => 'datetime',
@@ -39,6 +40,11 @@ class Task extends Model implements HasMedia
     public function kanbanColumn()
     {
         return $this->belongsTo(KanbanColumn::class);
+    }
+
+    public function store()
+    {
+        return $this->belongsTo(Store::class);
     }
 
     public function labels()

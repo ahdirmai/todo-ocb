@@ -16,7 +16,7 @@ class Store extends Model
         'branch_code',
         'name',
         'address',
-        'svp_id',
+        'spv_id',
     ];
 
     public function spv(): BelongsTo

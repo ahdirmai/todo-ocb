@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- **SPV Task Creation with Store Visits**: Custom task creation flow for SPV teams
+  - Modal-based task creation (replaces inline form)
+  - Store selection dropdown (admin sees all 40 stores, SPV sees assigned stores only)
+  - Visit date picker with auto due_date (H+1 from visit date)
+  - Auto-assignment: SPV of selected store automatically added as assignee
+  - Task title auto-generated from store + date (e.g., "OC1 - OSCAR CELL (2026-05-30)")
+  - First column only restriction - tasks can only be created in first kanban column
+  - store_id and visit_date fields added to tasks table
+  - Store relationship added to Task model
+
 - **SVP Store Assignment**: Assign stores to SVP teams for territory management
   - New "Manajemen Toko" tab on is_spv_team teams
   - Assign/unassign stores to SVP teams
@@ -224,6 +234,12 @@ All notable changes to this project will be documented in this file.
     - Report submission timeline tracking
 
 ### Fixed
+- **Store Column Name Typo**: Fixed incorrect column name in stores table
+  - Renamed `svp_id` to `spv_id` (Supervisor, not SVP)
+  - Migration: `rename_svp_id_to_spv_id_in_stores_table`
+  - Updated Store model fillable array
+  - Resolves "Unknown column 'spv_id'" error
+
 - **KPI Admin Access**: Admin/superadmin can access KPI routes without position requirement
   - Uses Spatie `hasAnyRole()` method instead of non-existent role field
   - Admin users access area based on URL path (hr/ or operational/)

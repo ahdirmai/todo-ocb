@@ -48,7 +48,7 @@ export default function TeamShow({
     tab: Tab;
     taskMonth?: string | null;
 }) {
-    const { auth } = usePage<any>().props;
+    const { auth, myStores = [] } = usePage<any>().props;
     const isAdmin = auth?.roles?.some((r: string) =>
         ['superadmin', 'admin'].includes(r),
     );
@@ -150,7 +150,12 @@ export default function TeamShow({
                             value="task"
                             className="m-0 flex h-full flex-col overflow-hidden p-0"
                         >
-                            <TugasTab team={team} taskMonth={taskMonth ?? null} />
+                            <TugasTab
+                                team={team}
+                                taskMonth={taskMonth ?? null}
+                                isSpvTeam={team.is_spv_team}
+                                myStores={myStores}
+                            />
                         </TabsContent>
                         <TabsContent
                             value="chat"

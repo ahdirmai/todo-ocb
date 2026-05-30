@@ -11,7 +11,15 @@ import { Input } from '@/components/ui/input';
 import { KanbanColumn } from './kanban-column';
 import { TaskDetailModal } from './task-detail-modal';
 
-export function KanbanBoard({ kanban }: { kanban: any }) {
+export function KanbanBoard({
+    kanban,
+    isSpvTeam = false,
+    myStores = [],
+}: {
+    kanban: any;
+    isSpvTeam?: boolean;
+    myStores?: Array<{ id: number; branch_code: string; name: string }>;
+}) {
     const [optimisticColumns, setOptimisticColumns] = useState<any[] | null>(
         null,
     );
@@ -270,6 +278,9 @@ export function KanbanBoard({ kanban }: { kanban: any }) {
                             onCardClick={handleCardClick}
                             onMoveTask={moveTaskToColumn}
                             onTaskCreated={handleTaskCreated}
+                            isSpvTeam={isSpvTeam}
+                            myStores={myStores}
+                            columnIndex={idx}
                         />
                     ))}
 
