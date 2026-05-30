@@ -66,7 +66,7 @@ export default function OperationalKpiReports({ reports }: Props) {
             {reports.data.length > 0 ? (
               <div className="space-y-3">
                 {reports.data.map((report) => (
-                  <div key={report.id} className="flex items-start justify-between py-4 border-b last:border-0">
+                  <div key={report.id} className="flex flex-col md:flex-row items-start md:items-center gap-3 py-4 border-b last:border-0">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
                         <p className="font-semibold">
@@ -92,7 +92,7 @@ export default function OperationalKpiReports({ reports }: Props) {
                           Lihat Detail
                         </Button>
                       </DialogTrigger>
-                      <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+                      <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto mx-4">
                         <DialogHeader>
                           <DialogTitle>
                             Laporan {new Date(report.report_date).toLocaleDateString('id-ID', { dateStyle: 'long' })}

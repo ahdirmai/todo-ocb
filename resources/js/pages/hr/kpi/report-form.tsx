@@ -146,7 +146,7 @@ export default function HrKpiReportForm({ template, existingReport }: Props) {
             <CardTitle>Ringkasan Kinerja Hari Ini</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div>
                 <p className="text-sm text-muted-foreground">Total Task</p>
                 <p className="text-2xl font-bold">{template.total_tasks}</p>
@@ -175,7 +175,7 @@ export default function HrKpiReportForm({ template, existingReport }: Props) {
               <CardTitle>1. ABSENSI HARI INI (210 karyawan)</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="hadir_tepat_waktu">Hadir Tepat Waktu <span className="text-red-500">*</span></Label>
                   <Input
@@ -234,7 +234,7 @@ export default function HrKpiReportForm({ template, existingReport }: Props) {
               <CardTitle>2. DISIPLIN</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="sp1">SP1 Baru <span className="text-red-500">*</span></Label>
                   <Input
@@ -351,7 +351,7 @@ export default function HrKpiReportForm({ template, existingReport }: Props) {
               <CardTitle>5. TRAINING</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="instore_selesai">In-Store Training Selesai <span className="text-red-500">*</span></Label>
                   <Input
@@ -386,7 +386,7 @@ export default function HrKpiReportForm({ template, existingReport }: Props) {
               <CardTitle>6. RECRUITMENT</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="pool_pengganti">Pool Pengganti Urgent Tersedia <span className="text-red-500">*</span></Label>
                   <Input
@@ -472,11 +472,11 @@ export default function HrKpiReportForm({ template, existingReport }: Props) {
           </Card>
 
           {/* Submit */}
-          <div className="flex justify-end gap-3">
-            <Button type="button" variant="outline" onClick={() => window.history.back()}>
+          <div className="flex flex-col sm:flex-row justify-end gap-3">
+            <Button type="button" variant="outline" onClick={() => window.history.back()} className="w-full sm:w-auto">
               Batal
             </Button>
-            <Button type="submit" disabled={processing}>
+            <Button type="submit" disabled={processing} className="w-full sm:w-auto">
               <Send className="mr-2 h-4 w-4" />
               {processing ? 'Mengirim...' : 'Kirim Laporan'}
             </Button>

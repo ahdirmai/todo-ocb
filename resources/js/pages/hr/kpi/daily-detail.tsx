@@ -46,7 +46,7 @@ export default function HrKpiDailyDetail({ score, date }: Props) {
               Kembali
             </Button>
           </Link>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
               <h1 className="text-2xl font-bold">Skor Harian</h1>
               <p className="text-muted-foreground">{new Date(date).toLocaleDateString('id-ID', { dateStyle: 'long' })}</p>

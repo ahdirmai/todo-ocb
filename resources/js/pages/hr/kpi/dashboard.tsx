@@ -135,23 +135,24 @@ export default function HrKpiDashboard({
 
       <div className="space-y-6">
         {/* Header with Date Navigation */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold">KPI Dashboard</h1>
             <p className="text-muted-foreground">Manager HR - Evaluasi Kinerja Harian</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             {!hasTasksForDate && canGenerateForDate && (
               <Button
                 variant="outline"
                 onClick={handleGenerateTasks}
+                className="w-full sm:w-auto"
               >
                 <Plus className="mr-2 h-4 w-4" />
                 Generate Task
               </Button>
             )}
             <Link href="/hr/kpi/report/create">
-              <Button>
+              <Button className="w-full sm:w-auto">
                 <FileText className="mr-2 h-4 w-4" />
                 Kirim Laporan CEO
               </Button>
@@ -169,7 +170,7 @@ export default function HrKpiDashboard({
                 onClick={() => navigateDate(-1)}
               >
                 <ChevronLeft className="h-4 w-4" />
-                Hari Sebelumnya
+                <span className="hidden sm:inline">Hari </span>Sebelumnya
               </Button>
 
               <div className="text-center">
@@ -187,7 +188,7 @@ export default function HrKpiDashboard({
                 onClick={() => navigateDate(1)}
                 disabled={isToday}
               >
-                Hari Berikutnya
+                Berikutnya<span className="hidden sm:inline"> Hari</span>
                 <ChevronRight className="h-4 w-4" />
               </Button>
             </div>
@@ -195,7 +196,7 @@ export default function HrKpiDashboard({
         </Card>
 
         {/* Score Overview */}
-        <div className="grid gap-6 md:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 md:gap-6 md:grid-cols-3">
           {dateScore ? (
             <ScoreCard
               title={isToday ? 'Skor Hari Ini' : 'Skor Tanggal Ini'}
@@ -260,7 +261,7 @@ export default function HrKpiDashboard({
               <CardTitle>Progress per Kategori</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              <div className="grid grid-cols-1 gap-3 md:gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {Object.entries(categoryBreakdown).map(([category, data]) => (
                   <div key={category} className="space-y-2">
                     <div className="flex items-center justify-between">

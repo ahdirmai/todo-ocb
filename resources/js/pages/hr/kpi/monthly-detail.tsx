@@ -46,7 +46,7 @@ export default function HrKpiMonthlyDetail({ score, month }: Props) {
               Kembali
             </Button>
           </Link>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
               <h1 className="text-2xl font-bold">Skor Bulanan</h1>
               <p className="text-muted-foreground">

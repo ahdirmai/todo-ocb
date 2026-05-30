@@ -109,7 +109,7 @@ export function KpiTaskModal({ task, area, onClose }: KpiTaskModalProps) {
 
   return (
     <Dialog open={!!task} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto mx-4">
         <DialogHeader>
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1">

@@ -29,7 +29,7 @@ export function ScoreCard({ title, score, grade, description, showProgress = tru
       <CardContent>
         <div className="space-y-3">
           <div className="flex items-baseline gap-2">
-            <span className="text-4xl font-bold">{score.toFixed(2)}%</span>
+            <span className="text-2xl md:text-4xl font-bold">{score.toFixed(2)}%</span>
           </div>
           {showProgress && (
             <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
