@@ -18,6 +18,11 @@ All notable changes to this project will be documented in this file.
   - Short date formats on mobile (weekday: 'short' instead of 'long')
   - Abbreviated week labels (M1, M2 vs Minggu 1, 2)
   - Responsive file name truncation (100px mobile, 150px desktop)
+  - Icon-only navigation buttons on mobile with hidden md:inline text
+    - Applied shrink-0 to prevent button compression
+    - Added aria-labels for accessibility
+    - Text appears on md+ breakpoints only
+    - Center content uses flex-1 min-w-0 for proper truncation
   - Applied across all 13 KPI page files
 
 - **KPI Dashboard Date Navigation**: Navigate to previous/future dates with task generation

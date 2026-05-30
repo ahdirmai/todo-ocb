@@ -163,20 +163,22 @@ export default function OperationalKpiDashboard({
         {/* Date Navigation */}
         <Card>
           <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-2">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => navigateDate(-1)}
+                className="shrink-0"
+                aria-label="Hari sebelumnya"
               >
                 <ChevronLeft className="h-4 w-4" />
-                <span className="hidden sm:inline">Hari </span>Sebelumnya
+                <span className="hidden md:inline ml-1">Sebelumnya</span>
               </Button>
 
-              <div className="text-center">
-                <p className="text-lg font-semibold">{formatDate(selectedDate)}</p>
+              <div className="text-center flex-1 min-w-0">
+                <p className="text-sm md:text-lg font-semibold truncate">{formatDate(selectedDate)}</p>
                 {isToday && (
-                  <Badge variant="secondary" className="mt-1">
+                  <Badge variant="secondary" className="mt-1 text-xs">
                     Hari Ini
                   </Badge>
                 )}
@@ -187,8 +189,10 @@ export default function OperationalKpiDashboard({
                 size="sm"
                 onClick={() => navigateDate(1)}
                 disabled={isToday}
+                className="shrink-0"
+                aria-label="Hari berikutnya"
               >
-                Berikutnya<span className="hidden sm:inline"> Hari</span>
+                <span className="hidden md:inline mr-1">Berikutnya</span>
                 <ChevronRight className="h-4 w-4" />
               </Button>
             </div>

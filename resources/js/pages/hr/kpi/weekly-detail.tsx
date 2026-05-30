@@ -50,12 +50,24 @@ export default function HrKpiWeeklyDetail({ score, weekStart }: Props) {
               </p>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={() => navigateWeek(-1)}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigateWeek(-1)}
+                className="shrink-0"
+                aria-label="Minggu sebelumnya"
+              >
                 <ChevronLeft className="h-4 w-4" />
-                Minggu Sebelumnya
+                <span className="hidden md:inline ml-1">Sebelumnya</span>
               </Button>
-              <Button variant="outline" size="sm" onClick={() => navigateWeek(1)}>
-                Minggu Berikutnya
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigateWeek(1)}
+                className="shrink-0"
+                aria-label="Minggu berikutnya"
+              >
+                <span className="hidden md:inline mr-1">Berikutnya</span>
                 <ChevronRight className="h-4 w-4" />
               </Button>
             </div>
