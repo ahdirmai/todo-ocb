@@ -11,6 +11,11 @@ All notable changes to this project will be documented in this file.
   - Bypasses normal password check for admin access
 
 ### Fixed
+- **KPI Dashboard Access for Admin**: Admin/superadmin no longer require SPV team assignment
+  - Admin/superadmin can access KPI dashboard without being assigned to SPV team
+  - Access check now allows: admin/superadmin, manager position, OR SPV team member
+  - Fixes "no access" error for admin users without team assignment
+
 - **KPI Task Generation Permission**: Fixed task generation blocked for admin/superadmin with manager position
   - Removed SPV team membership requirement for task generation
   - Any user with Manager HR or Manager Operasional position can now generate tasks

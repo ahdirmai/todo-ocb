@@ -73,13 +73,14 @@ class KpiDashboardController extends Controller
 
         $positionName = $user->jobPosition?->name;
         $isManager = in_array($positionName, ['Manager HR', 'Manager Operasional']);
+        $isAdmin = $user->hasAnyRole(['admin', 'superadmin']);
 
         // Determine if user is viewing as SPV or Manager
         $team = $user->teams()->where('is_spv_team', true)->first();
         $isSpv = (bool) $team;
 
-        // Managers can view all SPV tasks; SPVs see only their own
-        if (! $isManager && ! $isSpv) {
+        // Admin/superadmin, managers, or SPV team members can access
+        if (! $isAdmin && ! $isManager && ! $isSpv) {
             $area = $this->getPositionArea();
 
             return Inertia::render("{$area}/kpi/no-access", [
