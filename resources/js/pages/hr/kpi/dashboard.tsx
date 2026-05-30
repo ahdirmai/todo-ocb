@@ -1,5 +1,5 @@
 import KpiLayout from '@/layouts/kpi-layout';
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScoreCard } from '@/components/kpi/score-card';
 import { GradeBadge } from '@/components/kpi/grade-badge';
@@ -130,6 +130,13 @@ export default function HrKpiDashboard({
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [selectedKanbanTaskId, setSelectedKanbanTaskId] = useState<string | null>(null);
   const [kanbanModalOpen, setKanbanModalOpen] = useState(false);
+
+  const { auth } = usePage().props as any;
+  const isAdminRole = auth.roles?.includes('admin') || auth.roles?.includes('superadmin');
+  const isManagerPosition = auth.user?.jobPosition?.name === 'Manager HR' || auth.user?.jobPosition?.name === 'Manager Operasional';
+
+  // Admin with manager position can edit, admin without manager position is read-only
+  const isAdminUser = isAdminRole && !isManagerPosition;
 
   const groupedTasks = dateTasks.reduce(
     (acc, task) => {
@@ -500,7 +507,7 @@ export default function HrKpiDashboard({
         task={selectedTask}
         area="hr"
         onClose={() => setSelectedTask(null)}
-        readOnly={isManager}
+        readOnly={isAdminUser}
       />
 
       <TaskDetailModal

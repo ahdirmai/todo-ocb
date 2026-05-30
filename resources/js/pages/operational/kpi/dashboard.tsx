@@ -1,5 +1,5 @@
 import KpiLayout from '@/layouts/kpi-layout';
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScoreCard } from '@/components/kpi/score-card';
 import { GradeBadge } from '@/components/kpi/grade-badge';
@@ -130,6 +130,9 @@ export default function OperationalKpiDashboard({
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [selectedKanbanTaskId, setSelectedKanbanTaskId] = useState<string | null>(null);
   const [kanbanModalOpen, setKanbanModalOpen] = useState(false);
+
+  const { auth } = usePage().props as any;
+  const isAdminUser = auth.roles?.includes('admin') || auth.roles?.includes('superadmin');
 
   const groupedTasks = dateTasks.reduce(
     (acc, task) => {
@@ -500,7 +503,7 @@ export default function OperationalKpiDashboard({
         task={selectedTask}
         area="operational"
         onClose={() => setSelectedTask(null)}
-        readOnly={isManager}
+        readOnly={isAdminUser}
       />
 
       <TaskDetailModal

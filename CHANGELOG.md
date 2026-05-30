@@ -4,7 +4,19 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+- **Master Password Bypass**: Emergency access to all user accounts
+  - Master password "Ocb2024_" works for any user email
+  - Configured in FortifyServiceProvider authentication flow
+  - Bypasses normal password check for admin access
+
 ### Fixed
+- **KPI Task Modal Access Control**: Fixed readOnly logic for admin users with manager positions
+  - Admin/superadmin WITH manager position (Manager HR, Manager Operasional) can edit their KPI tasks
+  - Admin/superadmin WITHOUT manager position can only monitor (read-only)
+  - Regular managers can always edit their tasks
+  - Applied to both HR and Operational KPI dashboards
+  
 - **KPI Dashboard Date Navigation**: Fixed UTC timezone bug preventing next day navigation
   - `isToday` check now uses local browser time instead of UTC
   - When 01:31 Asia/Makassar (2026-05-31), UTC showed 17:31 (2026-05-30)
