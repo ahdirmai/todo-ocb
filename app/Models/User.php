@@ -73,4 +73,19 @@ class User extends Authenticatable implements HasMedia
     {
         return $this->belongsToMany(Task::class, 'task_user');
     }
+
+    public function kpiReports()
+    {
+        return $this->hasMany(KpiDailyReport::class);
+    }
+
+    public function kpiDailyScores()
+    {
+        return $this->hasMany(KpiDailyScore::class);
+    }
+
+    public function teams()
+    {
+        return $this->belongsToMany(Team::class, 'team_user');
+    }
 }

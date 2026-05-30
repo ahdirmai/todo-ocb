@@ -50,6 +50,58 @@ All notable changes to this project will be documented in this file.
   - New migration: `add_document_sop_step_id_to_comments`
   - Relationship: `Comment::sopStep()` belongs to `DocumentSopStep`
 
+- **KPI Evaluation System (Backend)**: Position-based KPI tracking for Manager Operasional and Manager HR
+  - **Database Layer:**
+    - New migration: `create_kpi_task_definitions_table` - Position-specific task templates with weights
+    - New migration: `create_kpi_daily_scores_table` - Daily score calculations with grades
+    - New migration: `create_kpi_weekly_scores_table` - Weekly aggregates (7-day average)
+    - New migration: `create_kpi_monthly_scores_table` - Monthly scores with consistency bonus
+    - New migration: `create_kpi_daily_reports_table` - CEO daily report tracking
+    - New migration: `add_kpi_fields_to_tasks_table` - Extended tasks table with KPI support
+  - **Models:**
+    - `KpiTaskDefinition` - Template model with category, weight, verification requirements
+    - `KpiDailyScore` - Daily scoring results with grade and category breakdown
+    - `KpiWeeklyScore` - Weekly aggregates (Mon-Sun average)
+    - `KpiMonthlyScore` - Monthly scores with 5-point consistency bonus (no grade D)
+    - `KpiDailyReport` - CEO report submissions with late flag (deadline 22:30 WITA)
+    - Extended `Task` model with `is_kpi_task`, `is_verified`, `kpi_task_definition_id`
+    - Extended `User` model with `kpiReports()` and `kpiDailyScores()` relationships
+  - **Services:**
+    - `KpiScoringService` - Calculate daily/weekly/monthly scores, determine grades (A+/A/B/C/D), verify evidence
+    - `KpiTaskGenerationService` - Generate daily tasks from templates for SPV team members
+    - `KpiReportingService` - CEO daily report management, deadline validation
+    - `KpiNotificationService` - Reminders and alerts (stub implementation)
+  - **Controllers:**
+    - `KpiDashboardController` - User dashboard with today's tasks, scores, trends
+    - `KpiReportController` - Daily CEO report submission form
+    - `KpiAdminController` - Task definition CRUD, view all scores
+    - `KpiCeoController` - Overview dashboard, reports inbox, critical alerts
+  - **Scheduled Commands (WITA timezone):**
+    - `app:kpi-generate-daily-tasks` - Daily at 00:01 WITA
+    - `app:kpi-calculate-daily-scores` - Daily at 23:00 WITA
+    - `app:kpi-send-report-reminder` - Daily at 21:00 WITA
+    - `app:kpi-calculate-weekly-scores` - Weekly Monday 01:00 WITA
+    - `app:kpi-calculate-monthly-scores` - Monthly 1st 02:00 WITA
+  - **Data Seeding:**
+    - `KpiTaskDefinitionSeeder` - 50 task definitions from PDF requirements
+    - Manager Operasional: 34 tasks across 20 categories (Audit 15%, Absensi 12%, etc.)
+    - Manager HR: 16 tasks across 12 categories (Compliance 24%, Training 12%, etc.)
+  - **Grading System:**
+    - A+ (95-100%): Excellent - Reward + promotion consideration
+    - A (85-94%): On Target - Continue monitoring
+    - B (70-84%): Needs Improvement - Weekly CEO coaching
+    - C (50-69%): Warning - SP1 + 30-day improvement plan
+    - D (<50%): Critical - SP2/SP3 + position evaluation
+  - **Evidence Verification:**
+    - Tasks require comment + attachment for verification
+    - Auto-verification via `KpiScoringService::verifyTaskEvidence()`
+    - Tasks marked with `is_verified` flag and `verified_at` timestamp
+  - **Routes:**
+    - User routes: `/kpi/dashboard`, `/kpi/daily`, `/kpi/weekly`, `/kpi/monthly`, `/kpi/report/*`
+    - Admin routes: `/kpi/admin/definitions`, `/kpi/admin/scores`
+    - CEO routes (superadmin only): `/kpi/ceo/dashboard`, `/kpi/ceo/daily-reports`, `/kpi/ceo/alerts`
+  - **Note:** Frontend implementation pending - backend API complete and ready
+
 ### Fixed
 - **TaskColumnScoringService**: Corrected auto-scoring logic for last step
   - Changed condition from `>=` to `>` to only award max score when task has PASSED the last step, not when currently AT it

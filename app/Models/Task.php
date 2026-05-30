@@ -20,6 +20,9 @@ class Task extends Model implements HasMedia
     {
         return [
             'due_date' => 'datetime',
+            'is_kpi_task' => 'boolean',
+            'is_verified' => 'boolean',
+            'verified_at' => 'datetime',
         ];
     }
 
@@ -56,5 +59,10 @@ class Task extends Model implements HasMedia
     public function assignees()
     {
         return $this->belongsToMany(User::class, 'task_user');
+    }
+
+    public function kpiDefinition()
+    {
+        return $this->belongsTo(KpiTaskDefinition::class, 'kpi_task_definition_id');
     }
 }

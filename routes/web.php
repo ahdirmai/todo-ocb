@@ -8,6 +8,10 @@ use App\Http\Controllers\DocumentCommentController;
 use App\Http\Controllers\HrController;
 use App\Http\Controllers\KanbanBoardController;
 use App\Http\Controllers\KanbanColumnController;
+use App\Http\Controllers\KpiAdminController;
+use App\Http\Controllers\KpiCeoController;
+use App\Http\Controllers\KpiDashboardController;
+use App\Http\Controllers\KpiReportController;
 use App\Http\Controllers\MemberController;
 use App\Http\Controllers\NightwatchController;
 use App\Http\Controllers\OperationalController;
@@ -143,6 +147,35 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::delete('teams/{team}', [TeamController::class, 'destroy'])->name('teams.destroy');
         // Activity Logs — admin & superadmin only
         Route::get('activity', [ActivityLogController::class, 'index'])->name('activity.index');
+
+        // KPI Admin Routes — admin & superadmin only
+        Route::prefix('kpi/admin')->group(function () {
+            Route::get('definitions', [KpiAdminController::class, 'definitions'])->name('kpi.admin.definitions');
+            Route::post('definitions', [KpiAdminController::class, 'storeDefinition'])->name('kpi.admin.definitions.store');
+            Route::put('definitions/{definition}', [KpiAdminController::class, 'updateDefinition'])->name('kpi.admin.definitions.update');
+            Route::delete('definitions/{definition}', [KpiAdminController::class, 'destroyDefinition'])->name('kpi.admin.definitions.destroy');
+            Route::get('scores', [KpiAdminController::class, 'scores'])->name('kpi.admin.scores');
+        });
+
+        // KPI CEO Routes — superadmin only
+        Route::prefix('kpi/ceo')->middleware('role:superadmin')->group(function () {
+            Route::get('dashboard', [KpiCeoController::class, 'index'])->name('kpi.ceo.dashboard');
+            Route::get('daily-reports', [KpiCeoController::class, 'dailyReports'])->name('kpi.ceo.reports');
+            Route::get('alerts', [KpiCeoController::class, 'alerts'])->name('kpi.ceo.alerts');
+        });
+    });
+
+    // KPI User Routes — for Manager positions
+    Route::prefix('kpi')->middleware('auth')->group(function () {
+        Route::get('dashboard', [KpiDashboardController::class, 'index'])->name('kpi.dashboard');
+        Route::get('daily/{date?}', [KpiDashboardController::class, 'daily'])->name('kpi.daily');
+        Route::get('weekly/{weekStart?}', [KpiDashboardController::class, 'weekly'])->name('kpi.weekly');
+        Route::get('monthly/{month?}', [KpiDashboardController::class, 'monthly'])->name('kpi.monthly');
+        Route::post('tasks/{task}/verify', [KpiDashboardController::class, 'verifyTask'])->name('kpi.tasks.verify');
+
+        Route::get('report/create', [KpiReportController::class, 'create'])->name('kpi.report.create');
+        Route::post('report/submit', [KpiReportController::class, 'submit'])->name('kpi.report.submit');
+        Route::get('reports', [KpiReportController::class, 'index'])->name('kpi.reports');
     });
 
     // Position-Based Access Routes
