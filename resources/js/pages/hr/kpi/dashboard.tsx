@@ -153,12 +153,14 @@ export default function HrKpiDashboard({
                 Generate Task
               </Button>
             )}
-            <Link href="/hr/kpi/report/create">
-              <Button className="w-full sm:w-auto">
-                <FileText className="mr-2 h-4 w-4" />
-                Kirim Laporan CEO
-              </Button>
-            </Link>
+            {canGenerateTasks && (
+              <Link href="/hr/kpi/report/create">
+                <Button className="w-full sm:w-auto">
+                  <FileText className="mr-2 h-4 w-4" />
+                  Kirim Laporan CEO
+                </Button>
+              </Link>
+            )}
           </div>
         </div>
 

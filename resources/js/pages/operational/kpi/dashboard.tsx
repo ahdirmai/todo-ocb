@@ -153,12 +153,14 @@ export default function OperationalKpiDashboard({
                 Generate Task
               </Button>
             )}
-            <Link href="/operational/kpi/report/create">
-              <Button className="w-full sm:w-auto">
-                <FileText className="mr-2 h-4 w-4" />
-                Kirim Laporan CEO
-              </Button>
-            </Link>
+            {canGenerateTasks && (
+              <Link href="/operational/kpi/report/create">
+                <Button className="w-full sm:w-auto">
+                  <FileText className="mr-2 h-4 w-4" />
+                  Kirim Laporan CEO
+                </Button>
+              </Link>
+            )}
           </div>
         </div>
 
