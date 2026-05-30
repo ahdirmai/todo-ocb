@@ -11,10 +11,14 @@ interface KpiLayoutProps {
 }
 
 export default function KpiLayout({ children, area }: KpiLayoutProps) {
-  const { url } = usePage();
+  const { url, props } = usePage();
   const kpiUrl = `/${area}/kpi`;
 
-  const tabs = [
+  // @ts-ignore - user exists in shared props
+  const userPosition = props.auth?.user?.jobPosition?.name;
+  const isManager = ['Manager HR', 'Manager Operasional'].includes(userPosition);
+
+  const allTabs = [
     {
       label: 'Dashboard',
       icon: BarChart3,
@@ -44,6 +48,7 @@ export default function KpiLayout({ children, area }: KpiLayoutProps) {
       icon: FileText,
       href: `${kpiUrl}/report/create`,
       active: url.startsWith(`${kpiUrl}/report/create`),
+      onlyForManagers: true,
     },
     {
       label: 'Riwayat',
@@ -52,6 +57,9 @@ export default function KpiLayout({ children, area }: KpiLayoutProps) {
       active: url === `${kpiUrl}/reports`,
     },
   ];
+
+  // Filter tabs - hide "Laporan CEO" for non-managers
+  const tabs = allTabs.filter(tab => !tab.onlyForManagers || isManager);
 
   return (
     <AppShell variant="sidebar">

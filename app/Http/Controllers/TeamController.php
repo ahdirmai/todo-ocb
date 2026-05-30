@@ -62,6 +62,30 @@ class TeamController extends Controller
                 'kanbans.columns.tasks.assignees',
             ]);
 
+            // Transform tasks to format visit_date and due_date as Y-m-d strings to avoid timezone issues
+            if ($team->is_spv_team) {
+                $team->kanbans->transform(function ($kanban) {
+                    $kanban->columns->transform(function ($column) {
+                        $column->setRelation('tasks', $column->tasks->map(function ($task) {
+                            $taskArray = $task->toArray();
+                            if ($task->visit_date) {
+                                $taskArray['visit_date'] = $task->getRawOriginal('visit_date');
+                            }
+                            if ($task->due_date) {
+                                $rawDueDate = $task->getRawOriginal('due_date');
+                                $taskArray['due_date'] = is_string($rawDueDate) ? substr($rawDueDate, 0, 10) : $rawDueDate;
+                            }
+
+                            return (object) $taskArray;
+                        }));
+
+                        return $column;
+                    });
+
+                    return $kanban;
+                });
+            }
+
             if ($team->is_spv_team) {
                 $spvSopSteps = $team->documents()
                     ->where('is_sop', true)

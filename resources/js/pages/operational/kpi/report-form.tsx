@@ -137,6 +137,7 @@ export default function HrKpiReportForm({ template, existingReport, canSubmit }:
                   placeholder={`Contoh: Hari ini ${template.verified_tasks} dari ${template.total_tasks} task terverifikasi dengan total bobot ${template.total_score.toFixed(2)}%. Grade: ${template.grade}.`}
                   rows={3}
                   className={errors.status_34_tasks ? 'border-red-500' : ''}
+                  disabled={!canSubmit}
                 />
                 {errors.status_34_tasks && (
                   <p className="text-sm text-red-500">{errors.status_34_tasks}</p>
@@ -152,6 +153,7 @@ export default function HrKpiReportForm({ template, existingReport, canSubmit }:
                   onChange={(e) => setData('spv_status', e.target.value)}
                   placeholder="Jumlah SPV, SPV yang tuntas 100%, SPV di bawah 85%, dll."
                   rows={3}
+                  disabled={!canSubmit}
                 />
               </div>
 
@@ -164,6 +166,7 @@ export default function HrKpiReportForm({ template, existingReport, canSubmit }:
                   onChange={(e) => setData('issues_today', e.target.value)}
                   placeholder="Kendala atau masalah yang dihadapi hari ini"
                   rows={3}
+                  disabled={!canSubmit}
                 />
               </div>
 
@@ -176,6 +179,7 @@ export default function HrKpiReportForm({ template, existingReport, canSubmit }:
                   onChange={(e) => setData('follow_up', e.target.value)}
                   placeholder="Tindakan yang akan dilakukan untuk mengatasi masalah"
                   rows={3}
+                  disabled={!canSubmit}
                 />
               </div>
 
@@ -188,6 +192,7 @@ export default function HrKpiReportForm({ template, existingReport, canSubmit }:
                   onChange={(e) => setData('action_plan', e.target.value)}
                   placeholder="Target dan rencana untuk esok hari"
                   rows={3}
+                  disabled={!canSubmit}
                 />
               </div>
 
@@ -200,6 +205,7 @@ export default function HrKpiReportForm({ template, existingReport, canSubmit }:
                   accept=".jpg,.jpeg,.png,.pdf"
                   multiple
                   onChange={handleFileChange}
+                  disabled={!canSubmit}
                 />
                 <p className="text-xs text-muted-foreground">JPG, PNG, PDF - Max 5MB per file</p>
               </div>
@@ -218,6 +224,7 @@ export default function HrKpiReportForm({ template, existingReport, canSubmit }:
                         variant="ghost"
                         size="sm"
                         onClick={() => removeFile(index)}
+                        disabled={!canSubmit}
                       >
                         <X className="h-4 w-4" />
                       </Button>

@@ -67,6 +67,10 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $user ? array_merge($user->toArray(), [
                     'avatar_url' => $user->avatar_url,
+                    'jobPosition' => $user->jobPosition ? [
+                        'id' => $user->jobPosition->id,
+                        'name' => $user->jobPosition->name,
+                    ] : null,
                 ]) : null,
                 'roles' => $user ? $user->getRoleNames() : [],
                 'permissions' => $user ? $user->getAllPermissions()->pluck('name') : [],

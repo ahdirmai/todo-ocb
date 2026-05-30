@@ -38,6 +38,19 @@ class TaskController extends Controller
         $attachments = $request->file('attachments');
         unset($validated['attachments']);
 
+        // Validate: one store can only be visited once per day
+        if (isset($validated['store_id']) && isset($validated['visit_date'])) {
+            $existingTask = Task::where('store_id', $validated['store_id'])
+                ->whereDate('visit_date', $validated['visit_date'])
+                ->exists();
+
+            if ($existingTask) {
+                return back()->withErrors([
+                    'store_id' => 'Toko ini sudah memiliki kunjungan pada tanggal tersebut.',
+                ]);
+            }
+        }
+
         // Auto-set due_date to visit_date + 1 day if visit_date is provided
         if (isset($validated['visit_date']) && ! isset($validated['due_date'])) {
             $validated['due_date'] = Carbon::parse($validated['visit_date'])->addDay();

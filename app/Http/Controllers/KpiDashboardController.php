@@ -71,13 +71,19 @@ class KpiDashboardController extends Controller
             ? Carbon::parse($request->input('date'))->toDateString()
             : now()->toDateString();
 
-        $team = $user->teams()->where('is_spv_team', true)->first();
+        $positionName = $user->jobPosition?->name;
+        $isManager = in_array($positionName, ['Manager HR', 'Manager Operasional']);
 
-        if (! $team) {
+        // Determine if user is viewing as SPV or Manager
+        $team = $user->teams()->where('is_spv_team', true)->first();
+        $isSpv = (bool) $team;
+
+        // Managers can view all SPV tasks; SPVs see only their own
+        if (! $isManager && ! $isSpv) {
             $area = $this->getPositionArea();
 
             return Inertia::render("{$area}/kpi/no-access", [
-                'message' => 'Anda tidak terdaftar dalam tim SPV',
+                'message' => 'Anda tidak memiliki akses ke KPI Dashboard',
             ]);
         }
 
@@ -97,42 +103,130 @@ class KpiDashboardController extends Controller
             'category_breakdown' => $dailyScore->category_breakdown,
         ] : null;
 
-        $dateTasks = Task::where('is_kpi_task', true)
-            ->where('team_id', $team->id)
-            ->where('creator_id', $user->id)
-            ->whereDate('created_at', $selectedDate)
-            ->with(['kpiDefinition', 'comments.user', 'comments.media'])
-            ->orderBy('order_position')
-            ->get()
-            ->map(function ($task) {
-                return [
-                    'id' => $task->id,
-                    'title' => $task->title,
-                    'category' => $task->kpiDefinition?->category,
-                    'task_name' => $task->kpiDefinition?->task_name,
-                    'weight' => $task->kpiDefinition?->weight,
-                    'description' => $task->description,
-                    'is_done' => $task->is_verified,
-                    'is_verified' => $task->is_verified,
-                    'comment_count' => $task->comments->count(),
-                    'has_media' => $task->comments->some(fn ($c) => $c->hasMedia()),
-                    'comments' => $task->comments->map(fn ($comment) => [
-                        'id' => $comment->id,
-                        'content' => $comment->content,
-                        'created_at' => $comment->created_at->toDateTimeString(),
-                        'user' => [
-                            'name' => $comment->user->name,
-                            'email' => $comment->user->email,
-                        ],
-                        'media' => $comment->getMedia('documents')->map(fn ($media) => [
-                            'id' => $media->id,
-                            'name' => $media->file_name,
-                            'url' => $media->getUrl(),
-                            'mime_type' => $media->mime_type,
-                        ]),
+        // Manager's own KPI tasks
+        if ($isManager) {
+            $dateTasks = Task::where('is_kpi_task', true)
+                ->where('creator_id', $user->id)
+                ->whereDate('created_at', $selectedDate)
+                ->with(['kpiDefinition', 'comments.user', 'comments.media', 'creator:id,name,email', 'team:id,name'])
+                ->orderBy('order_position')
+                ->get();
+        } else {
+            $dateTasks = Task::where('is_kpi_task', true)
+                ->where('team_id', $team->id)
+                ->where('creator_id', $user->id)
+                ->whereDate('created_at', $selectedDate)
+                ->with(['kpiDefinition', 'comments.user', 'comments.media', 'creator:id,name,email', 'team:id,name'])
+                ->orderBy('order_position')
+                ->get();
+        }
+
+        $dateTasks = $dateTasks->map(function ($task) {
+            return [
+                'id' => $task->id,
+                'title' => $task->title,
+                'category' => $task->kpiDefinition?->category,
+                'task_name' => $task->kpiDefinition?->task_name ?? $task->title,
+                'weight' => $task->kpiDefinition?->weight,
+                'description' => $task->description,
+                'is_done' => $task->is_verified,
+                'is_verified' => $task->is_verified,
+                'is_kpi_task' => $task->is_kpi_task,
+                'comment_count' => $task->comments->count(),
+                'has_media' => $task->comments->some(fn ($c) => $c->hasMedia()),
+                'creator' => [
+                    'name' => $task->creator?->name,
+                    'email' => $task->creator?->email,
+                ],
+                'team' => [
+                    'name' => $task->team?->name,
+                ],
+                'comments' => $task->comments->map(fn ($comment) => [
+                    'id' => $comment->id,
+                    'content' => $comment->content,
+                    'created_at' => $comment->created_at->toDateTimeString(),
+                    'user' => [
+                        'name' => $comment->user->name,
+                        'email' => $comment->user->email,
+                    ],
+                    'media' => $comment->getMedia('documents')->map(fn ($media) => [
+                        'id' => $media->id,
+                        'name' => $media->file_name,
+                        'url' => $media->getUrl(),
+                        'mime_type' => $media->mime_type,
                     ]),
-                ];
-            });
+                ]),
+            ];
+        });
+
+        // SPV team kanban tasks (managers only)
+        $spvKanbanTasks = collect();
+        if ($isManager) {
+            $spvKanbanTasks = Task::join('teams', 'tasks.team_id', '=', 'teams.id')
+                ->where('teams.is_spv_team', true)
+                ->whereDate('tasks.visit_date', $selectedDate)
+                ->select('tasks.*')
+                ->with(['kpiDefinition', 'comments.user', 'comments.media', 'creator:id,name,email', 'team:id,name', 'assignees:id,name,email', 'tags:id,name,color'])
+                ->orderBy('order_position')
+                ->get()
+                ->map(function ($task) {
+                    $rawDueDate = $task->getRawOriginal('due_date');
+
+                    return [
+                        'id' => $task->id,
+                        'title' => $task->title,
+                        'category' => $task->kpiDefinition?->category,
+                        'task_name' => $task->kpiDefinition?->task_name ?? $task->title,
+                        'weight' => $task->kpiDefinition?->weight,
+                        'description' => $task->description,
+                        'visit_date' => $task->getRawOriginal('visit_date'),
+                        'due_date' => $rawDueDate ? (is_string($rawDueDate) ? substr($rawDueDate, 0, 10) : $rawDueDate) : null,
+                        'is_done' => $task->is_verified,
+                        'is_verified' => $task->is_verified,
+                        'is_kpi_task' => $task->is_kpi_task,
+                        'column_id' => $task->column_id,
+                        'kanban_id' => $task->kanban_id,
+                        'order_position' => $task->order_position,
+                        'comment_count' => $task->comments->count(),
+                        'has_media' => $task->comments->some(fn ($c) => $c->hasMedia()),
+                        'creator' => [
+                            'id' => $task->creator?->id,
+                            'name' => $task->creator?->name,
+                            'email' => $task->creator?->email,
+                        ],
+                        'creator_id' => $task->creator_id,
+                        'team' => [
+                            'id' => $task->team?->id,
+                            'name' => $task->team?->name,
+                        ],
+                        'assignees' => $task->assignees->map(fn ($assignee) => [
+                            'id' => $assignee->id,
+                            'name' => $assignee->name,
+                            'email' => $assignee->email,
+                        ]),
+                        'tags' => $task->tags->map(fn ($tag) => [
+                            'id' => $tag->id,
+                            'name' => $tag->name,
+                            'color' => $tag->color,
+                        ]),
+                        'comments' => $task->comments->map(fn ($comment) => [
+                            'id' => $comment->id,
+                            'content' => $comment->content,
+                            'created_at' => $comment->created_at->toDateTimeString(),
+                            'user' => [
+                                'name' => $comment->user->name,
+                                'email' => $comment->user->email,
+                            ],
+                            'media' => $comment->getMedia('documents')->map(fn ($media) => [
+                                'id' => $media->id,
+                                'name' => $media->file_name,
+                                'url' => $media->getUrl(),
+                                'mime_type' => $media->mime_type,
+                            ]),
+                        ]),
+                    ];
+                });
+        }
 
         $weeklyScores = KpiWeeklyScore::where('user_id', $user->id)
             ->latest('week_start_date')
@@ -167,20 +261,21 @@ class KpiDashboardController extends Controller
         $hasTasksForDate = $dateTasks->isNotEmpty();
         $canGenerateForDate = ! Carbon::parse($selectedDate)->isFuture();
 
-        // Only show generate button for actual Manager HR/Ops, not admins viewing
-        $positionName = $user->jobPosition?->name;
-        $canGenerateTasks = in_array($positionName, ['Manager HR', 'Manager Operasional']);
+        // Only actual Manager HR/Ops can generate (not admins, not SPVs viewing)
+        $canGenerateTasks = $isSpv && in_array($positionName, ['Manager HR', 'Manager Operasional']);
 
         return Inertia::render("{$area}/kpi/dashboard", [
             'selectedDate' => $selectedDate,
             'dateScore' => $dateScore,
             'dateTasks' => $dateTasks,
+            'spvKanbanTasks' => $spvKanbanTasks,
             'weeklyScores' => $weeklyScores,
             'monthlyScore' => $monthlyScore,
             'categoryBreakdown' => $categoryBreakdown,
             'hasTasksForDate' => $hasTasksForDate,
             'canGenerateForDate' => $canGenerateForDate,
             'canGenerateTasks' => $canGenerateTasks,
+            'isManager' => $isManager,
         ]);
     }
 

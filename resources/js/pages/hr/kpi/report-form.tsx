@@ -242,7 +242,7 @@ export default function HrKpiReportForm({ template, existingReport, canSubmit }:
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="sp1">SP1 Baru <span className="text-red-500">*</span></Label>
-                  <Input
+                  <Input disabled={!canSubmit}
                     id="sp1"
                     value={data.report_data.disiplin.sp1}
                     onChange={(e) => setData('report_data', {
@@ -254,7 +254,7 @@ export default function HrKpiReportForm({ template, existingReport, canSubmit }:
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="sp2">SP2 Baru <span className="text-red-500">*</span></Label>
-                  <Input
+                  <Input disabled={!canSubmit}
                     id="sp2"
                     value={data.report_data.disiplin.sp2}
                     onChange={(e) => setData('report_data', {
@@ -266,7 +266,7 @@ export default function HrKpiReportForm({ template, existingReport, canSubmit }:
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="sp3">SP3 Baru <span className="text-red-500">*</span></Label>
-                  <Input
+                  <Input disabled={!canSubmit}
                     id="sp3"
                     value={data.report_data.disiplin.sp3}
                     onChange={(e) => setData('report_data', {
@@ -297,6 +297,7 @@ export default function HrKpiReportForm({ template, existingReport, canSubmit }:
                   })}
                   placeholder="Nama karyawan + nilai penjualan"
                   rows={3}
+                  disabled={!canSubmit}
                 />
               </div>
               <div className="space-y-2">
@@ -310,6 +311,7 @@ export default function HrKpiReportForm({ template, existingReport, canSubmit }:
                   })}
                   placeholder="Nama karyawan + nilai penjualan"
                   rows={3}
+                  disabled={!canSubmit}
                 />
               </div>
             </CardContent>
@@ -332,6 +334,7 @@ export default function HrKpiReportForm({ template, existingReport, canSubmit }:
                   })}
                   placeholder="Nama + jumlah minus"
                   rows={2}
+                  disabled={!canSubmit}
                 />
               </div>
               <div className="space-y-2">
@@ -345,6 +348,7 @@ export default function HrKpiReportForm({ template, existingReport, canSubmit }:
                   })}
                   placeholder="Nama + temuan audit"
                   rows={2}
+                  disabled={!canSubmit}
                 />
               </div>
             </CardContent>
@@ -359,7 +363,7 @@ export default function HrKpiReportForm({ template, existingReport, canSubmit }:
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="instore_selesai">In-Store Training Selesai <span className="text-red-500">*</span></Label>
-                  <Input
+                  <Input disabled={!canSubmit}
                     id="instore_selesai"
                     value={data.report_data.training.instore_selesai}
                     onChange={(e) => setData('report_data', {
@@ -371,7 +375,7 @@ export default function HrKpiReportForm({ template, existingReport, canSubmit }:
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="lulus_hafalan">Sales Lulus Tes Hafalan <span className="text-red-500">*</span></Label>
-                  <Input
+                  <Input disabled={!canSubmit}
                     id="lulus_hafalan"
                     value={data.report_data.training.lulus_hafalan}
                     onChange={(e) => setData('report_data', {
@@ -394,7 +398,7 @@ export default function HrKpiReportForm({ template, existingReport, canSubmit }:
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="pool_pengganti">Pool Pengganti Urgent Tersedia <span className="text-red-500">*</span></Label>
-                  <Input
+                  <Input disabled={!canSubmit}
                     id="pool_pengganti"
                     value={data.report_data.recruitment.pool_pengganti}
                     onChange={(e) => setData('report_data', {
@@ -406,7 +410,7 @@ export default function HrKpiReportForm({ template, existingReport, canSubmit }:
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="posisi_kosong">Posisi Kosong yang Harus Diisi <span className="text-red-500">*</span></Label>
-                  <Input
+                  <Input disabled={!canSubmit}
                     id="posisi_kosong"
                     value={data.report_data.recruitment.posisi_kosong}
                     onChange={(e) => setData('report_data', {
@@ -428,7 +432,7 @@ export default function HrKpiReportForm({ template, existingReport, canSubmit }:
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="attachments">Upload File (JPG, PNG, PDF - Max 5MB)</Label>
-                <Input
+                <Input disabled={!canSubmit}
                   id="attachments"
                   type="file"
                   accept=".jpg,.jpeg,.png,.pdf"
@@ -472,6 +476,7 @@ export default function HrKpiReportForm({ template, existingReport, canSubmit }:
                 onChange={(e) => setData('action_plan', e.target.value)}
                 placeholder="Rencana aksi dan target untuk besok..."
                 rows={4}
+                disabled={!canSubmit}
               />
             </CardContent>
           </Card>

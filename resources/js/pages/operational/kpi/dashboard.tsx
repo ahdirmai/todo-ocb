@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle2, Circle, FileText, TrendingUp, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { KpiTaskModal } from '@/components/kpi/kpi-task-modal';
+import { TaskDetailModal } from '@/components/kanban/task-detail-modal';
 import { useState } from 'react';
 
 interface Media {
@@ -34,11 +35,37 @@ interface Task {
   task_name: string;
   weight: number;
   description: string;
+  visit_date?: string;
+  due_date?: string;
   is_done: boolean;
   is_verified: boolean;
+  is_kpi_task?: boolean;
+  column_id?: string;
+  kanban_id?: string;
+  order_position?: number;
   comment_count: number;
   has_media: boolean;
   comments: Comment[];
+  creator?: {
+    id?: number;
+    name: string;
+    email: string;
+  };
+  creator_id?: number;
+  team?: {
+    id?: number;
+    name: string;
+  };
+  assignees?: Array<{
+    id: number;
+    name: string;
+    email: string;
+  }>;
+  tags?: Array<{
+    id: number;
+    name: string;
+    color: string;
+  }>;
 }
 
 interface DailyScore {
@@ -77,26 +104,32 @@ interface Props {
   selectedDate: string;
   dateScore: DailyScore | null;
   dateTasks: Task[];
+  spvKanbanTasks: Task[];
   weeklyScores: WeeklyScore[];
   monthlyScore: MonthlyScore | null;
   categoryBreakdown: DailyScore['category_breakdown'];
   hasTasksForDate: boolean;
   canGenerateForDate: boolean;
   canGenerateTasks: boolean;
+  isManager: boolean;
 }
 
 export default function OperationalKpiDashboard({
   selectedDate,
   dateScore,
   dateTasks,
+  spvKanbanTasks,
   weeklyScores,
   monthlyScore,
   categoryBreakdown,
   hasTasksForDate,
   canGenerateForDate,
   canGenerateTasks,
+  isManager,
 }: Props) {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [selectedKanbanTaskId, setSelectedKanbanTaskId] = useState<string | null>(null);
+  const [kanbanModalOpen, setKanbanModalOpen] = useState(false);
 
   const groupedTasks = dateTasks.reduce(
     (acc, task) => {
@@ -296,6 +329,90 @@ export default function OperationalKpiDashboard({
           </Card>
         )}
 
+        {/* SPV Kanban Tasks (Manager Only) */}
+        {isManager && spvKanbanTasks.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Task SPV Kanban ({spvKanbanTasks.length})</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {spvKanbanTasks.map((task) => (
+                  <div
+                    key={task.id}
+                    onClick={() => {
+                      setSelectedKanbanTaskId(task.id);
+                      setKanbanModalOpen(true);
+                    }}
+                    className="flex flex-col gap-2 p-4 rounded-lg border hover:bg-accent transition-colors cursor-pointer"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="mt-0.5">
+                        {task.is_verified ? (
+                          <CheckCircle2 className="h-5 w-5 text-green-600" />
+                        ) : (
+                          <Circle className="h-5 w-5 text-gray-400" />
+                        )}
+                      </div>
+                      <div className="flex-1 space-y-2">
+                        <p className="font-medium text-sm leading-tight">{task.title}</p>
+                        {task.creator && (
+                          <p className="text-xs text-muted-foreground">
+                            SPV: {task.creator.name}
+                            {task.team && (
+                              <>
+                                <br />
+                                Tim: {task.team.name}
+                              </>
+                            )}
+                          </p>
+                        )}
+                        {task.visit_date && (
+                          <p className="text-xs text-muted-foreground">
+                            📅 {new Date(task.visit_date).toLocaleDateString('id-ID', {
+                              day: 'numeric',
+                              month: 'short',
+                              year: 'numeric'
+                            })}
+                          </p>
+                        )}
+                        {task.assignees && task.assignees.length > 0 && (
+                          <p className="text-xs text-muted-foreground">
+                            👥 {task.assignees.map((a: any) => a.name).join(', ')}
+                          </p>
+                        )}
+                        <p className="text-xs text-muted-foreground line-clamp-2">{task.description}</p>
+                        <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                          {task.is_verified && (
+                            <Badge variant="outline" className="bg-green-50 text-green-700 text-xs">
+                              Terverifikasi
+                            </Badge>
+                          )}
+                          {task.is_done && !task.is_verified && (
+                            <Badge variant="outline" className="bg-yellow-50 text-yellow-700 text-xs">
+                              Selesai
+                            </Badge>
+                          )}
+                          {!task.is_done && (
+                            <Badge variant="outline" className="bg-gray-50 text-gray-700 text-xs">
+                              Belum Selesai
+                            </Badge>
+                          )}
+                          {task.comment_count > 0 && (
+                            <span className="text-muted-foreground">
+                              {task.comment_count} komentar {task.has_media && '📎'}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Date Tasks */}
         <Card>
           <CardHeader>
@@ -322,7 +439,14 @@ export default function OperationalKpiDashboard({
                         </div>
                         <div className="flex-1 space-y-1">
                           <div className="flex items-start justify-between gap-2 md:gap-4">
-                            <p className="font-medium">{task.task_name}</p>
+                            <div className="flex-1">
+                              <p className="font-medium">{task.task_name}</p>
+                              {isManager && task.creator && (
+                                <p className="text-xs text-muted-foreground mt-0.5">
+                                  SPV: {task.creator.name} {task.team && `• ${task.team.name}`}
+                                </p>
+                              )}
+                            </div>
                             <Badge variant="secondary">{task.weight}%</Badge>
                           </div>
                           <p className="text-sm text-muted-foreground line-clamp-2">{task.description}</p>
@@ -374,6 +498,16 @@ export default function OperationalKpiDashboard({
         task={selectedTask}
         area="operational"
         onClose={() => setSelectedTask(null)}
+        readOnly={isManager}
+      />
+
+      <TaskDetailModal
+        task={spvKanbanTasks.find(t => t.id === selectedKanbanTaskId) || null}
+        open={kanbanModalOpen}
+        onClose={() => {
+          setKanbanModalOpen(false);
+          setSelectedKanbanTaskId(null);
+        }}
       />
     </KpiLayout>
   );

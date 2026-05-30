@@ -36,9 +36,19 @@ class KpiReportController extends Controller
         };
     }
 
-    public function create(): Response
+    public function create()
     {
         $user = auth()->user();
+
+        // Block admins/superadmins from creating reports - redirect to list
+        $positionName = $user->jobPosition?->name;
+        if (! in_array($positionName, ['Manager HR', 'Manager Operasional'])) {
+            $area = $this->getPositionArea();
+
+            return redirect()->route("{$area}.kpi.reports.index")
+                ->with('error', 'Hanya Manager HR dan Manager Operasional yang dapat membuat laporan');
+        }
+
         $today = now();
 
         $template = $this->reportingService->getDailyReportTemplate($user, $today);
@@ -49,14 +59,10 @@ class KpiReportController extends Controller
 
         $area = $this->getPositionArea();
 
-        // Check if user can submit (only Manager HR/Ops)
-        $positionName = $user->jobPosition?->name;
-        $canSubmit = in_array($positionName, ['Manager HR', 'Manager Operasional']);
-
         return Inertia::render("{$area}/kpi/report-form", [
             'template' => $template,
             'existingReport' => $existingReport,
-            'canSubmit' => $canSubmit,
+            'canSubmit' => true,
         ]);
     }
 
@@ -66,7 +72,7 @@ class KpiReportController extends Controller
 
         // Only Manager HR and Manager Operasional can submit reports
         $positionName = $user->jobPosition?->name;
-        if (!in_array($positionName, ['Manager HR', 'Manager Operasional'])) {
+        if (! in_array($positionName, ['Manager HR', 'Manager Operasional'])) {
             abort(403, 'Hanya Manager HR dan Manager Operasional yang dapat mengisi laporan');
         }
 
@@ -120,21 +126,25 @@ class KpiReportController extends Controller
     public function index(): Response
     {
         $user = auth()->user();
-
-        // Only Manager HR and Manager Operasional can view reports
         $positionName = $user->jobPosition?->name;
-        if (!in_array($positionName, ['Manager HR', 'Manager Operasional'])) {
-            abort(403, 'Hanya Manager HR dan Manager Operasional yang dapat melihat laporan');
+
+        // Admins can view all reports, managers see only their own
+        if (in_array($positionName, ['Manager HR', 'Manager Operasional'])) {
+            $reports = KpiDailyReport::where('user_id', $user->id)
+                ->latest('report_date')
+                ->paginate(20);
+        } else {
+            // Admins/superadmins see all reports for their area
+            $reports = KpiDailyReport::latest('report_date')
+                ->paginate(20);
         }
 
-        $reports = KpiDailyReport::where('user_id', $user->id)
-            ->latest('report_date')
-            ->paginate(20);
-
         $area = $this->getPositionArea();
+        $canCreate = in_array($positionName, ['Manager HR', 'Manager Operasional']);
 
         return Inertia::render("{$area}/kpi/reports", [
             'reports' => $reports,
+            'canCreate' => $canCreate,
         ]);
     }
 }

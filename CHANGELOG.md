@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+- **Store Visit Date Filtering**: Fixed timezone conversion issue preventing store-date validation
+  - `visit_date` and `due_date` now use raw Y-m-d format instead of UTC-converted ISO strings
+  - Store filtering logic now correctly prevents double-booking same store on same date
+  - Frontend date picker matches backend dates (e.g., 2026-05-31 stays 2026-05-31, not converted to 2026-05-30T16:00:00Z)
+  - Applied to TeamController kanban task loading and KpiDashboardController SPV tasks
+  - Error messages now displayed via toast notifications instead of inline divs
+  - Success toast added for task creation confirmation
+
 ### Added
 - **SPV Task Creation with Store Visits**: Custom task creation flow for SPV teams
   - Modal-based task creation (replaces inline form)

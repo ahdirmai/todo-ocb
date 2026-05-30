@@ -44,9 +44,10 @@ interface KpiTaskModalProps {
   task: KpiTask | null;
   area: 'hr' | 'operational';
   onClose: () => void;
+  readOnly?: boolean;
 }
 
-export function KpiTaskModal({ task, area, onClose }: KpiTaskModalProps) {
+export function KpiTaskModal({ task, area, onClose, readOnly = false }: KpiTaskModalProps) {
   const [commentText, setCommentText] = useState('');
   const [attachments, setAttachments] = useState<File[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -195,7 +196,7 @@ export function KpiTaskModal({ task, area, onClose }: KpiTaskModalProps) {
           )}
 
           {/* Upload Evidence Section */}
-          {!task.is_verified && (
+          {!task.is_verified && !readOnly && (
             <div className="border-t pt-6">
               <h3 className="font-semibold mb-4">
                 {task.comments.length > 0 ? 'Upload Bukti Tambahan' : 'Upload Bukti Penyelesaian'}

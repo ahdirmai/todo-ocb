@@ -201,6 +201,8 @@ npx tsc --noEmit
 
 All KPI operations use **Asia/Makassar (WITA, UTC+8)** timezone.
 
+**Date Handling**: Store visit dates (`visit_date`) and due dates (`due_date`) are stored as date-only values (Y-m-d format) to prevent timezone conversion issues. When transmitted to frontend, these dates use raw database values instead of Carbon instances to ensure consistency across timezones.
+
 ## License
 
 Proprietary. All rights reserved.

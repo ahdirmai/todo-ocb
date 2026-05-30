@@ -1,7 +1,8 @@
 import { Droppable } from '@hello-pangea/dnd';
 import { router, usePage } from '@inertiajs/react';
 import { MoreHorizontal, Pencil, Trash2, Check, X, Plus, CircleCheckBig } from 'lucide-react';
-import { useState, useRef } from 'react';
+import { useState, useRef, useMemo } from 'react';
+import { toast } from 'sonner';
 import * as ColumnActions from '@/actions/App/Http/Controllers/KanbanColumnController';
 import * as TaskActions from '@/actions/App/Http/Controllers/TaskController';
 import { Button } from '@/components/ui/button';
@@ -65,6 +66,49 @@ export function KanbanColumn({
     const [newTaskStoreId, setNewTaskStoreId] = useState<string>('');
     const [newTaskVisitDate, setNewTaskVisitDate] = useState<string>('');
     const taskFileInputRef = useRef<HTMLInputElement>(null);
+
+    // Get all existing store-date combinations from all columns
+    const existingStoreVisits = useMemo(() => {
+        const visits = new Map<string, Set<string>>(); // store_id -> Set of dates
+
+        columns.forEach((col: any) => {
+            col.tasks?.forEach((task: any) => {
+                if (task.store_id && task.visit_date) {
+                    const storeId = task.store_id.toString();
+                    const visitDate = task.visit_date.split('T')[0]; // Get YYYY-MM-DD part
+
+                    if (!visits.has(storeId)) {
+                        visits.set(storeId, new Set());
+                    }
+                    visits.get(storeId)!.add(visitDate);
+                }
+            });
+        });
+
+        return visits;
+    }, [columns]);
+
+    // Filter available stores based on selected date
+    const availableStores = useMemo(() => {
+        if (!newTaskVisitDate) {
+            return myStores;
+        }
+
+        return myStores.filter((store) => {
+            const storeId = store.id.toString();
+            const takenDates = existingStoreVisits.get(storeId);
+            return !takenDates || !takenDates.has(newTaskVisitDate);
+        });
+    }, [myStores, newTaskVisitDate, existingStoreVisits]);
+
+    // Get disabled dates for selected store
+    const disabledDates = useMemo(() => {
+        if (!newTaskStoreId) {
+            return new Set<string>();
+        }
+
+        return existingStoreVisits.get(newTaskStoreId) || new Set<string>();
+    }, [newTaskStoreId, existingStoreVisits]);
 
     const handleToggleDoneColumn = () => {
         router.put(
@@ -172,11 +216,18 @@ export function KanbanColumn({
                     taskFileInputRef.current.value = '';
                 }
 
+                toast.success('Task berhasil dibuat');
+
                 if (newTask) {
                     onTaskCreated(newTask);
                 }
             },
-            onError: () => setSavingTask(false),
+            onError: (errors) => {
+                setSavingTask(false);
+                if (errors?.store_id || errors?.error) {
+                    toast.error(errors?.store_id || errors?.error);
+                }
+            },
         });
     };
 
@@ -437,17 +488,28 @@ export function KanbanColumn({
                                         <SelectValue placeholder="Pilih Toko..." />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {myStores.map((store) => (
-                                            <SelectItem
-                                                key={store.id}
-                                                value={store.id.toString()}
-                                            >
-                                                {store.branch_code} -{' '}
-                                                {store.name}
-                                            </SelectItem>
-                                        ))}
+                                        {availableStores.length > 0 ? (
+                                            availableStores.map((store) => (
+                                                <SelectItem
+                                                    key={store.id}
+                                                    value={store.id.toString()}
+                                                >
+                                                    {store.branch_code} -{' '}
+                                                    {store.name}
+                                                </SelectItem>
+                                            ))
+                                        ) : (
+                                            <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                                                Semua toko sudah dijadwalkan untuk tanggal ini
+                                            </div>
+                                        )}
                                     </SelectContent>
                                 </Select>
+                                {newTaskVisitDate && availableStores.length === 0 && (
+                                    <p className="text-xs text-amber-600">
+                                        Tidak ada toko yang tersedia untuk tanggal ini
+                                    </p>
+                                )}
                             </div>
 
                             <div className="space-y-2">
@@ -457,10 +519,21 @@ export function KanbanColumn({
                                 <Input
                                     type="date"
                                     value={newTaskVisitDate}
-                                    onChange={(e) =>
-                                        setNewTaskVisitDate(e.target.value)
-                                    }
+                                    onChange={(e) => {
+                                        const selectedDate = e.target.value;
+                                        setNewTaskVisitDate(selectedDate);
+
+                                        // Clear store selection if the date is already taken for that store
+                                        if (newTaskStoreId && disabledDates.has(selectedDate)) {
+                                            setNewTaskStoreId('');
+                                        }
+                                    }}
                                 />
+                                {newTaskStoreId && disabledDates.size > 0 && (
+                                    <p className="text-xs text-muted-foreground">
+                                        Tanggal yang sudah dijadwalkan akan menonaktifkan pilihan toko
+                                    </p>
+                                )}
                             </div>
 
                             <div className="space-y-2">
@@ -537,7 +610,8 @@ export function KanbanColumn({
                                     disabled={
                                         savingTask ||
                                         !newTaskStoreId ||
-                                        !newTaskVisitDate
+                                        !newTaskVisitDate ||
+                                        disabledDates.has(newTaskVisitDate)
                                     }
                                     className="flex-1"
                                 >

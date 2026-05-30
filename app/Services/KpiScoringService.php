@@ -221,6 +221,15 @@ class KpiScoringService
 
     public function verifyTaskEvidence(Task $task): string
     {
+        // Manager HR and Manager Operasional bypass comment requirement
+        $creator = $task->creator;
+        if ($creator && $creator->jobPosition) {
+            $positionName = $creator->jobPosition->name;
+            if (in_array($positionName, ['Manager HR', 'Manager Operasional'])) {
+                return 'full'; // Managers always get full weight
+            }
+        }
+
         $commentCount = $task->comments()->count();
         $hasMedia = $task->comments()->whereHas('media')->exists();
 

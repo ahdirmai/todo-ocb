@@ -31,9 +31,10 @@ interface Props {
     per_page: number;
     total: number;
   };
+  canCreate: boolean;
 }
 
-export default function HrKpiReports({ reports }: Props) {
+export default function HrKpiReports({ reports, canCreate }: Props) {
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
 
   return (
@@ -53,12 +54,14 @@ export default function HrKpiReports({ reports }: Props) {
               <h1 className="text-2xl font-bold">Riwayat Laporan CEO</h1>
               <p className="text-muted-foreground">{reports.total} laporan tersimpan</p>
             </div>
-            <Link href="/hr/kpi/report/create">
-              <Button>
-                <FileText className="mr-2 h-4 w-4" />
-                Buat Laporan Baru
-              </Button>
-            </Link>
+            {canCreate && (
+              <Link href="/hr/kpi/report/create">
+                <Button>
+                  <FileText className="mr-2 h-4 w-4" />
+                  Buat Laporan Baru
+                </Button>
+              </Link>
+            )}
           </div>
         </div>
 
