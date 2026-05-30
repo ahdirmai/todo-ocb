@@ -52,7 +52,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Team routes — URL-based tab navigation
     Route::get('teams/{team:slug}/{tab?}/{item?}', [TeamController::class, 'show'])
-        ->where('tab', 'overview|task|chat|announcement|question|document|sop|activity')
+        ->where('tab', 'overview|task|chat|announcement|question|document|sop|activity|svp-stores')
         ->name('teams.show');
 
     // Kanban Column CRUD
