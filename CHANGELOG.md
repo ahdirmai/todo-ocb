@@ -17,9 +17,12 @@ All notable changes to this project will be documented in this file.
   - Task generation works for managers without team assignment (team_id set to null)
   - Service and controller updated to handle optional team for Manager HR/Operasional
   - Made tasks.team_id column nullable to support KPI tasks without team
-  - Migration: `make_team_id_nullable_in_tasks_table`
+  - Made kpi_daily_reports.team_id column nullable for reports without team
+  - Updated KpiReportingService to handle managers without team assignment
+  - Migrations: `make_team_id_nullable_in_tasks_table`, `make_team_id_nullable_in_kpi_daily_reports_table`
   - Fixes "Anda tidak terdaftar dalam tim SPV" error for admin/manager users
-  - Fixes "Column 'team_id' cannot be null" database error
+  - Fixes "Column 'team_id' cannot be null" database errors
+  - Fixes "Cannot read properties of undefined (reading 'toFixed')" JS error in report form
 
 - **KPI Task Generation Permission**: Fixed task generation blocked for admin/superadmin with manager position
   - Removed SPV team membership requirement for task generation

@@ -14,10 +14,6 @@ class KpiReportingService
     {
         $team = $user->teams()->where('is_spv_team', true)->first();
 
-        if (! $team) {
-            throw new \Exception('User must be in SPV team');
-        }
-
         $reportDate = $data['report_date'] ?? now()->toDateString();
         $submittedAt = $data['submitted_at'] ?? now();
         $isLate = $this->checkReportDeadline($submittedAt);
@@ -28,7 +24,7 @@ class KpiReportingService
                 'report_date' => $reportDate,
             ],
             [
-                'team_id' => $team->id,
+                'team_id' => $team?->id,
                 'status_34_tasks' => $data['status_34_tasks'] ?? null,
                 'spv_status' => $data['spv_status'] ?? null,
                 'issues_today' => $data['issues_today'] ?? null,
@@ -46,16 +42,17 @@ class KpiReportingService
     {
         $team = $user->teams()->where('is_spv_team', true)->first();
 
-        if (! $team) {
-            return [];
-        }
-
-        $tasks = Task::where('is_kpi_task', true)
-            ->where('team_id', $team->id)
+        // For managers without team, query by creator_id only
+        $tasksQuery = Task::where('is_kpi_task', true)
             ->where('creator_id', $user->id)
             ->whereDate('created_at', $date->toDateString())
-            ->with(['kpiDefinition', 'kanbanColumn'])
-            ->get();
+            ->with(['kpiDefinition', 'kanbanColumn']);
+
+        if ($team) {
+            $tasksQuery->where('team_id', $team->id);
+        }
+
+        $tasks = $tasksQuery->get();
 
         $totalTasks = $tasks->count();
         $completedTasks = $tasks->filter(fn ($task) => $task->kanbanColumn?->is_done)->count();
@@ -70,8 +67,8 @@ class KpiReportingService
             'total_tasks' => $totalTasks,
             'completed_tasks' => $completedTasks,
             'verified_tasks' => $verifiedTasks,
-            'completion_percentage' => $totalTasks > 0 ? round(($verifiedTasks / $totalTasks) * 100, 2) : 0,
-            'total_score' => $dailyScore ? (float) $dailyScore->total_score : 0,
+            'completion_percentage' => $totalTasks > 0 ? round(($verifiedTasks / $totalTasks) * 100, 2) : 0.0,
+            'total_score' => $dailyScore ? (float) $dailyScore->total_score : 0.0,
             'grade' => $dailyScore?->grade ?? '-',
             'category_breakdown' => $dailyScore?->category_breakdown ?? [],
         ];
