@@ -136,10 +136,10 @@ Add to cron (or use Laravel scheduler):
 
 ## Position-Specific Routes
 
-**Admin/Superadmin Access:**
-Admin and superadmin users can access any KPI area without position requirements. Access is determined by URL path:
-- `/hr/kpi/*` - HR area
-- `/operational/kpi/*` - Operational area
+**Access Control:**
+- **Superadmin**: bypasses all position checks — can access every area
+- **Admin**: restricted to the area matching their position (Manager HR → HR area only; Manager Operasional → Operational area only)
+- **Manager (generic position)**: has permission for both HR and Operational areas
 
 ### Manager HR
 - Dashboard: `/hr/kpi/dashboard`
