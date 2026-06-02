@@ -66,9 +66,9 @@ export function AppSidebar() {
     const isSuperadmin = auth?.roles?.includes('superadmin');
     const { appearance, updateAppearance } = useAppearance();
 
-    // Check if user has access to a route (admin/superadmin bypass OR has position permission)
+    // Check if user has access to a route (superadmin bypasses all; admin and others need position permission)
     const hasAccess = (routeKey: string) => {
-        return isAdmin || auth?.positionAccess?.includes(routeKey);
+        return isSuperadmin || auth?.positionAccess?.includes(routeKey);
     };
 
     const [open, setOpen] = useState(false);

@@ -18,8 +18,8 @@ class CheckPositionAccess
     {
         $user = $request->user();
 
-        // Superadmin and admin bypass position checks
-        if ($user->hasRole(['superadmin', 'admin'])) {
+        // Only superadmin bypasses position checks; admin must pass position check
+        if ($user->hasRole('superadmin')) {
             return $next($request);
         }
 
