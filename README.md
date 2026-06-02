@@ -31,7 +31,7 @@ Laravel-based task management system with advanced KPI tracking, position-based 
 - **Multi-Period Aggregation**: Daily → Weekly (7-day avg) → Monthly (4-week avg + bonus)
 - **Automated Grading**: A+ to D grades with specific thresholds
 - **CEO Reporting**: Daily report submission with deadline tracking (22:30 WITA)
-- **CEO Monitoring Area**: Executive dashboard for superadmin — daily scores, per-user drill-down, SPV task monitoring, critical alerts
+- **CEO Monitoring Area**: Executive dashboard for superadmin — daily scores, per-user drill-down, SPV task monitoring with clickable task detail modal (comments + files), critical alerts
 - **Dashboard Analytics**: Real-time score cards, trends, and category breakdowns
 
 ### Access Control

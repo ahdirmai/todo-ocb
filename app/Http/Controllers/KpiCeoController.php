@@ -286,7 +286,14 @@ class KpiCeoController extends Controller
                 ->where('teams.is_spv_team', true)
                 ->whereDate('tasks.visit_date', $date)
                 ->select('tasks.*')
-                ->with(['store', 'creator:id,name,email', 'assignees:id,name,email', 'kanbanColumn'])
+                ->with([
+                    'store',
+                    'creator:id,name,email',
+                    'assignees:id,name,email',
+                    'kanbanColumn',
+                    'media',
+                    'comments' => fn ($q) => $q->with(['user', 'media'])->orderBy('created_at'),
+                ])
                 ->orderBy('tasks.order_position')
                 ->get()
                 ->map(function ($task) {
@@ -312,6 +319,25 @@ class KpiCeoController extends Controller
                             'name' => $a->name,
                         ]),
                         'column_name' => $task->kanbanColumn?->name,
+                        'media' => $task->media->map(fn ($m) => [
+                            'id' => $m->id,
+                            'file_name' => $m->file_name,
+                            'mime_type' => $m->mime_type,
+                            'original_url' => $m->getUrl(),
+                        ]),
+                        'comments' => $task->comments->map(fn ($c) => [
+                            'id' => $c->id,
+                            'content' => $c->content,
+                            'created_at' => $c->created_at->toISOString(),
+                            'parent_id' => $c->parent_id,
+                            'user' => $c->user ? ['id' => $c->user->id, 'name' => $c->user->name] : null,
+                            'media' => $c->media->map(fn ($m) => [
+                                'id' => $m->id,
+                                'file_name' => $m->file_name,
+                                'mime_type' => $m->mime_type,
+                                'original_url' => $m->getUrl(),
+                            ]),
+                        ]),
                     ];
                 });
 

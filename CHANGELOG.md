@@ -7,10 +7,14 @@ All notable changes to this project will be documented in this file.
 ### Added
 - **CEO Area — KPI Monitoring Dashboard** (superadmin only)
   - New `CeoLayout` with tab navigation: Dashboard, Laporan Harian, Alerts, SPV Monitor
-  - Date navigation (prev/next) across all CEO pages
+  - Date navigation (prev/next) across all CEO pages — uses local browser time (no UTC bug)
   - Position filter on dashboard (All / HR / Operational)
   - Per-user drill-down: daily score, weekly score, monthly score, 14-day history, daily report content
   - SPV Monitor: actual task list per member filtered by `visit_date`, completion bar, verification status
+  - SPV task cards clickable — read/write detail modal with comments, replies, and file attachments
+  - CEO can post comments directly from SPV Monitor task detail modal
+  - Comment count and attachment count badges shown on task cards
+  - Partial reload (`only: ['members']`) after comment post — modal stays open with fresh data
   - Logged-in user's card hidden from SPV Monitor
   - Routes: `GET /kpi/ceo/user/{user}`, `GET /kpi/ceo/spv`
   - New pages: `ceo-user-detail.tsx`, `ceo-spv.tsx` (rebuilt)
