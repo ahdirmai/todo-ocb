@@ -132,7 +132,11 @@ export default function OperationalKpiDashboard({
   const [kanbanModalOpen, setKanbanModalOpen] = useState(false);
 
   const { auth } = usePage().props as any;
-  const isAdminUser = auth.roles?.includes('admin') || auth.roles?.includes('superadmin');
+  const isAdminRole = auth.roles?.includes('admin') || auth.roles?.includes('superadmin');
+  const isManagerPosition = auth.user?.jobPosition?.name === 'Manager HR' || auth.user?.jobPosition?.name === 'Manager Operasional';
+
+  // Admin with manager position can edit, admin without manager position is read-only
+  const isAdminUser = isAdminRole && !isManagerPosition;
 
   const groupedTasks = dateTasks.reduce(
     (acc, task) => {

@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+- **KPI Dashboard Operational — Form Disabled for Admin+Manager User**: Users with both `admin` role and `Manager Operasional` position (e.g., Muh. Saifuddin) could not fill the task evidence upload form
+  - Root cause: `operational/kpi/dashboard.tsx` used `isAdminUser = auth.roles?.includes('admin')` directly as `readOnly` prop — did not check if user also holds manager position
+  - Fix: Added `isManagerPosition` check identical to HR dashboard — `isAdminUser = isAdminRole && !isManagerPosition`
+  - Admin users with `Manager Operasional` or `Manager HR` position can now upload evidence and verify tasks
+
 ### Added
 - **CEO Area — KPI Monitoring Dashboard** (superadmin only)
   - New `CeoLayout` with tab navigation: Dashboard, Laporan Harian, Alerts, SPV Monitor
