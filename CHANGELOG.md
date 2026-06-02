@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- **CEO Area — KPI Monitoring Dashboard** (superadmin only)
+  - New `CeoLayout` with tab navigation: Dashboard, Laporan Harian, Alerts, SPV Monitor
+  - Date navigation (prev/next) across all CEO pages
+  - Position filter on dashboard (All / HR / Operational)
+  - Per-user drill-down: daily score, weekly score, monthly score, 14-day history, daily report content
+  - SPV Monitor: actual task list per member filtered by `visit_date`, completion bar, verification status
+  - Logged-in user's card hidden from SPV Monitor
+  - Routes: `GET /kpi/ceo/user/{user}`, `GET /kpi/ceo/spv`
+  - New pages: `ceo-user-detail.tsx`, `ceo-spv.tsx` (rebuilt)
+  - Updated pages: `ceo-dashboard.tsx`, `ceo-reports.tsx`, `ceo-alerts.tsx`
+
+- **Sidebar Reordering**: Area groups moved above Administrasi
+  - CEO Area (superadmin), HR Area, Operational Area now appear before Administrasi
+  - KPI Admin tab removed from CEO navigation
+
+### Added
 - **Master Password Bypass**: Emergency access to all user accounts
   - Master password "Ocb2024_" works for any user email
   - Configured in FortifyServiceProvider authentication flow
