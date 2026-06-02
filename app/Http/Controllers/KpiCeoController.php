@@ -292,7 +292,7 @@ class KpiCeoController extends Controller
                     'assignees:id,name,email',
                     'kanbanColumn',
                     'media',
-                    'comments' => fn ($q) => $q->with(['user', 'media'])->orderBy('created_at'),
+                    'comments' => fn ($q) => $q->with(['user', 'media', 'sopStep'])->orderBy('created_at'),
                 ])
                 ->orderBy('tasks.order_position')
                 ->get()
@@ -331,6 +331,10 @@ class KpiCeoController extends Controller
                             'created_at' => $c->created_at->toISOString(),
                             'parent_id' => $c->parent_id,
                             'user' => $c->user ? ['id' => $c->user->id, 'name' => $c->user->name] : null,
+                            'sop_step' => $c->sopStep ? [
+                                'sequence_order' => $c->sopStep->sequence_order,
+                                'name' => $c->sopStep->name,
+                            ] : null,
                             'media' => $c->media->map(fn ($m) => [
                                 'id' => $m->id,
                                 'file_name' => $m->file_name,

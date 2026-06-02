@@ -35,6 +35,7 @@ interface TaskComment {
     created_at: string;
     parent_id: string | null;
     user: { id: number; name: string } | null;
+    sop_step: { sequence_order: number; name: string } | null;
     media: TaskMedia[];
 }
 
@@ -258,6 +259,11 @@ function TaskDetailModal({ task, onClose }: { task: Task; onClose: () => void })
                                                     className="text-sm text-slate-700 dark:text-slate-300 [&_ul]:list-disc [&_ol]:list-decimal [&_li]:ml-4 [&_strong]:font-bold [&_em]:italic [&_p]:m-0"
                                                     dangerouslySetInnerHTML={{ __html: comment.content }}
                                                 />
+                                                {comment.sop_step && (
+                                                    <span className="mt-1.5 inline-flex items-center gap-1 rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-medium text-violet-700 dark:bg-violet-900/30 dark:text-violet-300">
+                                                        SOP {comment.sop_step.sequence_order}. {comment.sop_step.name}
+                                                    </span>
+                                                )}
                                                 <MediaGrid media={comment.media} />
                                             </div>
                                         </div>
@@ -285,6 +291,11 @@ function TaskDetailModal({ task, onClose }: { task: Task; onClose: () => void })
                                                                 className="text-xs text-slate-700 dark:text-slate-300 [&_ul]:list-disc [&_ol]:list-decimal [&_li]:ml-4 [&_strong]:font-bold [&_em]:italic [&_p]:m-0"
                                                                 dangerouslySetInnerHTML={{ __html: reply.content }}
                                                             />
+                                                            {reply.sop_step && (
+                                                                <span className="mt-1.5 inline-flex items-center gap-1 rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-medium text-violet-700 dark:bg-violet-900/30 dark:text-violet-300">
+                                                                    SOP {reply.sop_step.sequence_order}. {reply.sop_step.name}
+                                                                </span>
+                                                            )}
                                                             <MediaGrid media={reply.media} />
                                                         </div>
                                                     </div>
