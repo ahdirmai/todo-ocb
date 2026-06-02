@@ -13,6 +13,9 @@ import {
     Settings,
     Lock,
     Store,
+    BarChart3,
+    AlertCircle,
+    Building2,
 } from 'lucide-react';
 import { useState } from 'react';
 import * as ReportingActions from '@/actions/App/Http/Controllers/ReportingController';
@@ -130,6 +133,79 @@ export function AppSidebar() {
 
                     <NavMain groups={mainNavGroups} />
 
+                    {/* CEO Area — superadmin only */}
+                    {isSuperadmin && (
+                        <SidebarGroup>
+                            <SidebarGroupLabel>CEO Area</SidebarGroupLabel>
+                            <SidebarMenu>
+                                <SidebarMenuItem>
+                                    <SidebarMenuButton asChild>
+                                        <Link href="/kpi/ceo/dashboard">
+                                            <BarChart3 className="h-4 w-4" />
+                                            <span>KPI Dashboard</span>
+                                        </Link>
+                                    </SidebarMenuButton>
+                                </SidebarMenuItem>
+                                <SidebarMenuItem>
+                                    <SidebarMenuButton asChild>
+                                        <Link href="/kpi/ceo/daily-reports">
+                                            <FileBarChart2 className="h-4 w-4" />
+                                            <span>Laporan Harian</span>
+                                        </Link>
+                                    </SidebarMenuButton>
+                                </SidebarMenuItem>
+                                <SidebarMenuItem>
+                                    <SidebarMenuButton asChild>
+                                        <Link href="/kpi/ceo/alerts">
+                                            <AlertCircle className="h-4 w-4" />
+                                            <span>Critical Alerts</span>
+                                        </Link>
+                                    </SidebarMenuButton>
+                                </SidebarMenuItem>
+                                <SidebarMenuItem>
+                                    <SidebarMenuButton asChild>
+                                        <Link href="/kpi/ceo/spv">
+                                            <Building2 className="h-4 w-4" />
+                                            <span>SPV Monitor</span>
+                                        </Link>
+                                    </SidebarMenuButton>
+                                </SidebarMenuItem>
+                            </SidebarMenu>
+                        </SidebarGroup>
+                    )}
+
+                    {hasAccess('hr') && (
+                        <SidebarGroup>
+                            <SidebarGroupLabel>HR Area</SidebarGroupLabel>
+                            <SidebarMenu>
+                                <SidebarMenuItem>
+                                    <SidebarMenuButton asChild>
+                                        <Link href="/hr">
+                                            <Users2 className="h-4 w-4" />
+                                            <span>Dashboard HR</span>
+                                        </Link>
+                                    </SidebarMenuButton>
+                                </SidebarMenuItem>
+                            </SidebarMenu>
+                        </SidebarGroup>
+                    )}
+
+                    {hasAccess('operational') && (
+                        <SidebarGroup>
+                            <SidebarGroupLabel>Operational</SidebarGroupLabel>
+                            <SidebarMenu>
+                                <SidebarMenuItem>
+                                    <SidebarMenuButton asChild>
+                                        <Link href="/operational">
+                                            <Settings className="h-4 w-4" />
+                                            <span>Dashboard Operasional</span>
+                                        </Link>
+                                    </SidebarMenuButton>
+                                </SidebarMenuItem>
+                            </SidebarMenu>
+                        </SidebarGroup>
+                    )}
+
                     {isAdmin && (
                         <SidebarGroup>
                             <SidebarGroupLabel>Administrasi</SidebarGroupLabel>
@@ -190,7 +266,7 @@ export function AppSidebar() {
                                         </Link>
                                     </SidebarMenuButton>
                                 </SidebarMenuItem>
-                                {isSuperadmin && (
+                                                {isSuperadmin && (
                                     <SidebarMenuItem>
                                         <SidebarMenuButton asChild>
                                             <Link href={nightwatch()}>
@@ -229,38 +305,6 @@ export function AppSidebar() {
                             </SidebarMenu>
                         </SidebarGroup>
                     )} */}
-
-                    {hasAccess('hr') && (
-                        <SidebarGroup>
-                            <SidebarGroupLabel>HR Area</SidebarGroupLabel>
-                            <SidebarMenu>
-                                <SidebarMenuItem>
-                                    <SidebarMenuButton asChild>
-                                        <Link href="/hr">
-                                            <Users2 className="h-4 w-4" />
-                                            <span>Dashboard HR</span>
-                                        </Link>
-                                    </SidebarMenuButton>
-                                </SidebarMenuItem>
-                            </SidebarMenu>
-                        </SidebarGroup>
-                    )}
-
-                    {hasAccess('operational') && (
-                        <SidebarGroup>
-                            <SidebarGroupLabel>Operational</SidebarGroupLabel>
-                            <SidebarMenu>
-                                <SidebarMenuItem>
-                                    <SidebarMenuButton asChild>
-                                        <Link href="/operational">
-                                            <Settings className="h-4 w-4" />
-                                            <span>Dashboard Operasional</span>
-                                        </Link>
-                                    </SidebarMenuButton>
-                                </SidebarMenuItem>
-                            </SidebarMenu>
-                        </SidebarGroup>
-                    )}
                 </SidebarContent>
 
                 <SidebarFooter>

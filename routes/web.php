@@ -168,6 +168,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::get('dashboard', [KpiCeoController::class, 'index'])->name('kpi.ceo.dashboard');
             Route::get('daily-reports', [KpiCeoController::class, 'dailyReports'])->name('kpi.ceo.reports');
             Route::get('alerts', [KpiCeoController::class, 'alerts'])->name('kpi.ceo.alerts');
+            Route::get('user/{user}', [KpiCeoController::class, 'userDetail'])->name('kpi.ceo.user');
+            Route::get('spv', [KpiCeoController::class, 'spvMonitoring'])->name('kpi.ceo.spv');
         });
 
         // Store Management — admin & superadmin only
