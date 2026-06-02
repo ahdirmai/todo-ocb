@@ -160,9 +160,9 @@ class KpiDashboardController extends Controller
             ];
         });
 
-        // SPV team kanban tasks (managers only)
+        // SPV team kanban tasks (managers and admins)
         $spvKanbanTasks = collect();
-        if ($isManager) {
+        if ($isManager || $isAdmin) {
             $spvKanbanTasks = Task::join('teams', 'tasks.team_id', '=', 'teams.id')
                 ->where('teams.is_spv_team', true)
                 ->whereDate('tasks.visit_date', $selectedDate)

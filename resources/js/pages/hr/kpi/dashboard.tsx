@@ -339,7 +339,7 @@ export default function HrKpiDashboard({
         )}
 
         {/* SPV Kanban Tasks (Manager Only) */}
-        {isManager && spvKanbanTasks.length > 0 && (
+        {spvKanbanTasks.length > 0 && (
           <Card>
             <CardHeader>
               <CardTitle>Task SPV Kanban ({spvKanbanTasks.length})</CardTitle>
