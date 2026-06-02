@@ -11,7 +11,7 @@ import { toast } from 'sonner';
 interface Media {
   id: number;
   name: string;
-  url: string;
+  original_url: string;
   mime_type: string;
 }
 
@@ -166,16 +166,16 @@ export function KpiTaskModal({ task, area, onClose, readOnly = false }: KpiTaskM
                         {comment.media.map((media) => (
                           <div key={media.id} className="relative">
                             {media.mime_type.startsWith('image/') ? (
-                              <a href={media.url} target="_blank" rel="noopener noreferrer">
+                              <a href={media.original_url} target="_blank" rel="noopener noreferrer">
                                 <img
-                                  src={media.url}
+                                  src={media.original_url}
                                   alt={media.name}
                                   className="h-24 w-24 object-cover rounded border hover:opacity-80 transition-opacity"
                                 />
                               </a>
                             ) : (
                               <a
-                                href={media.url}
+                                href={media.original_url}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="flex items-center gap-2 px-3 py-2 bg-background border rounded hover:bg-accent"

@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Fixed
+- **Attachments/Images Not Showing in SPV Task Detail Modal**: Media thumbnails and links were blank on Operational/HR KPI dashboard when opening SPV kanban task detail
+  - Root cause: `KpiDashboardController` serialized comment media with key `url` but `TaskDetailModal` and `KpiTaskModal` expected `original_url`
+  - Fix: changed controller output key from `url` to `original_url` in both KPI tasks and SPV kanban tasks comment serialization
+  - Updated `Media` interface in `kpi-task-modal.tsx`, `operational/kpi/dashboard.tsx`, and `hr/kpi/dashboard.tsx` to use `original_url`
+
+- **Edit Submitted KPI Daily Reports**: Managers can now edit previously submitted daily reports
+  - Added `edit()` and `update()` methods to `KpiReportController` for both HR and Operational areas
+  - Added routes `GET /hr/kpi/report/{report}/edit` and `PUT /hr/kpi/report/{report}` (same for operational)
+  - Report form updated with `isEditing` and `reportId` props — uses `put()` instead of `post()` when editing
+  - Edit button (Pencil icon) added to report list page, visible only to report owner (`canCreate`)
+  - `is_late` recalculated on update based on updated `submitted_at` timestamp
+
 - **KPI Tasks All Auto-Verified on Single Upload**: Uploading evidence for 1 task caused all other KPI tasks to be verified
   - Root cause: `verifyTaskEvidence()` had a bypass — if task creator was Manager HR/Operasional, returned `'full'` without checking evidence
   - KPI tasks are generated with `creator_id = user.id` (the manager), so ALL tasks triggered the bypass

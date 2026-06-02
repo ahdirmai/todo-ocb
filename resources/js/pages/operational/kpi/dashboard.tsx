@@ -13,7 +13,7 @@ import { useState } from 'react';
 interface Media {
   id: number;
   name: string;
-  url: string;
+  original_url: string;
   mime_type: string;
 }
 

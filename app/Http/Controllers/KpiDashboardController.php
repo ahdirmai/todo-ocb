@@ -153,7 +153,7 @@ class KpiDashboardController extends Controller
                     'media' => $comment->getMedia('documents')->map(fn ($media) => [
                         'id' => $media->id,
                         'name' => $media->file_name,
-                        'url' => $media->getUrl(),
+                        'original_url' => $media->getUrl(),
                         'mime_type' => $media->mime_type,
                     ]),
                 ]),
@@ -221,7 +221,7 @@ class KpiDashboardController extends Controller
                             'media' => $comment->getMedia('documents')->map(fn ($media) => [
                                 'id' => $media->id,
                                 'name' => $media->file_name,
-                                'url' => $media->getUrl(),
+                                'original_url' => $media->getUrl(),
                                 'mime_type' => $media->mime_type,
                             ]),
                         ]),
