@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+- **KPI Tasks All Auto-Verified on Single Upload**: Uploading evidence for 1 task caused all other KPI tasks to be verified
+  - Root cause: `verifyTaskEvidence()` had a bypass — if task creator was Manager HR/Operasional, returned `'full'` without checking evidence
+  - KPI tasks are generated with `creator_id = user.id` (the manager), so ALL tasks triggered the bypass
+  - When `calculateDailyScore()` looped through all tasks after a verify action, every task got auto-verified
+  - Fix: removed the manager creator bypass entirely — managers must upload evidence (comment + attachment) per task to get full weight
+  - Data fix: reset 67 incorrectly auto-verified KPI tasks that had no evidence
+
 ### Changed
 - **Access Control — Admin Restricted to Position Area Only**: Superadmin retains full access; admin users are now limited to the area matching their position
   - `CheckPositionAccess` middleware no longer bypasses position checks for `admin` role — only `superadmin` bypasses
