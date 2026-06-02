@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { ArrowLeft, FileText, Eye } from 'lucide-react';
+import { ArrowLeft, FileText, Eye, Pencil } from 'lucide-react';
 import { useState } from 'react';
 
 interface Report {
@@ -92,6 +92,15 @@ export default function HrKpiReports({ reports, canCreate }: Props) {
                         })} WITA
                       </p>
                     </div>
+                    <div className="flex gap-2">
+                    {canCreate && (
+                      <Link href={`/hr/kpi/report/${report.id}/edit`}>
+                        <Button variant="outline" size="sm">
+                          <Pencil className="mr-2 h-4 w-4" />
+                          Edit
+                        </Button>
+                      </Link>
+                    )}
                     <Dialog>
                       <DialogTrigger asChild>
                         <Button variant="outline" size="sm" onClick={() => setSelectedReport(report)}>
@@ -180,6 +189,7 @@ export default function HrKpiReports({ reports, canCreate }: Props) {
                         )}
                       </DialogContent>
                     </Dialog>
+                    </div>
                   </div>
                 ))}
               </div>

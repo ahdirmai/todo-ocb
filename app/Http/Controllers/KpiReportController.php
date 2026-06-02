@@ -66,6 +66,87 @@ class KpiReportController extends Controller
         ]);
     }
 
+    public function edit(KpiDailyReport $report): Response
+    {
+        $user = auth()->user();
+
+        if ($report->user_id !== $user->id) {
+            abort(403, 'Anda tidak memiliki akses ke laporan ini');
+        }
+
+        $positionName = $user->jobPosition?->name;
+        if (! in_array($positionName, ['Manager HR', 'Manager Operasional'])) {
+            abort(403, 'Hanya Manager HR dan Manager Operasional yang dapat mengedit laporan');
+        }
+
+        $template = $this->reportingService->getDailyReportTemplate($user, $report->report_date);
+        $area = $this->getPositionArea();
+
+        return Inertia::render("{$area}/kpi/report-form", [
+            'template' => $template,
+            'existingReport' => $report,
+            'canSubmit' => true,
+            'isEditing' => true,
+            'reportId' => $report->id,
+        ]);
+    }
+
+    public function update(Request $request, KpiDailyReport $report): RedirectResponse
+    {
+        $user = auth()->user();
+
+        if ($report->user_id !== $user->id) {
+            abort(403, 'Anda tidak memiliki akses ke laporan ini');
+        }
+
+        $positionName = $user->jobPosition?->name;
+        if (! in_array($positionName, ['Manager HR', 'Manager Operasional'])) {
+            abort(403, 'Hanya Manager HR dan Manager Operasional yang dapat mengedit laporan');
+        }
+
+        $area = $this->getPositionArea();
+
+        if ($area === 'operational') {
+            $validated = $request->validate([
+                'status_34_tasks' => 'required|string',
+                'spv_status' => 'nullable|string',
+                'issues_today' => 'nullable|string',
+                'follow_up' => 'nullable|string',
+                'action_plan' => 'nullable|string',
+                'attachments' => 'nullable|array',
+                'attachments.*' => 'file|mimes:jpg,jpeg,png,pdf|max:5120',
+            ]);
+        } else {
+            $validated = $request->validate([
+                'report_data' => 'required|array',
+                'report_data.absensi' => 'required|array',
+                'report_data.disiplin' => 'required|array',
+                'report_data.performance_sales' => 'required|array',
+                'report_data.compliance' => 'required|array',
+                'report_data.training' => 'required|array',
+                'report_data.recruitment' => 'required|array',
+                'action_plan' => 'nullable|string',
+                'attachments' => 'nullable|array',
+                'attachments.*' => 'file|mimes:jpg,jpeg,png,pdf|max:5120',
+            ]);
+        }
+
+        $submittedAt = now();
+        $isLate = $submittedAt->format('H:i') > '22:30';
+
+        $report->update(array_merge(
+            collect($validated)->except('attachments')->toArray(),
+            [
+                'submitted_at' => $submittedAt,
+                'is_late' => $isLate,
+            ]
+        ));
+
+        $routeName = "{$area}.kpi.reports";
+
+        return redirect()->route($routeName)->with('success', 'Laporan berhasil diperbarui');
+    }
+
     public function submit(Request $request): RedirectResponse
     {
         $user = auth()->user();

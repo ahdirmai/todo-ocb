@@ -196,6 +196,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
             Route::get('report/create', [KpiReportController::class, 'create'])->name('hr.kpi.report.create');
             Route::post('report/submit', [KpiReportController::class, 'submit'])->name('hr.kpi.report.submit');
+            Route::get('report/{report}/edit', [KpiReportController::class, 'edit'])->name('hr.kpi.report.edit');
+            Route::put('report/{report}', [KpiReportController::class, 'update'])->name('hr.kpi.report.update');
             Route::get('reports', [KpiReportController::class, 'index'])->name('hr.kpi.reports');
         });
     });
@@ -215,6 +217,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
             Route::get('report/create', [KpiReportController::class, 'create'])->name('operational.kpi.report.create');
             Route::post('report/submit', [KpiReportController::class, 'submit'])->name('operational.kpi.report.submit');
+            Route::get('report/{report}/edit', [KpiReportController::class, 'edit'])->name('operational.kpi.report.edit');
+            Route::put('report/{report}', [KpiReportController::class, 'update'])->name('operational.kpi.report.update');
             Route::get('reports', [KpiReportController::class, 'index'])->name('operational.kpi.reports');
         });
     });

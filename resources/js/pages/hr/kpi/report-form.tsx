@@ -57,10 +57,12 @@ interface Props {
   template: ReportTemplate;
   existingReport: ExistingReport | null;
   canSubmit: boolean;
+  isEditing?: boolean;
+  reportId?: string;
 }
 
-export default function HrKpiReportForm({ template, existingReport, canSubmit }: Props) {
-  const { data, setData, post, processing, errors } = useForm({
+export default function HrKpiReportForm({ template, existingReport, canSubmit, isEditing = false, reportId }: Props) {
+  const { data, setData, post, put, processing, errors } = useForm({
     report_data: existingReport?.report_data || {
       absensi: {
         hadir_tepat_waktu: '',
@@ -108,7 +110,11 @@ export default function HrKpiReportForm({ template, existingReport, canSubmit }:
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    post('/hr/kpi/report/submit');
+    if (isEditing && reportId) {
+      put(`/hr/kpi/report/${reportId}`);
+    } else {
+      post('/hr/kpi/report/submit');
+    }
   };
 
   const currentTime = new Date().toLocaleTimeString('id-ID', {
@@ -120,12 +126,12 @@ export default function HrKpiReportForm({ template, existingReport, canSubmit }:
 
   return (
     <KpiLayout area="hr">
-      <Head title="Laporan Harian CEO - Manager HR" />
+      <Head title={isEditing ? "Edit Laporan CEO - Manager HR" : "Laporan Harian CEO - Manager HR"} />
 
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Header */}
         <div>
-          <h1 className="text-2xl font-bold">DASHBOARD HARIAN MANAGER HR</h1>
+          <h1 className="text-2xl font-bold">{isEditing ? 'EDIT LAPORAN CEO - MANAGER HR' : 'DASHBOARD HARIAN MANAGER HR'}</h1>
           <p className="text-muted-foreground">
             Deadline: 22:30 WITA - Waktu Saat Ini: {currentTime} WITA
           </p>
@@ -495,7 +501,7 @@ export default function HrKpiReportForm({ template, existingReport, canSubmit }:
             </Button>
             <Button type="submit" disabled={processing || !canSubmit} className="w-full sm:w-auto">
               <Send className="mr-2 h-4 w-4" />
-              {processing ? 'Mengirim...' : 'Kirim Laporan'}
+              {processing ? 'Menyimpan...' : isEditing ? 'Update Laporan' : 'Kirim Laporan'}
             </Button>
           </div>
         </form>
