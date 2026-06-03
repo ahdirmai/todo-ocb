@@ -234,7 +234,14 @@ class KpiCeoController extends Controller
                 'completed_tasks' => $dailyScore->completed_tasks,
                 'total_tasks' => $dailyScore->total_tasks,
                 'category_breakdown' => $dailyScore->category_breakdown,
-                'task_details' => $dailyScore->task_details,
+                'task_details' => collect($dailyScore->task_details ?? [])->map(fn ($t) => [
+                    'task_id' => $t['task_id'] ?? null,
+                    'name' => $t['task_name'] ?? $t['name'] ?? '',
+                    'category' => $t['category'] ?? '',
+                    'weight' => $t['weight'] ?? 0,
+                    'is_verified' => $t['verified'] ?? $t['is_verified'] ?? false,
+                    'is_done' => $t['completed'] ?? $t['is_done'] ?? false,
+                ])->values()->toArray(),
             ] : null,
             'weeklyScore' => $weeklyScore ? [
                 'average_score' => (float) $weeklyScore->average_score,

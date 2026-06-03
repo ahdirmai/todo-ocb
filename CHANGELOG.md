@@ -4,6 +4,24 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+- **Date Picker on KPI Daily Report Forms** (HR & Operational): Managers can now choose which date to submit a report for — defaults to today, date picker capped at today
+  - `KpiReportController::create()` accepts `?date=YYYY-MM-DD` query param and passes `selectedDate` to the form
+  - `submit()` accepts `report_date` field from the form payload
+  - Both `hr/kpi/report-form.tsx` and `operational/kpi/report-form.tsx` updated with a date picker in the header
+  - Changing the date reloads the page via `router.get()` so the template data (scores, task summary) reflects the selected date
+  - Date picker hidden in edit mode (editing always targets the report's own date)
+
+### Fixed
+- **CEO User Detail — Task List Not Showing** (`/kpi/ceo/user/{user}`): Task detail list was empty even when daily scores existed
+  - Root cause: `KpiScoringService` stores task details with keys `task_name`, `completed`, `verified` but the frontend interface expected `name`, `is_done`, `is_verified`
+  - Fix: `KpiCeoController::userDetail()` now maps task_details fields to the frontend-expected format before passing to Inertia
+
+- **CEO Dashboard & User Detail — "Hari Berikutnya" Navigation Broken**: Clicking the next-day button on `/kpi/ceo/dashboard` and `/kpi/ceo/user/{user}` navigated to the wrong date
+  - Root cause: `new Date(date + 'T00:00:00').toISOString().split('T')[0]` interprets the date as local time then converts to UTC — in WITA (UTC+8) this shifts the date back 8 hours, so adding 1 day returns the same date
+  - Fix: replaced with an `addDays()` helper that constructs dates using `new Date(y, m-1, d+n)` (local time, no UTC conversion) and formats the result without `.toISOString()`
+  - `isToday` comparison also fixed to use local browser date instead of UTC-derived string
+
 ### Fixed
 - **Attachments/Images Not Showing in SPV Task Detail Modal**: Media thumbnails and links were blank on Operational/HR KPI dashboard when opening SPV kanban task detail
   - Root cause: `KpiDashboardController` serialized comment media with key `url` but `TaskDetailModal` and `KpiTaskModal` expected `original_url`

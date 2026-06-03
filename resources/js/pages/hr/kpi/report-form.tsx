@@ -1,12 +1,12 @@
 import KpiLayout from '@/layouts/kpi-layout';
-import { Head, useForm } from '@inertiajs/react';
+import { Head, useForm, router } from '@inertiajs/react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Clock, Send, Paperclip, X } from 'lucide-react';
+import { Clock, Send, Paperclip, X, Calendar } from 'lucide-react';
 
 interface ReportTemplate {
   report_date: string;
@@ -59,10 +59,12 @@ interface Props {
   canSubmit: boolean;
   isEditing?: boolean;
   reportId?: string;
+  selectedDate?: string;
 }
 
-export default function HrKpiReportForm({ template, existingReport, canSubmit, isEditing = false, reportId }: Props) {
+export default function HrKpiReportForm({ template, existingReport, canSubmit, isEditing = false, reportId, selectedDate }: Props) {
   const { data, setData, post, put, processing, errors } = useForm({
+    report_date: selectedDate || template.report_date,
     report_data: existingReport?.report_data || {
       absensi: {
         hadir_tepat_waktu: '',
@@ -95,6 +97,11 @@ export default function HrKpiReportForm({ template, existingReport, canSubmit, i
     action_plan: existingReport?.action_plan || '',
     attachments: [] as File[],
   });
+
+  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newDate = e.target.value;
+    router.get('/hr/kpi/report/create', { date: newDate }, { preserveState: false });
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -130,11 +137,27 @@ export default function HrKpiReportForm({ template, existingReport, canSubmit, i
 
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Header */}
-        <div>
-          <h1 className="text-2xl font-bold">{isEditing ? 'EDIT LAPORAN CEO - MANAGER HR' : 'DASHBOARD HARIAN MANAGER HR'}</h1>
-          <p className="text-muted-foreground">
-            Deadline: 22:30 WITA - Waktu Saat Ini: {currentTime} WITA
-          </p>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold">{isEditing ? 'EDIT LAPORAN CEO - MANAGER HR' : 'DASHBOARD HARIAN MANAGER HR'}</h1>
+            <p className="text-muted-foreground">
+              Deadline: 22:30 WITA - Waktu Saat Ini: {currentTime} WITA
+            </p>
+          </div>
+          {!isEditing && (
+            <div className="flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+              <Label htmlFor="date-picker" className="text-sm text-muted-foreground whitespace-nowrap">Pilih Tanggal:</Label>
+              <Input
+                id="date-picker"
+                type="date"
+                value={data.report_date}
+                max={new Date().toISOString().split('T')[0]}
+                onChange={handleDateChange}
+                className="w-auto"
+              />
+            </div>
+          )}
         </div>
 
         {/* Warning if near deadline */}

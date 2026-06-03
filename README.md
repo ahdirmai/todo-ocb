@@ -30,7 +30,7 @@ Laravel-based task management system with advanced KPI tracking, position-based 
 - **Evidence Verification**: Three-tier scoring (100% full evidence, 30% partial, 0% none)
 - **Multi-Period Aggregation**: Daily → Weekly (7-day avg) → Monthly (4-week avg + bonus)
 - **Automated Grading**: A+ to D grades with specific thresholds
-- **CEO Reporting**: Daily report submission and editing with deadline tracking (22:30 WITA)
+- **CEO Reporting**: Daily report submission and editing with deadline tracking (22:30 WITA); date picker allows submitting for any past date
 - **CEO Monitoring Area**: Executive dashboard for superadmin — daily scores, per-user drill-down, SPV task monitoring with clickable task detail modal (comments + files with thumbnails), critical alerts
 - **Dashboard Analytics**: Real-time score cards, trends, and category breakdowns
 
@@ -207,8 +207,8 @@ All KPI operations use **Asia/Makassar (WITA, UTC+8)** timezone.
 **Date Handling**: 
 - Store visit dates (`visit_date`) and due dates (`due_date`) are stored as date-only values (Y-m-d format) to prevent timezone conversion issues
 - Backend transmits raw database values instead of Carbon instances to ensure consistency
-- Frontend date comparisons use local browser time, not UTC (e.g., `isToday` check)
-- This prevents UTC/local timezone mismatches that could disable UI elements incorrectly
+- Frontend date comparisons use local browser time, not UTC — use `addDays(dateStr, n)` helper (splits YYYY-MM-DD, uses `new Date(y, m-1, d+n)`) instead of `.toISOString()` for date arithmetic to avoid the UTC-8 shift in WITA browsers
+- `isToday` check derived from `new Date()` local getFullYear/Month/Date, not `.toISOString()`
 
 ## License
 

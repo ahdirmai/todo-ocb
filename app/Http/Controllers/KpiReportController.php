@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\KpiDailyReport;
 use App\Services\KpiReportingService;
+use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -36,7 +37,7 @@ class KpiReportController extends Controller
         };
     }
 
-    public function create()
+    public function create(Request $request)
     {
         $user = auth()->user();
 
@@ -49,12 +50,14 @@ class KpiReportController extends Controller
                 ->with('error', 'Hanya Manager HR dan Manager Operasional yang dapat membuat laporan');
         }
 
-        $today = now();
+        $selectedDate = $request->query('date')
+            ? Carbon::createFromFormat('Y-m-d', $request->query('date'))->startOfDay()
+            : now()->startOfDay();
 
-        $template = $this->reportingService->getDailyReportTemplate($user, $today);
+        $template = $this->reportingService->getDailyReportTemplate($user, $selectedDate);
 
         $existingReport = KpiDailyReport::where('user_id', $user->id)
-            ->where('report_date', $today->toDateString())
+            ->where('report_date', $selectedDate->toDateString())
             ->first();
 
         $area = $this->getPositionArea();
@@ -63,6 +66,7 @@ class KpiReportController extends Controller
             'template' => $template,
             'existingReport' => $existingReport,
             'canSubmit' => true,
+            'selectedDate' => $selectedDate->toDateString(),
         ]);
     }
 
@@ -189,8 +193,10 @@ class KpiReportController extends Controller
         $submittedAt = now();
         $isLate = $submittedAt->format('H:i') > '22:30';
 
+        $reportDate = $request->input('report_date', now()->toDateString());
+
         $this->reportingService->createDailyReport($user, array_merge($validated, [
-            'report_date' => now()->toDateString(),
+            'report_date' => $reportDate,
             'submitted_at' => $submittedAt,
             'is_late' => $isLate,
         ]));

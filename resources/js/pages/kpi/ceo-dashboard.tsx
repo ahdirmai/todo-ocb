@@ -136,16 +136,20 @@ export default function KpiCeoDashboard({
     date,
     positionFilter,
 }: Props) {
-    const today = new Date().toISOString().split('T')[0];
-    const isToday = date === today;
+    const addDays = (dateStr: string, days: number): string => {
+        const [y, m, d] = dateStr.split('-').map(Number);
+        const dt = new Date(y, m - 1, d + days);
+        return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+    };
 
-    const prevDate = new Date(date + 'T00:00:00');
-    prevDate.setDate(prevDate.getDate() - 1);
-    const prevDateStr = prevDate.toISOString().split('T')[0];
+    const todayLocal = (() => {
+        const n = new Date();
+        return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}-${String(n.getDate()).padStart(2, '0')}`;
+    })();
 
-    const nextDate = new Date(date + 'T00:00:00');
-    nextDate.setDate(nextDate.getDate() + 1);
-    const nextDateStr = nextDate.toISOString().split('T')[0];
+    const isToday = date === todayLocal;
+    const prevDateStr = addDays(date, -1);
+    const nextDateStr = addDays(date, 1);
 
     const averageScore =
         allScores.length > 0 ? allScores.reduce((sum, s) => sum + s.total_score, 0) / allScores.length : 0;

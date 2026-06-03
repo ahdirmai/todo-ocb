@@ -97,14 +97,20 @@ export default function CeoUserDetail({
     recentScores,
     dailyReport,
 }: Props) {
-    const today = new Date().toISOString().split('T')[0];
-    const isToday = date === today;
+    const addDays = (dateStr: string, days: number): string => {
+        const [y, m, d] = dateStr.split('-').map(Number);
+        const dt = new Date(y, m - 1, d + days);
+        return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+    };
 
-    const prevDate = new Date(date + 'T00:00:00');
-    prevDate.setDate(prevDate.getDate() - 1);
+    const todayLocal = (() => {
+        const n = new Date();
+        return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}-${String(n.getDate()).padStart(2, '0')}`;
+    })();
 
-    const nextDate = new Date(date + 'T00:00:00');
-    nextDate.setDate(nextDate.getDate() + 1);
+    const isToday = date === todayLocal;
+    const prevDateStr = addDays(date, -1);
+    const nextDateStr = addDays(date, 1);
 
     const navigate = (d: string) => {
         router.get(`/kpi/ceo/user/${user.id}`, { date: d }, { preserveScroll: true });
@@ -178,7 +184,7 @@ export default function CeoUserDetail({
                             <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => navigate(prevDate.toISOString().split('T')[0])}
+                                onClick={() => navigate(prevDateStr)}
                                 className="shrink-0"
                             >
                                 <ChevronLeft className="h-4 w-4" />
@@ -202,7 +208,7 @@ export default function CeoUserDetail({
                             <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => navigate(nextDate.toISOString().split('T')[0])}
+                                onClick={() => navigate(nextDateStr)}
                                 disabled={isToday}
                                 className="shrink-0"
                             >
