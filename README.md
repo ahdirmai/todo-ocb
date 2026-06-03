@@ -47,6 +47,7 @@ Laravel-based task management system with advanced KPI tracking, position-based 
 - **Database**: MySQL/PostgreSQL
 - **Testing**: Pest PHP 4
 - **Dev Tools**: Laravel Herd, Vite, Pint
+- **Log Viewer**: [Opcodes Log Viewer](https://log-viewer.opcodes.io) — accessible at `/log-viewer`
 
 ## Installation
 

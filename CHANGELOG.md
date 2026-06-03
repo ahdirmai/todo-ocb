@@ -5,6 +5,8 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- **Log Viewer**: Installed `opcodesio/log-viewer` v3.24 — accessible at `/log-viewer` for viewing application logs via a browser UI
+
 - **Date Picker on KPI Daily Report Forms** (HR & Operational): Managers can now choose which date to submit a report for — defaults to today, date picker capped at today
   - `KpiReportController::create()` accepts `?date=YYYY-MM-DD` query param and passes `selectedDate` to the form
   - `submit()` accepts `report_date` field from the form payload
