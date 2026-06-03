@@ -15,6 +15,7 @@ use Illuminate\Auth\Events\Logout;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 
@@ -36,6 +37,7 @@ class AppServiceProvider extends ServiceProvider
         $this->configureDefaults();
         $this->registerObservers();
         $this->registerAuthListeners();
+        $this->registerLogViewerGate();
     }
 
     /**
@@ -68,6 +70,11 @@ class AppServiceProvider extends ServiceProvider
         Task::observe(TaskObserver::class);
         Comment::observe(CommentObserver::class);
         Team::observe(TeamObserver::class);
+    }
+
+    protected function registerLogViewerGate(): void
+    {
+        Gate::define('viewLogViewer', fn ($user): bool => $user->hasRole('superadmin'));
     }
 
     /**
