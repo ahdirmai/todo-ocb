@@ -35,23 +35,25 @@ class KpiCeoController extends Controller
         }
 
         $allScores = $scoreQuery->orderBy('total_score', 'desc')->get()
+            ->filter(fn ($s) => $s->user->jobPosition !== null)
             ->map(fn ($s) => [
                 'id' => $s->id,
                 'user' => [
                     'id' => $s->user->id,
                     'name' => $s->user->name,
                     'email' => $s->user->email,
-                    'job_position' => $s->user->jobPosition ? [
+                    'job_position' => [
                         'id' => $s->user->jobPosition->id,
                         'name' => $s->user->jobPosition->name,
-                    ] : null,
+                    ],
                 ],
                 'total_score' => (float) $s->total_score,
                 'grade' => $s->grade,
                 'verified_tasks' => $s->verified_tasks,
                 'total_tasks' => $s->total_tasks,
                 'completed_tasks' => $s->completed_tasks,
-            ]);
+            ])
+            ->values();
 
         $gradeDistribution = KpiDailyScore::where('score_date', $date)
             ->select('grade', DB::raw('count(*) as count'))
