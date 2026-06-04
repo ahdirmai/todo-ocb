@@ -16,18 +16,32 @@ class KpiScoringService
     public function calculateDailyScore(User $user, CarbonInterface $date): KpiDailyScore
     {
         $scoreDate = $date->toDateString();
-        $team = $user->teams()->where('is_spv_team', true)->first();
 
-        if (! $team || ! $user->position_id) {
-            throw new \Exception('User must have position and be in SPV team');
+        if (! $user->position_id) {
+            throw new \Exception('User must have position');
         }
 
-        $tasks = Task::where('is_kpi_task', true)
-            ->where('team_id', $team->id)
+        $positionName = $user->jobPosition?->name;
+        $isManager = in_array($positionName, ['Manager HR', 'Manager Operasional']);
+
+        $team = $user->teams()->where('is_spv_team', true)->first();
+
+        if (! $team && ! $isManager) {
+            throw new \Exception('User must be in SPV team');
+        }
+
+        $tasksQuery = Task::where('is_kpi_task', true)
             ->where('creator_id', $user->id)
             ->whereDate('created_at', $scoreDate)
-            ->with(['kpiDefinition', 'comments'])
-            ->get();
+            ->with(['kpiDefinition', 'comments']);
+
+        if ($team) {
+            $tasksQuery->where('team_id', $team->id);
+        } else {
+            $tasksQuery->whereNull('team_id');
+        }
+
+        $tasks = $tasksQuery->get();
 
         $totalTasks = $tasks->count();
         $completedTasks = 0;
@@ -102,7 +116,7 @@ class KpiScoringService
             ],
             [
                 'position_id' => $user->position_id,
-                'team_id' => $team->id,
+                'team_id' => $team?->id,
                 'total_score' => $totalScore,
                 'completed_weight' => $completedWeight,
                 'total_weight' => 100,

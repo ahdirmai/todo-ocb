@@ -400,7 +400,7 @@ class KpiDashboardController extends Controller
         try {
             $this->scoringService->calculateDailyScore($user, $taskDate);
         } catch (\Exception $e) {
-            // Daily score calculation might fail if user is not in SPV team or has no position
+            report($e);
         }
 
         // Calculate weekly score if there are daily scores

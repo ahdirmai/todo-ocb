@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Fixed
+- **KPI Score Not Updating After Verify for Manager Without SPV Team**: Manager HR/Operasional on production not in SPV team — score silently skipped, never saved
+  - Root cause: `calculateDailyScore()` threw if user had no SPV team; task query used `team_id = spvTeam.id` but manager tasks are created with `team_id = null`; `kpi_daily_scores.team_id` was NOT NULL so saving without team would fail anyway
+  - Fix: `calculateDailyScore()` now allows managers (Manager HR / Manager Operasional) without SPV team, queries tasks with `WHERE team_id IS NULL` for teamless managers
+  - Migration: `kpi_daily_scores.team_id` made nullable
+
 - **KPI Task Verify — 500 Error for Non-SPV Users** (`POST /hr/kpi/tasks/{task}/verify`): Admin users not in SPV team got a 500 when verifying
   - Root cause: `calculateDailyScore()` throws `\Exception('User must have position and be in SPV team')` — the call in `verifyTask()` was not wrapped in try-catch unlike weekly/monthly score calls
   - Fix: wrapped `calculateDailyScore()` call in try-catch in `KpiDashboardController::verifyTask()`
