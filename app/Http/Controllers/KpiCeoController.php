@@ -60,11 +60,11 @@ class KpiCeoController extends Controller
             ->pluck('count', 'grade');
 
         $hrScores = $allScores->filter(
-            fn ($s) => $s['user']['job_position']['name'] === 'Manager HR'
+            fn ($s) => ($s['user']['job_position']['name'] ?? null) === 'Manager HR'
         )->values();
 
         $opsScores = $allScores->filter(
-            fn ($s) => $s['user']['job_position']['name'] === 'Manager Operasional'
+            fn ($s) => ($s['user']['job_position']['name'] ?? null) === 'Manager Operasional'
         )->values();
 
         $criticalAlerts = $allScores->filter(fn ($s) => $s['grade'] === 'D')->values();
@@ -224,9 +224,38 @@ class KpiCeoController extends Controller
             'job_position' => $user->jobPosition ? ['id' => $user->jobPosition->id, 'name' => $user->jobPosition->name] : null,
         ];
 
+        $kpiTasks = Task::where('is_kpi_task', true)
+            ->where('creator_id', $user->id)
+            ->whereDate('created_at', $date)
+            ->with([
+                'kpiDefinition',
+                'comments' => fn ($q) => $q->with(['user', 'media'])->orderBy('created_at'),
+            ])
+            ->get()
+            ->map(fn ($task) => [
+                'id' => $task->id,
+                'title' => $task->title,
+                'description' => $task->description,
+                'is_verified' => $task->is_verified,
+                'comments' => $task->comments->map(fn ($c) => [
+                    'id' => $c->id,
+                    'content' => $c->content,
+                    'created_at' => $c->created_at->toISOString(),
+                    'parent_id' => $c->parent_id,
+                    'user' => $c->user ? ['id' => $c->user->id, 'name' => $c->user->name] : null,
+                    'media' => $c->media->map(fn ($m) => [
+                        'id' => $m->id,
+                        'file_name' => $m->file_name,
+                        'mime_type' => $m->mime_type,
+                        'original_url' => $m->getUrl(),
+                    ]),
+                ]),
+            ]);
+
         return Inertia::render('kpi/ceo-user-detail', [
             'user' => $userData,
             'date' => $date,
+            'tasks' => $kpiTasks,
             'dailyScore' => $dailyScore ? [
                 'total_score' => (float) $dailyScore->total_score,
                 'grade' => $dailyScore->grade,

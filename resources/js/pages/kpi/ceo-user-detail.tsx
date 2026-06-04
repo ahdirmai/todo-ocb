@@ -1,6 +1,7 @@
 import CeoLayout from '@/layouts/ceo-layout';
 import { Head, Link, router } from '@inertiajs/react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { GradeBadge } from '@/components/kpi/grade-badge';
 import { ScoreCard } from '@/components/kpi/score-card';
 import { Button } from '@/components/ui/button';
@@ -13,7 +14,34 @@ import {
     Circle,
     TrendingUp,
     Clock,
+    Paperclip,
+    MessageSquare,
 } from 'lucide-react';
+import { useState } from 'react';
+
+interface TaskMedia {
+    id: number;
+    file_name: string;
+    mime_type: string;
+    original_url: string;
+}
+
+interface TaskComment {
+    id: string;
+    content: string;
+    created_at: string;
+    parent_id: string | null;
+    user: { id: number; name: string } | null;
+    media: TaskMedia[];
+}
+
+interface KpiTask {
+    id: string;
+    title: string;
+    description: string | null;
+    is_verified: boolean;
+    comments: TaskComment[];
+}
 
 interface UserData {
     id: number;
@@ -81,6 +109,7 @@ interface DailyReport {
 interface Props {
     user: UserData;
     date: string;
+    tasks: KpiTask[];
     dailyScore: DailyScore | null;
     weeklyScore: WeeklyScore | null;
     monthlyScore: MonthlyScore | null;
@@ -88,15 +117,110 @@ interface Props {
     dailyReport: DailyReport | null;
 }
 
+function isImage(mime: string) {
+    return mime?.startsWith('image/');
+}
+
+function TaskDetailModal({ task, onClose }: { task: KpiTask; onClose: () => void }) {
+    const topComments = task.comments
+        .filter((c) => !c.parent_id)
+        .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+
+    return (
+        <Dialog open onOpenChange={(v) => !v && onClose()}>
+            <DialogContent className="max-h-[90vh] w-full max-w-2xl overflow-y-auto">
+                <DialogHeader>
+                    <DialogTitle className="pr-6 text-base font-semibold leading-tight">
+                        {task.title}
+                    </DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 mt-1">
+                    <div className="flex gap-2">
+                        {task.is_verified ? (
+                            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300 gap-1">
+                                <CheckCircle2 className="h-3 w-3" /> Terverifikasi
+                            </Badge>
+                        ) : (
+                            <Badge variant="outline" className="bg-gray-50 text-gray-600 gap-1">
+                                <Circle className="h-3 w-3" /> Belum Selesai
+                            </Badge>
+                        )}
+                    </div>
+
+                    {task.description && (
+                        <div
+                            className="prose prose-sm max-w-none text-sm [&_strong]:font-semibold [&_p]:mb-2 [&_ul]:list-disc [&_ul]:pl-5 [&_li]:text-muted-foreground"
+                            dangerouslySetInnerHTML={{ __html: task.description }}
+                        />
+                    )}
+
+                    <div className="border-t pt-4">
+                        <p className="mb-3 flex items-center gap-1 text-sm font-semibold">
+                            <MessageSquare className="h-4 w-4" />
+                            Bukti ({task.comments.length})
+                        </p>
+                        {topComments.length === 0 ? (
+                            <p className="text-sm text-muted-foreground">Belum ada bukti diunggah.</p>
+                        ) : (
+                            <div className="space-y-4">
+                                {topComments.map((c) => (
+                                    <div key={c.id} className="rounded-lg border bg-muted/40 p-3 space-y-2">
+                                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                            <span className="font-medium text-foreground">{c.user?.name ?? 'Unknown'}</span>
+                                            <span>·</span>
+                                            <span>
+                                                {new Date(c.created_at).toLocaleString('id-ID', {
+                                                    day: 'numeric',
+                                                    month: 'short',
+                                                    hour: '2-digit',
+                                                    minute: '2-digit',
+                                                })}
+                                            </span>
+                                        </div>
+                                        <p className="text-sm"
+                                            dangerouslySetInnerHTML={{ __html: c.content }}
+                                        />
+                                        {c.media.length > 0 && (
+                                            <div className="flex flex-wrap gap-2 mt-1">
+                                                {c.media.map((m) =>
+                                                    isImage(m.mime_type) ? (
+                                                        <a key={m.id} href={m.original_url} target="_blank" rel="noreferrer"
+                                                            className="block h-20 w-20 overflow-hidden rounded border transition hover:ring-2 hover:ring-primary/50">
+                                                            <img src={m.original_url} alt={m.file_name} className="h-full w-full object-cover" />
+                                                        </a>
+                                                    ) : (
+                                                        <a key={m.id} href={m.original_url} target="_blank" rel="noreferrer"
+                                                            className="flex items-center gap-1 rounded bg-primary/10 px-2 py-1 text-[10px] font-medium text-primary hover:underline">
+                                                            <Paperclip className="h-3 w-3" />
+                                                            <span className="max-w-[120px] truncate">{m.file_name}</span>
+                                                        </a>
+                                                    ),
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
 export default function CeoUserDetail({
     user,
     date,
+    tasks,
     dailyScore,
     weeklyScore,
     monthlyScore,
     recentScores,
     dailyReport,
 }: Props) {
+    const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+    const selectedTask = tasks.find((t) => t.id === selectedTaskId) ?? null;
     const addDays = (dateStr: string, days: number): string => {
         const [y, m, d] = dateStr.split('-').map(Number);
         const dt = new Date(y, m - 1, d + days);
@@ -363,7 +487,8 @@ export default function CeoUserDetail({
                                             {tasks.map((task) => (
                                                 <div
                                                     key={task.task_id}
-                                                    className="flex items-start gap-3 p-3 rounded-lg border"
+                                                    className="flex items-start gap-3 p-3 rounded-lg border cursor-pointer hover:bg-accent transition-colors"
+                                                    onClick={() => task.task_id && setSelectedTaskId(task.task_id)}
                                                 >
                                                     <div className="mt-0.5">
                                                         {task.is_verified ? (
@@ -511,6 +636,10 @@ export default function CeoUserDetail({
                     </Card>
                 )}
             </div>
+
+            {selectedTask && (
+                <TaskDetailModal task={selectedTask} onClose={() => setSelectedTaskId(null)} />
+            )}
         </CeoLayout>
     );
 }

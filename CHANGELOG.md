@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Fixed
+- **CEO Dashboard — 500 Error When User Removed from Position**: Filtering scores by position threw when `job_position` was null
+  - Root cause: `$s['user']['job_position']['name']` — no null guard on `job_position`
+  - Fix: use `($s['user']['job_position']['name'] ?? null)` in both `hrScores` and `opsScores` filters in `KpiCeoController::index()`
+
+- **CEO User Detail — Task Rows Not Openable**: Clicking tasks on `/kpi/ceo/user/{user}` did nothing — rows were static divs with no modal
+  - Fix: `KpiCeoController::userDetail()` now loads actual `Task` models for the date with comments and media, passed as `tasks` prop
+  - Added read-only `TaskDetailModal` component and `selectedTaskId` state to `ceo-user-detail.tsx`
+  - Task rows are now clickable (cursor-pointer + hover) and open the modal showing comments and file attachments
+
 - **KPI Score Not Updating After Verify for Manager Without SPV Team**: Manager HR/Operasional on production not in SPV team — score silently skipped, never saved
   - Root cause: `calculateDailyScore()` threw if user had no SPV team; task query used `team_id = spvTeam.id` but manager tasks are created with `team_id = null`; `kpi_daily_scores.team_id` was NOT NULL so saving without team would fail anyway
   - Fix: `calculateDailyScore()` now allows managers (Manager HR / Manager Operasional) without SPV team, queries tasks with `WHERE team_id IS NULL` for teamless managers
