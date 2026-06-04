@@ -26,7 +26,8 @@ class KpiCeoController extends Controller
         $positionFilter = $request->input('position', 'all');
 
         $scoreQuery = KpiDailyScore::with('user.jobPosition')
-            ->where('score_date', $date);
+            ->where('score_date', $date)
+            ->whereHas('user', fn ($q) => $q->whereNotNull('position_id'));
 
         if ($positionFilter === 'hr') {
             $scoreQuery->whereHas('user.jobPosition', fn ($q) => $q->where('name', 'Manager HR'));
@@ -35,17 +36,16 @@ class KpiCeoController extends Controller
         }
 
         $allScores = $scoreQuery->orderBy('total_score', 'desc')->get()
-            ->filter(fn ($s) => $s->user->jobPosition !== null)
             ->map(fn ($s) => [
                 'id' => $s->id,
                 'user' => [
                     'id' => $s->user->id,
                     'name' => $s->user->name,
                     'email' => $s->user->email,
-                    'job_position' => [
+                    'job_position' => $s->user->jobPosition ? [
                         'id' => $s->user->jobPosition->id,
                         'name' => $s->user->jobPosition->name,
-                    ],
+                    ] : null,
                 ],
                 'total_score' => (float) $s->total_score,
                 'grade' => $s->grade,
