@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+- **KPI Task Verify — 500 Error for Non-SPV Users** (`POST /hr/kpi/tasks/{task}/verify`): Admin users not in SPV team got a 500 when verifying
+  - Root cause: `calculateDailyScore()` throws `\Exception('User must have position and be in SPV team')` — the call in `verifyTask()` was not wrapped in try-catch unlike weekly/monthly score calls
+  - Fix: wrapped `calculateDailyScore()` call in try-catch in `KpiDashboardController::verifyTask()`
+
+- **Comment Content Too Long — 500 Instead of Validation Error**: Submitting oversized comment content hit a DB-level `SQLSTATE[22001]` (Data too long for column `content`) causing unhandled 500
+  - Fix: added `max:10000` validation rule to `content` in `CommentController::store()`
+  - `kpi-task-modal.tsx` now shows content and generic error toast messages (previously only handled `attachments` errors)
+
 ### Added
 - **Log Viewer**: Installed `opcodesio/log-viewer` v3.24 — accessible at `/log-viewer` for viewing application logs via a browser UI
 

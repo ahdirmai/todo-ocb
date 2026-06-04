@@ -21,7 +21,7 @@ class CommentController extends Controller
     public function store(Request $request, Task $task)
     {
         $validated = $request->validate([
-            'content' => 'required|string',
+            'content' => 'required|string|max:10000',
             'parent_id' => 'nullable|exists:comments,id',
             'document_sop_step_id' => 'nullable|exists:document_sop_steps,id',
             'attachments' => 'nullable|array',

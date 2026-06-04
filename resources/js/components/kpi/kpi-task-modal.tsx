@@ -102,6 +102,10 @@ export function KpiTaskModal({ task, area, onClose, readOnly = false }: KpiTaskM
           setSubmitting(false);
           if (errors.attachments) {
             toast.error(errors.attachments);
+          } else if (errors.content) {
+            toast.error(errors.content);
+          } else {
+            toast.error('Gagal mengunggah bukti, silakan coba lagi.');
           }
         },
       }

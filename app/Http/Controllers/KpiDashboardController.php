@@ -397,7 +397,11 @@ class KpiDashboardController extends Controller
         $taskDate = $task->created_at;
 
         // Calculate daily score
-        $this->scoringService->calculateDailyScore($user, $taskDate);
+        try {
+            $this->scoringService->calculateDailyScore($user, $taskDate);
+        } catch (\Exception $e) {
+            // Daily score calculation might fail if user is not in SPV team or has no position
+        }
 
         // Calculate weekly score if there are daily scores
         $weekStart = $taskDate->copy()->startOfWeek(Carbon::MONDAY);
