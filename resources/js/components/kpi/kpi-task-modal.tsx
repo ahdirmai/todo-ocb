@@ -1,5 +1,5 @@
-import { router } from '@inertiajs/react';
-import { Paperclip, CheckCircle2, Send, Download } from 'lucide-react';
+import { router, usePage } from '@inertiajs/react';
+import { Paperclip, CheckCircle2, Send, Download, Pencil, Trash2, X, Check } from 'lucide-react';
 import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -20,6 +20,7 @@ interface Comment {
   content: string;
   created_at: string;
   user: {
+    id: number;
     name: string;
     email: string;
   };
@@ -48,12 +49,70 @@ interface KpiTaskModalProps {
 }
 
 export function KpiTaskModal({ task, area, onClose, readOnly = false }: KpiTaskModalProps) {
+  const { auth } = usePage().props as any;
+  const currentUserId = auth?.user?.id;
+
   const [commentText, setCommentText] = useState('');
   const [attachments, setAttachments] = useState<File[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [editContent, setEditContent] = useState('');
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null);
+
   if (!task) return null;
+
+  const startEdit = (comment: Comment) => {
+    setEditingCommentId(comment.id);
+    setEditContent(comment.content);
+  };
+
+  const cancelEdit = () => {
+    setEditingCommentId(null);
+    setEditContent('');
+  };
+
+  const saveEdit = (commentId: string) => {
+    if (!editContent.trim()) return;
+    setSavingEdit(true);
+    router.put(
+      `/comments/${commentId}`,
+      { content: editContent.trim() },
+      {
+        preserveScroll: true,
+        onSuccess: () => {
+          setSavingEdit(false);
+          setEditingCommentId(null);
+          setEditContent('');
+          toast.success('Komentar diperbarui');
+        },
+        onError: () => {
+          setSavingEdit(false);
+          toast.error('Gagal memperbarui komentar');
+        },
+      },
+    );
+  };
+
+  const deleteComment = (commentId: string) => {
+    setDeletingCommentId(commentId);
+    router.delete(
+      `/comments/${commentId}`,
+      {
+        preserveScroll: true,
+        onSuccess: () => {
+          setDeletingCommentId(null);
+          toast.success('Bukti dihapus');
+        },
+        onError: () => {
+          setDeletingCommentId(null);
+          toast.error('Gagal menghapus bukti');
+        },
+      },
+    );
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -147,54 +206,114 @@ export function KpiTaskModal({ task, area, onClose, readOnly = false }: KpiTaskM
             <div className="border-t pt-6">
               <h3 className="font-semibold mb-4">Bukti yang Telah Diunggah ({task.comments.length})</h3>
               <div className="space-y-4">
-                {task.comments.map((comment) => (
-                  <div key={comment.id} className="bg-muted/50 rounded-lg p-4 space-y-3">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <p className="font-medium text-sm">{comment.user.name}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {new Date(comment.created_at).toLocaleString('id-ID', {
-                            day: 'numeric',
-                            month: 'short',
-                            year: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })}
-                        </p>
-                      </div>
-                    </div>
-                    <p className="text-sm">{comment.content}</p>
+                {task.comments.map((comment) => {
+                  const isOwner = comment.user && currentUserId && comment.user.id === currentUserId;
+                  const isEditing = editingCommentId === comment.id;
+                  const isDeleting = deletingCommentId === comment.id;
 
-                    {comment.media && comment.media.length > 0 && (
-                      <div className="flex flex-wrap gap-2">
-                        {comment.media.map((media) => (
-                          <div key={media.id} className="relative">
-                            {media.mime_type.startsWith('image/') ? (
-                              <a href={media.original_url} target="_blank" rel="noopener noreferrer">
-                                <img
-                                  src={media.original_url}
-                                  alt={media.name}
-                                  className="h-24 w-24 object-cover rounded border hover:opacity-80 transition-opacity"
-                                />
-                              </a>
-                            ) : (
-                              <a
-                                href={media.original_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex items-center gap-2 px-3 py-2 bg-background border rounded hover:bg-accent"
-                              >
-                                <Paperclip className="h-4 w-4" />
-                                <span className="text-sm truncate max-w-[100px] sm:max-w-[150px]">{media.name}</span>
-                                <Download className="h-3 w-3" />
-                              </a>
-                            )}
+                  return (
+                    <div key={comment.id} className="bg-muted/50 rounded-lg p-4 space-y-3">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <p className="font-medium text-sm">{comment.user.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(comment.created_at).toLocaleString('id-ID', {
+                              day: 'numeric',
+                              month: 'short',
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
+                          </p>
+                        </div>
+                        {isOwner && !isEditing && (
+                          <div className="flex items-center gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 w-7 p-0"
+                              onClick={() => startEdit(comment)}
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+                              onClick={() => deleteComment(comment.id)}
+                              disabled={isDeleting}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
                           </div>
-                        ))}
+                        )}
                       </div>
-                    )}
-                  </div>
-                ))}
+
+                      {isEditing ? (
+                        <div className="space-y-2">
+                          <Textarea
+                            value={editContent}
+                            onChange={(e) => setEditContent(e.target.value)}
+                            rows={3}
+                            className="resize-none text-sm"
+                          />
+                          <div className="flex items-center gap-2">
+                            <Button
+                              size="sm"
+                              onClick={() => saveEdit(comment.id)}
+                              disabled={savingEdit || !editContent.trim()}
+                              className="h-7 text-xs"
+                            >
+                              <Check className="h-3 w-3 mr-1" />
+                              Simpan
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={cancelEdit}
+                              disabled={savingEdit}
+                              className="h-7 text-xs"
+                            >
+                              <X className="h-3 w-3 mr-1" />
+                              Batal
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-sm">{comment.content}</p>
+                      )}
+
+                      {comment.media && comment.media.length > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                          {comment.media.map((media) => (
+                            <div key={media.id} className="relative">
+                              {media.mime_type.startsWith('image/') ? (
+                                <a href={media.original_url} target="_blank" rel="noopener noreferrer">
+                                  <img
+                                    src={media.original_url}
+                                    alt={media.name}
+                                    className="h-24 w-24 object-cover rounded border hover:opacity-80 transition-opacity"
+                                  />
+                                </a>
+                              ) : (
+                                <a
+                                  href={media.original_url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="flex items-center gap-2 px-3 py-2 bg-background border rounded hover:bg-accent"
+                                >
+                                  <Paperclip className="h-4 w-4" />
+                                  <span className="text-sm truncate max-w-[100px] sm:max-w-[150px]">{media.name}</span>
+                                  <Download className="h-3 w-3" />
+                                </a>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}

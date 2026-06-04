@@ -123,7 +123,7 @@ class CommentController extends Controller
         abort_unless($comment->user_id === auth()->id(), 403);
 
         $validated = $request->validate([
-            'content' => 'required|string',
+            'content' => 'required|string|max:10000',
             'new_attachments' => 'nullable|array',
             'new_attachments.*' => 'file|max:'.$this->attachmentMaxKilobytes(),
             'new_attachment_dates' => 'nullable|array',

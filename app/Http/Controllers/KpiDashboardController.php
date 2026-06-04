@@ -147,8 +147,9 @@ class KpiDashboardController extends Controller
                     'content' => $comment->content,
                     'created_at' => $comment->created_at->toDateTimeString(),
                     'user' => [
-                        'name' => $comment->user->name,
-                        'email' => $comment->user->email,
+                        'id' => $comment->user?->id,
+                        'name' => $comment->user?->name,
+                        'email' => $comment->user?->email,
                     ],
                     'media' => $comment->getMedia('documents')->map(fn ($media) => [
                         'id' => $media->id,
