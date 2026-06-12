@@ -235,12 +235,12 @@ class KpiReportController extends Controller
         return redirect()->route($routeName)->with('success', $message);
     }
 
-    public function index(): Response
+    public function index(Request $request): Response
     {
         $user = auth()->user();
         $positionName = $user->jobPosition?->name;
 
-        // Managers see only their own reports; admins see all for their area
+        // Managers see only their own reports; admins can filter by user_id param
         if (in_array($positionName, ['Manager HR', 'Manager Operasional', 'Manager Gudang'])) {
             $reports = KpiDailyReport::where('user_id', $user->id)
                 ->with('user:id,name')
@@ -248,10 +248,15 @@ class KpiReportController extends Controller
                 ->latest('report_date')
                 ->paginate(20);
         } else {
-            // Admins/superadmins see all reports for their area
-            $reports = KpiDailyReport::with('user:id,name')
-                ->with('user.jobPosition:id,name')
-                ->latest('report_date')
+            // Admins/superadmins see all reports, or filtered by user_id if provided
+            $query = KpiDailyReport::with('user:id,name')
+                ->with('user.jobPosition:id,name');
+
+            if ($request->has('user_id')) {
+                $query->where('user_id', $request->input('user_id'));
+            }
+
+            $reports = $query->latest('report_date')
                 ->paginate(20);
         }
 
