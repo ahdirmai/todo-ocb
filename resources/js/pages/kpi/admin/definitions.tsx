@@ -1,6 +1,6 @@
 import { Head, useForm, setLayoutProps, router } from '@inertiajs/react';
 import { Plus, Edit, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import * as KpiAdminDefinitionsActions from '@/routes/kpi/admin/definitions';
 import { Button } from '@/components/ui/button';
 import {
@@ -34,10 +34,11 @@ interface Position {
 
 interface Props {
   positions: Position[];
-  categories: string[];
 }
 
-export default function KpiAdminDefinitions({ positions, categories }: Props) {
+const NEW_CATEGORY = '__new__';
+
+export default function KpiAdminDefinitions({ positions }: Props) {
   setLayoutProps({
     breadcrumbs: [{ title: 'Task Definitions', href: '/kpi/admin/definitions' }],
   });
@@ -47,12 +48,27 @@ export default function KpiAdminDefinitions({ positions, categories }: Props) {
   );
   const [editing, setEditing] = useState<TaskDefinition | null>(null);
   const [open, setOpen] = useState(false);
+  const [categoryMode, setCategoryMode] = useState<'existing' | 'new'>('existing');
 
   const selectedPosition = positions.find((p) => p.id === selectedPositionId) || positions[0] || null;
   const tasks = (selectedPosition?.kpi_definitions || []).slice().sort(
     (a, b) => a.sequence_order - b.sequence_order,
   );
   const totalWeight = tasks.reduce((sum, t) => sum + Number(t.weight), 0);
+
+  const positionCategories = useMemo(() => {
+    const map: Record<string, string[]> = {};
+    for (const p of positions) {
+      map[p.id] = Array.from(
+        new Set(
+          p.kpi_definitions
+            .map((t) => t.category)
+            .filter((c): c is string => Boolean(c)),
+        ),
+      );
+    }
+    return map;
+  }, [positions]);
 
   const { data, setData, post, put, processing, reset } = useForm({
     position_id: '',
@@ -68,6 +84,7 @@ export default function KpiAdminDefinitions({ positions, categories }: Props) {
 
   const openCreate = () => {
     setEditing(null);
+    setCategoryMode('existing');
     reset();
     setData({
       position_id: selectedPosition?.id || '',
@@ -85,6 +102,10 @@ export default function KpiAdminDefinitions({ positions, categories }: Props) {
 
   const openEdit = (task: TaskDefinition) => {
     setEditing(task);
+    const known = (positionCategories[selectedPosition?.id || ''] || []).includes(
+      task.category,
+    );
+    setCategoryMode(known ? 'existing' : 'new');
     setData({
       position_id: selectedPosition?.id || '',
       category: task.category,
@@ -97,6 +118,22 @@ export default function KpiAdminDefinitions({ positions, categories }: Props) {
       is_active: task.is_active,
     });
     setOpen(true);
+  };
+
+  const handlePositionChange = (newPositionId: string) => {
+    setData('position_id', newPositionId);
+    setCategoryMode('existing');
+    setData('category', '');
+  };
+
+  const handleCategorySelectChange = (value: string) => {
+    if (value === NEW_CATEGORY) {
+      setCategoryMode('new');
+      setData('category', '');
+    } else {
+      setCategoryMode('existing');
+      setData('category', value);
+    }
   };
 
   const handleSubmit = () => {
@@ -121,6 +158,8 @@ export default function KpiAdminDefinitions({ positions, categories }: Props) {
       preserveScroll: true,
     });
   };
+
+  const currentCategories = positionCategories[data.position_id] || [];
 
   return (
     <>
@@ -232,21 +271,21 @@ export default function KpiAdminDefinitions({ positions, categories }: Props) {
           <div className="mt-2 flex flex-col gap-4">
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label htmlFor="category" className="mb-1">
-                  Kategori *
+                <Label htmlFor="position_id" className="mb-1">
+                  Posisi *
                 </Label>
                 <select
-                  id="category"
-                  value={data.category}
-                  onChange={(e) => setData('category', e.target.value)}
+                  id="position_id"
+                  value={data.position_id}
+                  onChange={(e) => handlePositionChange(e.target.value)}
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                 >
                   <option value="" disabled>
-                    Pilih kategori
+                    Pilih posisi
                   </option>
-                  {categories.map((c) => (
-                    <option key={c} value={c}>
-                      {c}
+                  {positions.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
                     </option>
                   ))}
                 </select>
@@ -267,6 +306,43 @@ export default function KpiAdminDefinitions({ positions, categories }: Props) {
                   }
                 />
               </div>
+            </div>
+
+            <div>
+              <Label htmlFor="category" className="mb-1">
+                Kategori *
+              </Label>
+              {categoryMode === 'existing' ? (
+                <select
+                  id="category"
+                  value={data.category}
+                  onChange={(e) => handleCategorySelectChange(e.target.value)}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  disabled={!data.position_id}
+                >
+                  <option value="" disabled>
+                    {data.position_id
+                      ? currentCategories.length > 0
+                        ? 'Pilih kategori'
+                        : 'Belum ada kategori untuk posisi ini'
+                      : 'Pilih posisi dulu'}
+                  </option>
+                  {currentCategories.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                  <option value={NEW_CATEGORY}>+ Kategori baru...</option>
+                </select>
+              ) : (
+                <Input
+                  id="category"
+                  value={data.category}
+                  onChange={(e) => setData('category', e.target.value)}
+                  placeholder="Tulis kategori baru"
+                  autoFocus
+                />
+              )}
             </div>
 
             <div>
