@@ -528,9 +528,14 @@ class KpiDashboardController extends Controller
     public function verifyTask(Request $request, Task $task)
     {
         $user = auth()->user();
+        $positionName = $user->jobPosition?->name;
 
-        if (! $task->assignees()->where('users.id', $user->id)->exists()) {
-            abort(403, 'Task tidak ditugaskan kepada Anda');
+        // Only task creator or assigned user can verify
+        $isCreator = $task->creator_id === $user->id;
+        $isAssigned = $task->assignees()->where('users.id', $user->id)->exists();
+
+        if (! $isCreator && ! $isAssigned) {
+            abort(403, 'Anda tidak berhak memverifikasi task ini');
         }
 
         $evidenceStatus = $this->scoringService->verifyTaskEvidence($task);

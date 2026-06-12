@@ -470,7 +470,7 @@ export default function GudangKpiDashboard({
         task={selectedTask}
         area="gudang"
         onClose={() => setSelectedTask(null)}
-        readOnly={isAdminUser}
+        readOnly={isAdminUser || isMonitoring}
       />
     </KpiLayout>
   );
