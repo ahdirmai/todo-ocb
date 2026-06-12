@@ -240,8 +240,8 @@ class KpiReportController extends Controller
         $user = auth()->user();
         $positionName = $user->jobPosition?->name;
 
-        // Admins can view all reports, managers see only their own
-        if (in_array($positionName, ['Manager HR', 'Manager Operasional'])) {
+        // Managers see only their own reports; admins see all for their area
+        if (in_array($positionName, ['Manager HR', 'Manager Operasional', 'Manager Gudang'])) {
             $reports = KpiDailyReport::where('user_id', $user->id)
                 ->latest('report_date')
                 ->paginate(20);
@@ -252,7 +252,7 @@ class KpiReportController extends Controller
         }
 
         $area = $this->getPositionArea();
-        $canCreate = in_array($positionName, ['Manager HR', 'Manager Operasional']);
+        $canCreate = in_array($positionName, ['Manager HR', 'Manager Operasional', 'Manager Gudang']);
 
         return Inertia::render("{$area}/kpi/reports", [
             'reports' => $reports,
