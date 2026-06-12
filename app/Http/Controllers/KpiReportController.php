@@ -42,17 +42,23 @@ class KpiReportController extends Controller
         };
     }
 
+    protected function canSubmitReports(string $positionName): bool
+    {
+        return in_array($positionName, ['Manager HR', 'Manager Operasional'])
+            || $positionName === 'Manager Gudang';
+    }
+
     public function create(Request $request)
     {
         $user = auth()->user();
 
         // Block admins/superadmins from creating reports - redirect to list
         $positionName = $user->jobPosition?->name;
-        if (! in_array($positionName, ['Manager HR', 'Manager Operasional'])) {
+        if (! $this->canSubmitReports($positionName)) {
             $area = $this->getPositionArea();
 
-            return redirect()->route("{$area}.kpi.reports.index")
-                ->with('error', 'Hanya Manager HR dan Manager Operasional yang dapat membuat laporan');
+            return redirect()->route("{$area}.kpi.reports")
+                ->with('error', 'Anda tidak memiliki akses untuk membuat laporan');
         }
 
         $selectedDate = $request->query('date')
@@ -84,8 +90,8 @@ class KpiReportController extends Controller
         }
 
         $positionName = $user->jobPosition?->name;
-        if (! in_array($positionName, ['Manager HR', 'Manager Operasional'])) {
-            abort(403, 'Hanya Manager HR dan Manager Operasional yang dapat mengedit laporan');
+        if (! $this->canSubmitReports($positionName)) {
+            abort(403, 'Anda tidak memiliki akses untuk mengedit laporan');
         }
 
         $template = $this->reportingService->getDailyReportTemplate($user, $report->report_date);
@@ -109,8 +115,8 @@ class KpiReportController extends Controller
         }
 
         $positionName = $user->jobPosition?->name;
-        if (! in_array($positionName, ['Manager HR', 'Manager Operasional'])) {
-            abort(403, 'Hanya Manager HR dan Manager Operasional yang dapat mengedit laporan');
+        if (! $this->canSubmitReports($positionName)) {
+            abort(403, 'Anda tidak memiliki akses untuk mengedit laporan');
         }
 
         $area = $this->getPositionArea();
@@ -123,6 +129,13 @@ class KpiReportController extends Controller
                 'follow_up' => 'nullable|string',
                 'action_plan' => 'nullable|string',
                 'attachments' => 'nullable|array',
+                'attachments.*' => 'file|mimes:jpg,jpeg,png,pdf|max:5120',
+            ]);
+        } elseif ($area === 'gudang') {
+            $validated = $request->validate([
+                'recap' => 'required|string|max:3000',
+                'action_plan' => 'required|string|max:2000',
+                'attachments' => 'nullable|array|max:5',
                 'attachments.*' => 'file|mimes:jpg,jpeg,png,pdf|max:5120',
             ]);
         } else {
@@ -160,10 +173,10 @@ class KpiReportController extends Controller
     {
         $user = auth()->user();
 
-        // Only Manager HR and Manager Operasional can submit reports
+        // Manager HR, Manager Operasional, and Manager Gudang can submit reports
         $positionName = $user->jobPosition?->name;
-        if (! in_array($positionName, ['Manager HR', 'Manager Operasional'])) {
-            abort(403, 'Hanya Manager HR dan Manager Operasional yang dapat mengisi laporan');
+        if (! $this->canSubmitReports($positionName)) {
+            abort(403, 'Anda tidak memiliki akses untuk mengisi laporan');
         }
 
         $area = $this->getPositionArea();
@@ -177,6 +190,13 @@ class KpiReportController extends Controller
                 'follow_up' => 'nullable|string',
                 'action_plan' => 'nullable|string',
                 'attachments' => 'nullable|array',
+                'attachments.*' => 'file|mimes:jpg,jpeg,png,pdf|max:5120',
+            ]);
+        } elseif ($area === 'gudang') {
+            $validated = $request->validate([
+                'recap' => 'required|string|max:3000',
+                'action_plan' => 'required|string|max:2000',
+                'attachments' => 'nullable|array|max:5',
                 'attachments.*' => 'file|mimes:jpg,jpeg,png,pdf|max:5120',
             ]);
         } else {

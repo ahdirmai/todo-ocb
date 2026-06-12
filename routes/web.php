@@ -218,6 +218,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::post('tasks/generate', [KpiDashboardController::class, 'generateTasks'])->name('gudang.kpi.tasks.generate');
 
             Route::get('reports', [KpiReportController::class, 'index'])->name('gudang.kpi.reports');
+            Route::get('report/create', [KpiReportController::class, 'create'])->name('gudang.kpi.report.create');
+            Route::post('report/submit', [KpiReportController::class, 'submit'])->name('gudang.kpi.report.submit');
+            Route::get('report/{report}/edit', [KpiReportController::class, 'edit'])->name('gudang.kpi.report.edit');
+            Route::put('report/{report}', [KpiReportController::class, 'update'])->name('gudang.kpi.report.update');
         });
     });
 
