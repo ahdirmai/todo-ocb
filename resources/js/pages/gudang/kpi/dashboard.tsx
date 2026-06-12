@@ -117,6 +117,11 @@ const POSITION_PROFILES: Record<string, { title: string; description: string; fo
     description: 'Distribusi barang ACC ke toko (min. 8 toko/hari), pengantaran 1x24 jam, kerapian gudang.',
     focus: 'Deadline kritis: absen 14.00 · pengantaran 1x24 jam (Hari H)',
   },
+  'Kurir': {
+    title: 'Divisi E — Kurir',
+    description: 'Disiplin waktu setoran (interval max 1 jam), serah terima tepat waktu & aman, responsif di grup.',
+    focus: 'Deadline kritis: setoran sebelum 15.00 · foto absen H sebelum 02.00 · interval setoran max 1 jam',
+  },
 };
 
 export default function GudangKpiDashboard({

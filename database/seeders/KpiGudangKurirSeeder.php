@@ -65,7 +65,12 @@ class KpiGudangKurirSeeder extends Seeder
             ['description' => 'Divisi D — Gudang ACC (Aksesoris)'],
         );
 
-        foreach ([$gudangBjb, $gudangBjm, $gudangGesekan, $gudangAcc] as $gudangPosition) {
+        $kurir = Position::firstOrCreate(
+            ['name' => 'Kurir'],
+            ['description' => 'Divisi E — Kurir'],
+        );
+
+        foreach ([$gudangBjb, $gudangBjm, $gudangGesekan, $gudangAcc, $kurir] as $gudangPosition) {
             PositionPermission::firstOrCreate([
                 'position_id' => $gudangPosition->id,
                 'route_key' => 'gudang',
@@ -785,12 +790,118 @@ class KpiGudangKurirSeeder extends Seeder
             ],
         ];
 
+        // DIVISI E — KURIR — Total 100%
+        $kurirTasks = [
+            [
+                'category' => 'Absensi',
+                'task_name' => 'Absen Masuk (Maks. 14.00)',
+                'work_method' => $this->formatWorkMethod('Langkah Kerja', [
+                    'Absen paling lambat jam 14.00 WITA setiap hari',
+                ], 'Maks. 14.00 WITA'),
+                'verification_method' => $this->formatVerification([
+                    'Screenshot/foto absen di grup WA kurir dengan timestamp ≤14.00',
+                ]),
+                'weight' => 10.00,
+                'sequence_order' => 1,
+            ],
+            [
+                'category' => 'Absensi',
+                'task_name' => 'Absen Tarikan di Grup',
+                'work_method' => $this->formatWorkMethod('Langkah Kerja', [
+                    'Lakukan absen tarikan dan laporkan di grup WA tarikan',
+                ]),
+                'verification_method' => $this->formatVerification([
+                    'Screenshot bukti absen tarikan di grup',
+                ]),
+                'weight' => 12.00,
+                'sequence_order' => 2,
+            ],
+            [
+                'category' => 'Serah Terima',
+                'task_name' => 'Serah Terima Kertas Tarikan',
+                'work_method' => $this->formatWorkMethod('Langkah Kerja', [
+                    'Lakukan serah terima berupa kertas tarikan dengan pencatatan jelas',
+                ]),
+                'verification_method' => $this->formatVerification([
+                    'Foto bukti serah terima kertas tarikan dengan nama & tanda tangan',
+                ]),
+                'weight' => 12.00,
+                'sequence_order' => 3,
+            ],
+            [
+                'category' => 'Logistik',
+                'task_name' => 'Foto Absen Setoran di Grup WA (Maks. 15.00)',
+                'work_method' => $this->formatWorkMethod('Langkah Kerja', [
+                    'Upload foto absen setoran masuk grup WA',
+                    'Paling lambat jam 15.00 WITA',
+                ], 'Maks. 15.00 WITA'),
+                'verification_method' => $this->formatVerification([
+                    'Foto setoran masuk grup dengan timestamp ≤15.00',
+                    'Verifikasi interval setoran 1 jam',
+                ]),
+                'weight' => 14.00,
+                'sequence_order' => 4,
+            ],
+            [
+                'category' => 'Logistik',
+                'task_name' => 'Foto Absen di Hari H (Maks. 02.00)',
+                'work_method' => $this->formatWorkMethod('Langkah Kerja', [
+                    'Foto absen wajib di hari H sebelum jam 02.00 WITA keesokan harinya',
+                ], 'Maks. 02.00 WITA (keesokan hari)'),
+                'verification_method' => $this->formatVerification([
+                    'Foto absen + timestamp ≤02.00 di hari berikutnya',
+                ]),
+                'weight' => 13.00,
+                'sequence_order' => 5,
+            ],
+            [
+                'category' => 'Responsivitas',
+                'task_name' => 'Maksiimal 1 Jam 1x Setoran',
+                'work_method' => $this->formatWorkMethod('Langkah Kerja', [
+                    'Lakukan setoran rutin minimal 1 kali setiap jam',
+                    'Tidak boleh menumpuk >1 jam tanpa setoran',
+                ], 'Interval maks. 1 jam antar setoran'),
+                'verification_method' => $this->formatVerification([
+                    'Rekap setoran menunjukkan interval maksimal 1 jam tidak terlewat',
+                ]),
+                'weight' => 18.00,
+                'sequence_order' => 6,
+            ],
+            [
+                'category' => 'Koordinasi',
+                'task_name' => 'Pengantaran Tepat Waktu & Aman',
+                'work_method' => $this->formatWorkMethod('Langkah Kerja', [
+                    'Antar setiap barang/dokumen tepat waktu dalam kondisi aman tanpa kerusakan',
+                ]),
+                'verification_method' => $this->formatVerification([
+                    'Bukti pengiriman + konfirmasi penerima',
+                    'Catatan jika ada kendala',
+                ]),
+                'weight' => 11.00,
+                'sequence_order' => 7,
+            ],
+            [
+                'category' => 'Koordinasi',
+                'task_name' => 'Koordinasi & Responsif di Grup',
+                'work_method' => $this->formatWorkMethod('Langkah Kerja', [
+                    'Selalu responsif di grup WA',
+                    'Balas instruksi cepat, koordinasi dengan gudang & toko',
+                ]),
+                'verification_method' => $this->formatVerification([
+                    'SS chat menunjukkan response time cepat + koordinasi aktif',
+                ]),
+                'weight' => 10.00,
+                'sequence_order' => 8,
+            ],
+        ];
+
         $groups = [
             [$managerGudang, $managerGudangTasks],
             [$gudangBjb, $gudangBjbTasks],
             [$gudangBjm, $gudangBjmTasks],
             [$gudangGesekan, $gudangGesekanTasks],
             [$gudangAcc, $gudangAccTasks],
+            [$kurir, $kurirTasks],
         ];
 
         foreach ($groups as [$position, $tasks]) {

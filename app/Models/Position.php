@@ -17,6 +17,7 @@ class Position extends Model
         'Gudang BJM',
         'Gudang Gesekan',
         'Gudang ACC',
+        'Kurir',
     ];
 
     protected $fillable = [

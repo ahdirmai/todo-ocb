@@ -26,6 +26,10 @@ const POSITION_INFO: Record<string, { division: string; description: string }> =
         division: 'Divisi D',
         description: 'Distribusi aksesoris: min. 8 toko/hari, pengantaran 1x24 jam',
     },
+    'Kurir': {
+        division: 'Divisi E',
+        description: 'Disiplin waktu setoran (interval max 1 jam), serah terima tepat waktu & aman',
+    },
 };
 
 export default function GudangIndex({ positionName, isMonitoring, gudangPositions }: Props) {
