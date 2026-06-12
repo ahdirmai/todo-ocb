@@ -239,6 +239,7 @@ class KpiReportController extends Controller
     {
         $user = auth()->user();
         $positionName = $user->jobPosition?->name;
+        $area = $this->getPositionArea();
 
         // Managers see only their own reports; admins can filter by user_id param
         if (in_array($positionName, ['Manager HR', 'Manager Operasional', 'Manager Gudang'])) {
@@ -248,10 +249,20 @@ class KpiReportController extends Controller
                 ->latest('report_date')
                 ->paginate(20);
         } else {
-            // Admins/superadmins see all reports, or filtered by user_id if provided
+            // Admins/superadmins see reports for their area only
             $query = KpiDailyReport::with('user:id,name')
                 ->with('user.jobPosition:id,name');
 
+            // Filter by area: only show reports from users of that area
+            if ($area === 'gudang') {
+                $query->whereHas('user.jobPosition', fn ($q) => $q->whereIn('name', Position::GUDANG_POSITIONS));
+            } elseif ($area === 'operational') {
+                $query->whereHas('user.jobPosition', fn ($q) => $q->where('name', 'Manager Operasional'));
+            } elseif ($area === 'hr') {
+                $query->whereHas('user.jobPosition', fn ($q) => $q->where('name', 'Manager HR'));
+            }
+
+            // Allow filtering by specific user if provided
             if ($request->has('user_id')) {
                 $query->where('user_id', $request->input('user_id'));
             }
@@ -260,7 +271,6 @@ class KpiReportController extends Controller
                 ->paginate(20);
         }
 
-        $area = $this->getPositionArea();
         $canCreate = in_array($positionName, ['Manager HR', 'Manager Operasional', 'Manager Gudang']);
 
         return Inertia::render("{$area}/kpi/reports", [
