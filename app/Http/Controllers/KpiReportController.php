@@ -71,12 +71,15 @@ class KpiReportController extends Controller
             ->where('report_date', $selectedDate->toDateString())
             ->first();
 
+        // Can only submit if no report exists for today, or it's today's date (allow editing same day)
+        $canSubmit = ! $existingReport || $selectedDate->isToday();
+
         $area = $this->getPositionArea();
 
         return Inertia::render("{$area}/kpi/report-form", [
             'template' => $template,
             'existingReport' => $existingReport,
-            'canSubmit' => true,
+            'canSubmit' => $canSubmit,
             'selectedDate' => $selectedDate->toDateString(),
         ]);
     }

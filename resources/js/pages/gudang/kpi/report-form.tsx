@@ -107,6 +107,16 @@ export default function GudangKpiReportForm({ template, existingReport, canSubmi
           </Alert>
         )}
 
+        {/* Already Submitted Warning */}
+        {!canSubmit && !isEditing && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              ❌ Laporan untuk tanggal {data.report_date} sudah pernah dikirim. Untuk mengubahnya, gunakan tombol "Edit" di halaman riwayat laporan.
+            </AlertDescription>
+          </Alert>
+        )}
+
         {/* Report Form */}
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Template Info Card */}
