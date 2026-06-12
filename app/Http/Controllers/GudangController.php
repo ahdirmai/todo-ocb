@@ -18,7 +18,8 @@ class GudangController extends Controller
         return Inertia::render('gudang/index', [
             'positionName' => $positionName,
             'isMonitoring' => ! in_array($positionName, Position::GUDANG_POSITIONS),
-            'gudangPositions' => Position::GUDANG_POSITIONS,
+            'isGudangManager' => $positionName === 'Manager Gudang',
+            'gudangPositions' => Position::GUDANG_LINE_POSITIONS,
         ]);
     }
 }

@@ -140,3 +140,63 @@ test('hr manager cannot view gudang area dashboard', function (): void {
         ->get(route('gudang.kpi.dashboard'))
         ->assertForbidden();
 });
+
+test('manager gudang access own kpi dashboard', function (): void {
+    $user = makeGudangUser('Manager Gudang');
+
+    actingAs($user)
+        ->get(route('gudang.kpi.dashboard'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('gudang/kpi/dashboard')
+            ->where('canGenerateTasks', true)
+            ->missing('gudangUsers')
+        );
+});
+
+test('manager gudang can generate and score own tasks', function (): void {
+    $user = makeGudangUser('Manager Gudang');
+
+    KpiTaskDefinition::factory()->count(3)->create([
+        'position_id' => $user->position_id,
+        'is_active' => true,
+        'weight' => 33.33,
+    ]);
+
+    actingAs($user)
+        ->post(route('gudang.kpi.tasks.generate'), ['date' => now()->toDateString()])
+        ->assertSessionHas('success');
+
+    $expectedCount = KpiTaskDefinition::where('position_id', $user->position_id)
+        ->where('is_active', true)
+        ->count();
+
+    expect(Task::where('is_kpi_task', true)->where('creator_id', $user->id)->count())
+        ->toBe($expectedCount);
+});
+
+test('manager gudang access monitoring page with team list', function (): void {
+    $manager = makeGudangUser('Manager Gudang');
+
+    actingAs($manager)
+        ->get(route('gudang.kpi.monitoring'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('gudang/kpi/dashboard')
+            ->where('canGenerateTasks', false)
+            ->has('gudangUsers')
+        );
+});
+
+test('manager gudang index page shows explicit choice', function (): void {
+    $user = makeGudangUser('Manager Gudang');
+
+    actingAs($user)
+        ->get(route('gudang.index'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('gudang/index')
+            ->where('isGudangManager', true)
+            ->where('gudangPositions', Position::GUDANG_LINE_POSITIONS)
+        );
+});

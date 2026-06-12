@@ -70,7 +70,7 @@ class KpiGudangKurirSeeder extends Seeder
             ['description' => 'Divisi E — Kurir'],
         );
 
-        foreach ([$gudangBjb, $gudangBjm, $gudangGesekan, $gudangAcc, $kurir] as $gudangPosition) {
+        foreach ([$managerGudang, $gudangBjb, $gudangBjm, $gudangGesekan, $gudangAcc, $kurir] as $gudangPosition) {
             PositionPermission::firstOrCreate([
                 'position_id' => $gudangPosition->id,
                 'route_key' => 'gudang',

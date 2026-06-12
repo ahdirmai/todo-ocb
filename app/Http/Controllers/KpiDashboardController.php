@@ -295,9 +295,15 @@ class KpiDashboardController extends Controller
         ]);
     }
 
-    protected function gudangMonitoring(Request $request, string $selectedDate): Response
+    public function gudangMonitoring(Request $request, ?string $selectedDate = null): Response
     {
-        $gudangUsers = User::whereHas('jobPosition', fn ($q) => $q->whereIn('name', Position::GUDANG_POSITIONS))
+        $selectedDate = $selectedDate ?: now()->toDateString();
+        $viewer = auth()->user();
+        $isAllowed = $viewer->hasAnyRole(['admin', 'superadmin'])
+            || $viewer->jobPosition?->name === 'Manager Gudang';
+        abort_unless($isAllowed, 403);
+
+        $gudangUsers = User::whereHas('jobPosition', fn ($q) => $q->whereIn('name', Position::GUDANG_LINE_POSITIONS))
             ->with('jobPosition:id,name')
             ->orderBy('name')
             ->get()

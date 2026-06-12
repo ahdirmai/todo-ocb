@@ -97,6 +97,11 @@ interface Props {
 }
 
 const POSITION_PROFILES: Record<string, { title: string; description: string; focus: string }> = {
+  'Manager Gudang': {
+    title: 'Manager Gudang (Pengawas)',
+    description: 'Pengawasan 5 divisi gudang (BJB, BJM, Gesekan, ACC, Kurir) + tugas operasional pribadi.',
+    focus: 'Deadline kritis: rekap harian & lapor ke CEO maks. 22.30 WITA',
+  },
   'Gudang BJB': {
     title: 'Divisi A — Gudang BJB (Banjarbaru)',
     description: 'Operasional server, gesekan Otto (target 1.500 pcs), setoran tepat waktu, dan voucher.',

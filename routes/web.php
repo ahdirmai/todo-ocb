@@ -210,6 +210,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         // Gudang KPI Routes
         Route::prefix('kpi')->group(function () {
             Route::get('dashboard', [KpiDashboardController::class, 'index'])->name('gudang.kpi.dashboard');
+            Route::get('monitoring', [KpiDashboardController::class, 'gudangMonitoring'])->name('gudang.kpi.monitoring');
             Route::get('daily/{date?}', [KpiDashboardController::class, 'daily'])->name('gudang.kpi.daily');
             Route::get('weekly/{weekStart?}', [KpiDashboardController::class, 'weekly'])->name('gudang.kpi.weekly');
             Route::get('monthly/{month?}', [KpiDashboardController::class, 'monthly'])->name('gudang.kpi.monthly');

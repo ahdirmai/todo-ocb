@@ -18,6 +18,15 @@ class Position extends Model
         'Gudang Gesekan',
         'Gudang ACC',
         'Kurir',
+        'Manager Gudang',
+    ];
+
+    public const GUDANG_LINE_POSITIONS = [
+        'Gudang BJB',
+        'Gudang BJM',
+        'Gudang Gesekan',
+        'Gudang ACC',
+        'Kurir',
     ];
 
     protected $fillable = [

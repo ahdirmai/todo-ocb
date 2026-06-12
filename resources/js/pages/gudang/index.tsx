@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 interface Props {
     positionName: string | null;
     isMonitoring: boolean;
+    isGudangManager: boolean;
     gudangPositions: string[];
 }
 
@@ -32,7 +33,7 @@ const POSITION_INFO: Record<string, { division: string; description: string }> =
     },
 };
 
-export default function GudangIndex({ positionName, isMonitoring, gudangPositions }: Props) {
+export default function GudangIndex({ positionName, isMonitoring, isGudangManager, gudangPositions }: Props) {
     setLayoutProps({
         breadcrumbs: [{ title: 'Gudang Area', href: '/gudang' }],
     });
@@ -51,9 +52,11 @@ export default function GudangIndex({ positionName, isMonitoring, gudangPosition
                         <p className="text-muted-foreground">
                             {isMonitoring
                                 ? 'Monitoring divisi gudang — pilih posisi untuk melihat KPI'
-                                : positionName
-                                  ? `Area khusus untuk posisi ${positionName}`
-                                  : 'Area khusus untuk divisi gudang'}
+                                : isGudangManager
+                                  ? 'Manager Gudang — kelola KPI pribadi & monitoring tim'
+                                  : positionName
+                                    ? `Area khusus untuk posisi ${positionName}`
+                                    : 'Area khusus untuk divisi gudang'}
                         </p>
                     </div>
                 </div>
@@ -83,6 +86,42 @@ export default function GudangIndex({ positionName, isMonitoring, gudangPosition
                                 </Card>
                             );
                         })}
+                    </div>
+                ) : isGudangManager ? (
+                    <div className="grid gap-4 md:grid-cols-2">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <BarChart3 className="h-5 w-5" />
+                                    KPI Saya
+                                </CardTitle>
+                                <CardDescription>
+                                    Dashboard KPI pribadi & tugas supervisi harian
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <Link href="/gudang/kpi/dashboard">
+                                    <Button className="w-full">Buka KPI Saya</Button>
+                                </Link>
+                            </CardContent>
+                        </Card>
+
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <Warehouse className="h-5 w-5" />
+                                    Monitoring Tim
+                                </CardTitle>
+                                <CardDescription>
+                                    Monitor KPI divisi gudang & kurir (BJB, BJM, Gesekan, ACC, Kurir)
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <Link href="/gudang/kpi/monitoring">
+                                    <Button className="w-full">Monitoring Tim</Button>
+                                </Link>
+                            </CardContent>
+                        </Card>
                     </div>
                 ) : (
                     <div className="grid gap-4 md:grid-cols-2">
