@@ -11,6 +11,10 @@ interface Props {
 }
 
 const POSITION_INFO: Record<string, { division: string; description: string }> = {
+    'Manager Gudang': {
+        division: 'Pengawas',
+        description: 'Koordinasi 5 divisi gudang & kurir, supervisi harian, laporan ke CEO',
+    },
     'Gudang BJB': {
         division: 'Divisi A',
         description: 'Operasional server, gesekan Otto, setoran & voucher (Banjarbaru)',

@@ -15,11 +15,17 @@ class GudangController extends Controller
     {
         $positionName = $request->user()->jobPosition?->name;
 
+        // For admin monitoring, include Manager Gudang + line positions
+        $positions = Position::GUDANG_LINE_POSITIONS;
+        if ($request->user()->hasAnyRole(['admin', 'superadmin'])) {
+            $positions = array_merge(['Manager Gudang'], $positions);
+        }
+
         return Inertia::render('gudang/index', [
             'positionName' => $positionName,
             'isMonitoring' => ! in_array($positionName, Position::GUDANG_POSITIONS),
             'isGudangManager' => $positionName === 'Manager Gudang',
-            'gudangPositions' => Position::GUDANG_LINE_POSITIONS,
+            'gudangPositions' => $positions,
         ]);
     }
 }
