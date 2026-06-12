@@ -12,15 +12,16 @@ interface Report {
   report_date: string;
   submitted_at: string;
   is_late: boolean;
-  report_data: {
-    absensi?: any;
-    disiplin?: any;
-    performance_sales?: any;
-    compliance?: any;
-    training?: any;
-    recruitment?: any;
-  };
+  recap: string;
   action_plan: string;
+  user?: {
+    id: number;
+    name: string;
+    jobPosition?: {
+      id: string;
+      name: string;
+    };
+  };
 }
 
 interface Props {
@@ -76,9 +77,16 @@ export default function GudangKpiReports({ reports, canCreate }: Props) {
                   <div key={report.id} className="flex flex-col md:flex-row items-start md:items-center gap-3 py-4 border-b last:border-0">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
-                        <p className="font-semibold">
-                          {new Date(report.report_date).toLocaleDateString('id-ID', { dateStyle: 'long' })}
-                        </p>
+                        <div>
+                          <p className="font-semibold">
+                            {new Date(report.report_date).toLocaleDateString('id-ID', { dateStyle: 'long' })}
+                          </p>
+                          {report.user && (
+                            <p className="text-xs text-muted-foreground">
+                              {report.user.name} — {report.user.jobPosition?.name || 'Manager Gudang'}
+                            </p>
+                          )}
+                        </div>
                         {report.is_late ? (
                           <Badge variant="destructive">TERLAMBAT</Badge>
                         ) : (

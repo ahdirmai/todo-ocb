@@ -243,11 +243,15 @@ class KpiReportController extends Controller
         // Managers see only their own reports; admins see all for their area
         if (in_array($positionName, ['Manager HR', 'Manager Operasional', 'Manager Gudang'])) {
             $reports = KpiDailyReport::where('user_id', $user->id)
+                ->with('user:id,name')
+                ->with('user.jobPosition:id,name')
                 ->latest('report_date')
                 ->paginate(20);
         } else {
             // Admins/superadmins see all reports for their area
-            $reports = KpiDailyReport::latest('report_date')
+            $reports = KpiDailyReport::with('user:id,name')
+                ->with('user.jobPosition:id,name')
+                ->latest('report_date')
                 ->paginate(20);
         }
 
