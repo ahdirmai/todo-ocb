@@ -1,5 +1,5 @@
 import AppLayout from '@/layouts/app-layout';
-import { Head, useForm } from '@inertiajs/react';
+import { Head, useForm, setLayoutProps } from '@inertiajs/react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -54,6 +54,10 @@ export default function KpiAdminDefinitions({ positions }: Props) {
     weight: 0,
     sequence_order: 1,
     is_active: true,
+  });
+
+  setLayoutProps({
+    breadcrumbs: [{ title: 'Task Definitions', href: '/kpi/admin/definitions' }],
   });
 
   const handleCreate = () => {
