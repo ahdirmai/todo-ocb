@@ -71,8 +71,8 @@ class KpiReportController extends Controller
             ->where('report_date', $selectedDate->toDateString())
             ->first();
 
-        // Can only submit if no report exists for today, or it's today's date (allow editing same day)
-        $canSubmit = ! $existingReport || $selectedDate->isToday();
+        // Cannot submit if a report already exists for this date — edit it instead
+        $canSubmit = ! $existingReport;
 
         $area = $this->getPositionArea();
 
@@ -222,6 +222,16 @@ class KpiReportController extends Controller
         $isLate = $submittedAt->format('H:i') > '22:30';
 
         $reportDate = $request->input('report_date', now()->toDateString());
+
+        $alreadySubmitted = KpiDailyReport::where('user_id', $user->id)
+            ->where('report_date', $reportDate)
+            ->exists();
+
+        if ($alreadySubmitted) {
+            return back()->withErrors([
+                'report_date' => 'Laporan untuk tanggal ini sudah pernah dikirim. Gunakan tombol Edit di riwayat laporan.',
+            ]);
+        }
 
         $this->reportingService->createDailyReport($user, array_merge($validated, [
             'report_date' => $reportDate,
