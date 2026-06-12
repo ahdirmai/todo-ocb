@@ -34,9 +34,10 @@ interface Position {
 
 interface Props {
   positions: Position[];
+  categories: string[];
 }
 
-export default function KpiAdminDefinitions({ positions }: Props) {
+export default function KpiAdminDefinitions({ positions, categories }: Props) {
   setLayoutProps({
     breadcrumbs: [{ title: 'Task Definitions', href: '/kpi/admin/definitions' }],
   });
@@ -234,12 +235,21 @@ export default function KpiAdminDefinitions({ positions }: Props) {
                 <Label htmlFor="category" className="mb-1">
                   Kategori *
                 </Label>
-                <Input
+                <select
                   id="category"
                   value={data.category}
                   onChange={(e) => setData('category', e.target.value)}
-                  placeholder="Contoh: Operasional, HR, Finance"
-                />
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                >
+                  <option value="" disabled>
+                    Pilih kategori
+                  </option>
+                  {categories.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div>
                 <Label htmlFor="weight" className="mb-1">

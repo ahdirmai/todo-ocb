@@ -18,8 +18,15 @@ class KpiAdminController extends Controller
             ->with(['kpiDefinitions' => fn ($q) => $q->orderBy('sequence_order')])
             ->get();
 
+        $categories = $positions->load('kpiDefinitions')
+            ->flatMap(fn ($p) => $p->kpiDefinitions->pluck('category'))
+            ->filter()
+            ->unique()
+            ->values();
+
         return Inertia::render('kpi/admin/definitions', [
             'positions' => $positions,
+            'categories' => $categories,
         ]);
     }
 
