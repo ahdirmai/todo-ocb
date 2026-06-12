@@ -184,11 +184,14 @@ export default function GudangKpiDashboard({
   const navigateDate = (days: number) => {
     const date = new Date(selectedDate);
     date.setDate(date.getDate() + days);
+    const { url } = usePage();
+    const isOnMonitoringPage = url.includes('/gudang/kpi/monitoring');
+
     router.get(
-      '/gudang/kpi/dashboard',
+      isOnMonitoringPage ? '/gudang/kpi/monitoring' : '/gudang/kpi/dashboard',
       {
         date: date.toISOString().split('T')[0],
-        ...(isMonitoring && selectedUserId ? { user_id: selectedUserId } : {}),
+        ...(selectedUserId ? { user_id: selectedUserId } : {}),
       },
       { preserveState: true },
     );
