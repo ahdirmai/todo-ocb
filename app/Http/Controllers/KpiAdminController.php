@@ -14,8 +14,8 @@ class KpiAdminController extends Controller
 {
     public function definitions(): Response
     {
-        $positions = Position::whereIn('name', ['Manager Operasional', 'Manager HR'])
-            ->with(['kpiDefinitions' => fn ($q) => $q->orderBy('sequence_order')])
+        $positions = Position::with(['kpiDefinitions' => fn ($q) => $q->orderBy('sequence_order')])
+            ->orderBy('name')
             ->get();
 
         return Inertia::render('kpi/admin/definitions', [

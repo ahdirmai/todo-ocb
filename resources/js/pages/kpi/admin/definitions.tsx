@@ -166,9 +166,9 @@ export default function KpiAdminDefinitions({ positions }: Props) {
       <Head title="Task Definitions" />
       <div className="flex h-full flex-1 flex-col overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-sidebar-border/70 px-6 pt-5 pb-4">
+        <div className="flex flex-col gap-3 border-b border-sidebar-border/70 px-4 pt-5 pb-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <div>
-            <h1 className="mb-1 text-2xl font-bold text-slate-900 dark:text-slate-100">
+            <h1 className="mb-1 text-xl font-bold text-slate-900 sm:text-2xl dark:text-slate-100">
               Task Definitions
             </h1>
             <p className="mt-0.5 text-sm text-muted-foreground">
@@ -178,30 +178,32 @@ export default function KpiAdminDefinitions({ positions }: Props) {
               </span>
             </p>
           </div>
-          <Button onClick={openCreate} className="gap-2">
+          <Button onClick={openCreate} className="w-full gap-2 sm:w-auto">
             <Plus className="h-4 w-4" /> Tambah Task
           </Button>
         </div>
 
         {/* Position Tabs */}
-        <div className="flex flex-wrap gap-2 border-b border-sidebar-border/70 px-6 py-3">
-          {positions.map((position) => (
-            <button
-              key={position.id}
-              onClick={() => setSelectedPositionId(position.id)}
-              className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
-                selectedPositionId === position.id
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-muted text-muted-foreground hover:bg-muted/70'
-              }`}
-            >
-              {position.name}
-            </button>
-          ))}
+        <div className="border-b border-sidebar-border/70">
+          <div className="flex gap-2 overflow-x-auto px-4 py-3 sm:flex-wrap sm:px-6 [-webkit-overflow-scrolling:touch] [scrollbar-width:thin]">
+            {positions.map((position) => (
+              <button
+                key={position.id}
+                onClick={() => setSelectedPositionId(position.id)}
+                className={`shrink-0 rounded-lg px-3 py-1.5 text-sm font-medium whitespace-nowrap transition-colors ${
+                  selectedPositionId === position.id
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted text-muted-foreground hover:bg-muted/70'
+                }`}
+              >
+                {position.name}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Task List */}
-        <div className="flex flex-1 flex-col overflow-auto p-6">
+        <div className="flex flex-1 flex-col overflow-auto p-4 sm:p-6">
           {tasks.length === 0 ? (
             <p className="rounded-xl border-2 border-dashed border-border py-12 text-center text-sm text-muted-foreground">
               Belum ada task definition untuk posisi ini.
@@ -233,7 +235,7 @@ export default function KpiAdminDefinitions({ positions }: Props) {
                         </Badge>
                       )}
                     </div>
-                    <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                    <div className="flex items-center gap-1 sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100">
                       <button
                         onClick={() => openEdit(task)}
                         className="rounded p-1 text-slate-400 transition-colors hover:bg-primary/10 hover:text-primary"
@@ -269,7 +271,7 @@ export default function KpiAdminDefinitions({ positions }: Props) {
             </DialogTitle>
           </DialogHeader>
           <div className="mt-2 flex flex-col gap-4">
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div>
                 <Label htmlFor="position_id" className="mb-1">
                   Posisi *
@@ -396,7 +398,7 @@ export default function KpiAdminDefinitions({ positions }: Props) {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div>
                 <Label htmlFor="sequence_order" className="mb-1">
                   Urutan *
