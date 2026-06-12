@@ -5,7 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\KpiDailyScore;
 use App\Models\KpiMonthlyScore;
 use App\Models\KpiWeeklyScore;
+use App\Models\Position;
 use App\Models\Task;
+use App\Models\User;
 use App\Services\KpiScoringService;
 use App\Services\KpiTaskGenerationService;
 use Carbon\Carbon;
@@ -34,6 +36,9 @@ class KpiDashboardController extends Controller
             if (str_starts_with($path, 'operational/')) {
                 return 'operational';
             }
+            if (str_starts_with($path, 'gudang/')) {
+                return 'gudang';
+            }
 
             // Admin accessing non-KPI area route, fallback to operational
             return 'operational';
@@ -42,9 +47,10 @@ class KpiDashboardController extends Controller
         // Regular users: validate position
         $positionName = $user->jobPosition?->name;
 
-        $expectedArea = match ($positionName) {
-            'Manager HR' => 'hr',
-            'Manager Operasional' => 'operational',
+        $expectedArea = match (true) {
+            $positionName === 'Manager HR' => 'hr',
+            $positionName === 'Manager Operasional' => 'operational',
+            in_array($positionName, Position::GUDANG_POSITIONS) => 'gudang',
             default => throw new \Exception('Position tidak memiliki akses KPI'),
         };
 
@@ -54,6 +60,8 @@ class KpiDashboardController extends Controller
             $urlArea = 'hr';
         } elseif (str_starts_with($path, 'operational/')) {
             $urlArea = 'operational';
+        } elseif (str_starts_with($path, 'gudang/')) {
+            $urlArea = 'gudang';
         }
 
         // Validate URL area matches user position
@@ -73,19 +81,26 @@ class KpiDashboardController extends Controller
 
         $positionName = $user->jobPosition?->name;
         $isManager = in_array($positionName, ['Manager HR', 'Manager Operasional']);
+        $isGudang = in_array($positionName, Position::GUDANG_POSITIONS);
         $isAdmin = $user->hasAnyRole(['admin', 'superadmin']);
 
         // Determine if user is viewing as SPV or Manager
         $team = $user->teams()->where('is_spv_team', true)->first();
         $isSpv = (bool) $team;
 
-        // Admin/superadmin, managers, or SPV team members can access
-        if (! $isAdmin && ! $isManager && ! $isSpv) {
+        // Admin/superadmin, managers, gudang positions, or SPV team members can access
+        if (! $isAdmin && ! $isManager && ! $isGudang && ! $isSpv) {
             $area = $this->getPositionArea();
 
             return Inertia::render("{$area}/kpi/no-access", [
                 'message' => 'Anda tidak memiliki akses ke KPI Dashboard',
             ]);
+        }
+
+        // Gudang area + admin viewer without gudang position: monitoring mode
+        $area = $this->getPositionArea();
+        if ($area === 'gudang' && $isAdmin && ! $isGudang) {
+            return $this->gudangMonitoring($request, $selectedDate);
         }
 
         $dailyScore = KpiDailyScore::where('user_id', $user->id)
@@ -104,8 +119,8 @@ class KpiDashboardController extends Controller
             'category_breakdown' => $dailyScore->category_breakdown,
         ] : null;
 
-        // Manager's own KPI tasks
-        if ($isManager) {
+        // Manager's / gudang position's own KPI tasks
+        if ($isManager || $isGudang) {
             $dateTasks = Task::where('is_kpi_task', true)
                 ->where('creator_id', $user->id)
                 ->whereDate('created_at', $selectedDate)
@@ -259,12 +274,11 @@ class KpiDashboardController extends Controller
         }
 
         $categoryBreakdown = $dateScore?->category_breakdown ?? [];
-        $area = $this->getPositionArea();
         $hasTasksForDate = $dateTasks->isNotEmpty();
         $canGenerateForDate = ! Carbon::parse($selectedDate)->isFuture();
 
-        // Only Manager HR/Ops can generate tasks (includes admin/superadmin with manager position)
-        $canGenerateTasks = in_array($positionName, ['Manager HR', 'Manager Operasional']);
+        // Manager HR/Ops and gudang positions can generate their own daily tasks
+        $canGenerateTasks = $isManager || $isGudang;
 
         return Inertia::render("{$area}/kpi/dashboard", [
             'selectedDate' => $selectedDate,
@@ -278,6 +292,135 @@ class KpiDashboardController extends Controller
             'canGenerateForDate' => $canGenerateForDate,
             'canGenerateTasks' => $canGenerateTasks,
             'isManager' => $isManager,
+        ]);
+    }
+
+    protected function gudangMonitoring(Request $request, string $selectedDate): Response
+    {
+        $gudangUsers = User::whereHas('jobPosition', fn ($q) => $q->whereIn('name', Position::GUDANG_POSITIONS))
+            ->with('jobPosition:id,name')
+            ->orderBy('name')
+            ->get()
+            ->map(fn ($u) => [
+                'id' => $u->id,
+                'name' => $u->name,
+                'position' => $u->jobPosition->name,
+            ]);
+
+        $selectedUserId = $request->input('user_id');
+        $selectedPosition = $request->input('position');
+        $targetUser = null;
+
+        if ($selectedUserId && $gudangUsers->firstWhere('id', (int) $selectedUserId)) {
+            $targetUser = User::find($selectedUserId);
+        } elseif ($selectedPosition && in_array($selectedPosition, Position::GUDANG_POSITIONS)) {
+            $firstOfPosition = $gudangUsers->firstWhere('position', $selectedPosition);
+            $targetUser = $firstOfPosition ? User::find($firstOfPosition['id']) : null;
+        } elseif ($gudangUsers->isNotEmpty()) {
+            $targetUser = User::find($gudangUsers->first()['id']);
+        }
+
+        $dateScore = null;
+        $dateTasks = collect();
+        $weeklyScores = collect();
+        $monthlyScore = null;
+
+        if ($targetUser) {
+            $dailyScore = KpiDailyScore::where('user_id', $targetUser->id)
+                ->where('score_date', $selectedDate)
+                ->first();
+
+            $dateScore = $dailyScore ? [
+                'score_date' => $dailyScore->score_date,
+                'total_score' => (float) $dailyScore->total_score,
+                'completed_weight' => (float) $dailyScore->completed_weight,
+                'total_weight' => (float) $dailyScore->total_weight,
+                'total_tasks' => $dailyScore->total_tasks,
+                'completed_tasks' => $dailyScore->completed_tasks,
+                'verified_tasks' => $dailyScore->verified_tasks,
+                'grade' => $dailyScore->grade,
+                'category_breakdown' => $dailyScore->category_breakdown,
+            ] : null;
+
+            $dateTasks = Task::where('is_kpi_task', true)
+                ->where('creator_id', $targetUser->id)
+                ->whereDate('created_at', $selectedDate)
+                ->with(['kpiDefinition', 'comments.user', 'comments.media', 'creator:id,name,email', 'team:id,name'])
+                ->orderBy('order_position')
+                ->get()
+                ->map(fn ($task) => [
+                    'id' => $task->id,
+                    'title' => $task->title,
+                    'category' => $task->kpiDefinition?->category,
+                    'task_name' => $task->kpiDefinition?->task_name ?? $task->title,
+                    'weight' => $task->kpiDefinition?->weight,
+                    'description' => $task->description,
+                    'is_done' => $task->is_verified,
+                    'is_verified' => $task->is_verified,
+                    'is_kpi_task' => $task->is_kpi_task,
+                    'comment_count' => $task->comments->count(),
+                    'has_media' => $task->comments->some(fn ($c) => $c->hasMedia()),
+                    'comments' => $task->comments->map(fn ($comment) => [
+                        'id' => $comment->id,
+                        'content' => $comment->content,
+                        'created_at' => $comment->created_at->toDateTimeString(),
+                        'user' => [
+                            'id' => $comment->user?->id,
+                            'name' => $comment->user?->name,
+                            'email' => $comment->user?->email,
+                        ],
+                        'media' => $comment->getMedia('documents')->map(fn ($media) => [
+                            'id' => $media->id,
+                            'name' => $media->file_name,
+                            'original_url' => $media->getUrl(),
+                            'mime_type' => $media->mime_type,
+                        ]),
+                    ]),
+                ]);
+
+            $weeklyScores = KpiWeeklyScore::where('user_id', $targetUser->id)
+                ->latest('week_start_date')
+                ->take(4)
+                ->get()
+                ->map(fn ($score) => [
+                    'week_start_date' => $score->week_start_date,
+                    'week_end_date' => $score->week_end_date,
+                    'average_score' => (float) $score->average_score,
+                    'grade' => $score->grade,
+                ]);
+
+            $monthly = KpiMonthlyScore::where('user_id', $targetUser->id)
+                ->whereMonth('month', now())
+                ->first();
+
+            if ($monthly) {
+                $monthlyScore = [
+                    'month' => $monthly->month,
+                    'average_score' => (float) $monthly->average_score,
+                    'consistency_bonus' => (float) $monthly->consistency_bonus,
+                    'final_score' => (float) $monthly->final_score,
+                    'grade' => $monthly->grade,
+                    'has_grade_d' => (bool) $monthly->has_grade_d,
+                ];
+            }
+        }
+
+        return Inertia::render('gudang/kpi/dashboard', [
+            'selectedDate' => $selectedDate,
+            'dateScore' => $dateScore,
+            'dateTasks' => $dateTasks,
+            'weeklyScores' => $weeklyScores,
+            'monthlyScore' => $monthlyScore,
+            'categoryBreakdown' => $dateScore['category_breakdown'] ?? [],
+            'hasTasksForDate' => $dateTasks->isNotEmpty(),
+            'canGenerateForDate' => false,
+            'canGenerateTasks' => false,
+            'gudangUsers' => $gudangUsers,
+            'selectedUserId' => $targetUser?->id,
+            'viewingAs' => $targetUser ? [
+                'name' => $targetUser->name,
+                'position' => $targetUser->jobPosition?->name,
+            ] : null,
         ]);
     }
 
@@ -426,7 +569,8 @@ class KpiDashboardController extends Controller
     {
         $user = auth()->user();
         $positionName = $user->jobPosition?->name;
-        $isManager = in_array($positionName, ['Manager HR', 'Manager Operasional']);
+        $isManager = in_array($positionName, ['Manager HR', 'Manager Operasional'])
+            || in_array($positionName, Position::GUDANG_POSITIONS);
 
         $team = $user->teams()->where('is_spv_team', true)->first();
 

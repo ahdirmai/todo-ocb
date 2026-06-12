@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\KpiTaskDefinition;
+use App\Models\Position;
 use App\Models\Task;
 use App\Models\Team;
 use App\Models\User;
@@ -30,9 +31,10 @@ class KpiTaskGenerationService
             throw new \Exception('User must have position');
         }
 
-        // For managers (admin/superadmin or actual managers), team is optional
+        // For managers and gudang positions, team is optional
         $positionName = $user->jobPosition?->name;
-        $isManager = in_array($positionName, ['Manager HR', 'Manager Operasional']);
+        $isManager = in_array($positionName, ['Manager HR', 'Manager Operasional'])
+            || in_array($positionName, Position::GUDANG_POSITIONS);
 
         if (! $spvTeam && ! $isManager) {
             $spvTeam = $user->teams()->where('is_spv_team', true)->first();

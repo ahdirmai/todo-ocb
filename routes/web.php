@@ -5,6 +5,7 @@ use App\Http\Controllers\AnnouncementController;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DocumentCommentController;
+use App\Http\Controllers\GudangController;
 use App\Http\Controllers\HrController;
 use App\Http\Controllers\KanbanBoardController;
 use App\Http\Controllers\KanbanColumnController;
@@ -199,6 +200,23 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::get('report/{report}/edit', [KpiReportController::class, 'edit'])->name('hr.kpi.report.edit');
             Route::put('report/{report}', [KpiReportController::class, 'update'])->name('hr.kpi.report.update');
             Route::get('reports', [KpiReportController::class, 'index'])->name('hr.kpi.reports');
+        });
+    });
+
+    // Gudang Area - Gudang BJB / BJM / Gesekan / ACC
+    Route::prefix('gudang')->middleware('position:gudang')->group(function () {
+        Route::get('/', GudangController::class)->name('gudang.index');
+
+        // Gudang KPI Routes
+        Route::prefix('kpi')->group(function () {
+            Route::get('dashboard', [KpiDashboardController::class, 'index'])->name('gudang.kpi.dashboard');
+            Route::get('daily/{date?}', [KpiDashboardController::class, 'daily'])->name('gudang.kpi.daily');
+            Route::get('weekly/{weekStart?}', [KpiDashboardController::class, 'weekly'])->name('gudang.kpi.weekly');
+            Route::get('monthly/{month?}', [KpiDashboardController::class, 'monthly'])->name('gudang.kpi.monthly');
+            Route::post('tasks/{task}/verify', [KpiDashboardController::class, 'verifyTask'])->name('gudang.kpi.tasks.verify');
+            Route::post('tasks/generate', [KpiDashboardController::class, 'generateTasks'])->name('gudang.kpi.tasks.generate');
+
+            Route::get('reports', [KpiReportController::class, 'index'])->name('gudang.kpi.reports');
         });
     });
 

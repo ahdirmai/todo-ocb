@@ -43,7 +43,7 @@ interface KpiTask {
 
 interface KpiTaskModalProps {
   task: KpiTask | null;
-  area: 'hr' | 'operational';
+  area: 'hr' | 'operational' | 'gudang';
   onClose: () => void;
   readOnly?: boolean;
 }

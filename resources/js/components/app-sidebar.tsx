@@ -16,6 +16,7 @@ import {
     BarChart3,
     AlertCircle,
     Building2,
+    Warehouse,
 } from 'lucide-react';
 import { useState } from 'react';
 import * as ReportingActions from '@/actions/App/Http/Controllers/ReportingController';
@@ -183,6 +184,30 @@ export function AppSidebar() {
                                         <Link href="/hr">
                                             <Users2 className="h-4 w-4" />
                                             <span>Dashboard HR</span>
+                                        </Link>
+                                    </SidebarMenuButton>
+                                </SidebarMenuItem>
+                            </SidebarMenu>
+                        </SidebarGroup>
+                    )}
+
+                    {hasAccess('gudang') && (
+                        <SidebarGroup>
+                            <SidebarGroupLabel>Gudang Area</SidebarGroupLabel>
+                            <SidebarMenu>
+                                <SidebarMenuItem>
+                                    <SidebarMenuButton asChild>
+                                        <Link href="/gudang">
+                                            <Warehouse className="h-4 w-4" />
+                                            <span>Dashboard Gudang</span>
+                                        </Link>
+                                    </SidebarMenuButton>
+                                </SidebarMenuItem>
+                                <SidebarMenuItem>
+                                    <SidebarMenuButton asChild>
+                                        <Link href="/gudang/kpi/dashboard">
+                                            <BarChart3 className="h-4 w-4" />
+                                            <span>KPI Dashboard</span>
                                         </Link>
                                     </SidebarMenuButton>
                                 </SidebarMenuItem>

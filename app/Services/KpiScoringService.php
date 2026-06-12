@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\KpiDailyScore;
 use App\Models\KpiMonthlyScore;
 use App\Models\KpiWeeklyScore;
+use App\Models\Position;
 use App\Models\Task;
 use App\Models\User;
 use Carbon\Carbon;
@@ -22,7 +23,8 @@ class KpiScoringService
         }
 
         $positionName = $user->jobPosition?->name;
-        $isManager = in_array($positionName, ['Manager HR', 'Manager Operasional']);
+        $isManager = in_array($positionName, ['Manager HR', 'Manager Operasional'])
+            || in_array($positionName, Position::GUDANG_POSITIONS);
 
         $team = $user->teams()->where('is_spv_team', true)->first();
 

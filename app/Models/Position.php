@@ -12,6 +12,13 @@ class Position extends Model
 {
     use HasFactory, HasUuids;
 
+    public const GUDANG_POSITIONS = [
+        'Gudang BJB',
+        'Gudang BJM',
+        'Gudang Gesekan',
+        'Gudang ACC',
+    ];
+
     protected $fillable = [
         'name',
         'description',

@@ -1,13 +1,12 @@
 import KpiLayout from '@/layouts/kpi-layout';
-import { Head, Link, router, usePage } from '@inertiajs/react';
+import { Head, router, usePage } from '@inertiajs/react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScoreCard } from '@/components/kpi/score-card';
 import { GradeBadge } from '@/components/kpi/grade-badge';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle2, Circle, FileText, TrendingUp, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
+import { CheckCircle2, Circle, TrendingUp, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { KpiTaskModal } from '@/components/kpi/kpi-task-modal';
-import { TaskDetailModal } from '@/components/kanban/task-detail-modal';
 import { useState } from 'react';
 
 interface Media {
@@ -36,37 +35,12 @@ interface Task {
   task_name: string;
   weight: number;
   description: string;
-  visit_date?: string;
-  due_date?: string;
   is_done: boolean;
   is_verified: boolean;
   is_kpi_task?: boolean;
-  column_id?: string;
-  kanban_id?: string;
-  order_position?: number;
   comment_count: number;
   has_media: boolean;
   comments: Comment[];
-  creator?: {
-    id?: number;
-    name: string;
-    email: string;
-  };
-  creator_id?: number;
-  team?: {
-    id?: number;
-    name: string;
-  };
-  assignees?: Array<{
-    id: number;
-    name: string;
-    email: string;
-  }>;
-  tags?: Array<{
-    id: number;
-    name: string;
-    color: string;
-  }>;
 }
 
 interface DailyScore {
@@ -101,43 +75,80 @@ interface MonthlyScore {
   has_grade_d: boolean;
 }
 
+interface GudangUser {
+  id: number;
+  name: string;
+  position: string;
+}
+
 interface Props {
   selectedDate: string;
   dateScore: DailyScore | null;
   dateTasks: Task[];
-  spvKanbanTasks: Task[];
   weeklyScores: WeeklyScore[];
   monthlyScore: MonthlyScore | null;
   categoryBreakdown: DailyScore['category_breakdown'];
   hasTasksForDate: boolean;
   canGenerateForDate: boolean;
   canGenerateTasks: boolean;
-  isManager: boolean;
+  gudangUsers?: GudangUser[];
+  selectedUserId?: number | null;
+  viewingAs?: { name: string; position: string } | null;
 }
 
-export default function OperationalKpiDashboard({
+const POSITION_PROFILES: Record<string, { title: string; description: string; focus: string }> = {
+  'Gudang BJB': {
+    title: 'Divisi A — Gudang BJB (Banjarbaru)',
+    description: 'Operasional server, gesekan Otto (target 1.500 pcs), setoran tepat waktu, dan voucher.',
+    focus: 'Deadline kritis: setoran/rekapan 10.00 · setoran bank 11.00 · tarikan subuh 06.00',
+  },
+  'Gudang BJM': {
+    title: 'Divisi B — Gudang BJM (Banjarmasin)',
+    description: 'Pengisian operator semua toko, gesekan Otto (1.500 pcs = 750/shift), setoran bank jam 13.00.',
+    focus: 'Deadline kritis: absen 09.00 · setoran/rekapan 10.00 · setoran bank 13.00 · tarikan subuh 06.00',
+  },
+  'Gudang Gesekan': {
+    title: 'Divisi C — Gudang Gesekan',
+    description: 'Produktivitas gesekan murni. Target 1.500 pcs dengan kualitas tinggi (invalid < 0,5%).',
+    focus: 'Deadline kritis: masuk 09.00 · foto fisik max 10 menit',
+  },
+  'Gudang ACC': {
+    title: 'Divisi D — Gudang ACC (Aksesoris)',
+    description: 'Distribusi barang ACC ke toko (min. 8 toko/hari), pengantaran 1x24 jam, kerapian gudang.',
+    focus: 'Deadline kritis: absen 14.00 · pengantaran 1x24 jam (Hari H)',
+  },
+};
+
+export default function GudangKpiDashboard({
   selectedDate,
   dateScore,
   dateTasks,
-  spvKanbanTasks,
   weeklyScores,
   monthlyScore,
   categoryBreakdown,
   hasTasksForDate,
   canGenerateForDate,
   canGenerateTasks,
-  isManager,
+  gudangUsers,
+  selectedUserId,
+  viewingAs,
 }: Props) {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
-  const [selectedKanbanTaskId, setSelectedKanbanTaskId] = useState<string | null>(null);
-  const [kanbanModalOpen, setKanbanModalOpen] = useState(false);
 
   const { auth } = usePage().props as any;
-  const isAdminRole = auth.roles?.includes('admin') || auth.roles?.includes('superadmin');
-  const isManagerPosition = auth.user?.jobPosition?.name === 'Manager HR' || auth.user?.jobPosition?.name === 'Manager Operasional';
+  const isMonitoring = Array.isArray(gudangUsers);
+  const positionName: string = isMonitoring
+    ? viewingAs?.position || ''
+    : auth.user?.jobPosition?.name || '';
+  const profile = POSITION_PROFILES[positionName] || {
+    title: positionName || 'Gudang Area',
+    description: 'Evaluasi kinerja harian divisi gudang',
+    focus: '',
+  };
 
-  // Admin with manager position can edit, admin without manager position is read-only
-  const isAdminUser = isAdminRole && !isManagerPosition;
+  const isAdminRole = auth.roles?.includes('admin') || auth.roles?.includes('superadmin');
+  const isGudangPosition = positionName in POSITION_PROFILES;
+  const isAdminUser = isAdminRole && !isGudangPosition;
 
   const groupedTasks = dateTasks.reduce(
     (acc, task) => {
@@ -163,11 +174,22 @@ export default function OperationalKpiDashboard({
   const navigateDate = (days: number) => {
     const date = new Date(selectedDate);
     date.setDate(date.getDate() + days);
-    router.get('/operational/kpi/dashboard', { date: date.toISOString().split('T')[0] }, { preserveState: true });
+    router.get(
+      '/gudang/kpi/dashboard',
+      {
+        date: date.toISOString().split('T')[0],
+        ...(isMonitoring && selectedUserId ? { user_id: selectedUserId } : {}),
+      },
+      { preserveState: true },
+    );
+  };
+
+  const handleUserChange = (userId: string) => {
+    router.get('/gudang/kpi/dashboard', { user_id: userId, date: selectedDate }, { preserveState: true });
   };
 
   const handleGenerateTasks = () => {
-    router.post('/operational/kpi/tasks/generate', { date: selectedDate });
+    router.post('/gudang/kpi/tasks/generate', { date: selectedDate });
   };
 
   const today = new Date();
@@ -175,18 +197,41 @@ export default function OperationalKpiDashboard({
   const isToday = selectedDate === todayString;
 
   return (
-    <KpiLayout area="operational">
-      <Head title="KPI Dashboard - Manager Operasional" />
+    <KpiLayout area="gudang">
+      <Head title={`KPI Dashboard - ${positionName || 'Gudang'}`} />
 
       <div className="space-y-6">
         {/* Header with Date Navigation */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold">KPI Dashboard</h1>
-            <p className="text-muted-foreground">Manager Operasional - Evaluasi Kinerja Harian</p>
+            <h1 className="text-2xl font-bold">{profile.title}</h1>
+            <p className="text-muted-foreground">{profile.description}</p>
+            {profile.focus && (
+              <p className="mt-1 text-xs text-amber-600 dark:text-amber-500">{profile.focus}</p>
+            )}
           </div>
-          <div className="flex flex-col sm:flex-row gap-2">
-            {!hasTasksForDate && canGenerateForDate && canGenerateTasks && (
+          {isMonitoring ? (
+            <div className="w-full md:w-64">
+              <select
+                value={selectedUserId ?? ''}
+                onChange={(e) => handleUserChange(e.target.value)}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                aria-label="Pilih user gudang"
+              >
+                {(gudangUsers || []).length === 0 && (
+                  <option value="" disabled>
+                    Belum ada user posisi gudang
+                  </option>
+                )}
+                {(gudangUsers || []).map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.name} — {u.position}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : (
+            !hasTasksForDate && canGenerateForDate && canGenerateTasks && (
               <Button
                 variant="outline"
                 onClick={handleGenerateTasks}
@@ -195,17 +240,15 @@ export default function OperationalKpiDashboard({
                 <Plus className="mr-2 h-4 w-4" />
                 Generate Task
               </Button>
-            )}
-            {canGenerateTasks && (
-              <Link href="/operational/kpi/report/create">
-                <Button className="w-full sm:w-auto">
-                  <FileText className="mr-2 h-4 w-4" />
-                  Kirim Laporan CEO
-                </Button>
-              </Link>
-            )}
-          </div>
+            )
+          )}
         </div>
+
+        {isMonitoring && viewingAs && (
+          <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-sm text-blue-700 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-300">
+            Monitoring: <span className="font-semibold">{viewingAs.name}</span> — {viewingAs.position} (read-only)
+          </div>
+        )}
 
         {/* Date Navigation */}
         <Card>
@@ -339,94 +382,10 @@ export default function OperationalKpiDashboard({
           </Card>
         )}
 
-        {/* SPV Kanban Tasks (Manager Only) */}
-        {spvKanbanTasks.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Task SPV Kanban ({spvKanbanTasks.length})</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                {spvKanbanTasks.map((task) => (
-                  <div
-                    key={task.id}
-                    onClick={() => {
-                      setSelectedKanbanTaskId(task.id);
-                      setKanbanModalOpen(true);
-                    }}
-                    className="flex flex-col gap-2 p-4 rounded-lg border hover:bg-accent transition-colors cursor-pointer"
-                  >
-                    <div className="flex items-start gap-3">
-                      <div className="mt-0.5">
-                        {task.is_verified ? (
-                          <CheckCircle2 className="h-5 w-5 text-green-600" />
-                        ) : (
-                          <Circle className="h-5 w-5 text-gray-400" />
-                        )}
-                      </div>
-                      <div className="flex-1 space-y-2">
-                        <p className="font-medium text-sm leading-tight">{task.title}</p>
-                        {task.creator && (
-                          <p className="text-xs text-muted-foreground">
-                            SPV: {task.creator.name}
-                            {task.team && (
-                              <>
-                                <br />
-                                Tim: {task.team.name}
-                              </>
-                            )}
-                          </p>
-                        )}
-                        {task.visit_date && (
-                          <p className="text-xs text-muted-foreground">
-                            📅 {new Date(task.visit_date).toLocaleDateString('id-ID', {
-                              day: 'numeric',
-                              month: 'short',
-                              year: 'numeric'
-                            })}
-                          </p>
-                        )}
-                        {task.assignees && task.assignees.length > 0 && (
-                          <p className="text-xs text-muted-foreground">
-                            👥 {task.assignees.map((a: any) => a.name).join(', ')}
-                          </p>
-                        )}
-                        <p className="text-xs text-muted-foreground line-clamp-2">{task.description}</p>
-                        <div className="flex flex-wrap items-center gap-1.5 text-xs">
-                          {task.is_verified && (
-                            <Badge variant="outline" className="bg-green-50 text-green-700 text-xs">
-                              Terverifikasi
-                            </Badge>
-                          )}
-                          {task.is_done && !task.is_verified && (
-                            <Badge variant="outline" className="bg-yellow-50 text-yellow-700 text-xs">
-                              Selesai
-                            </Badge>
-                          )}
-                          {!task.is_done && (
-                            <Badge variant="outline" className="bg-gray-50 text-gray-700 text-xs">
-                              Belum Selesai
-                            </Badge>
-                          )}
-                          {task.comment_count > 0 && (
-                            <span className="text-muted-foreground">
-                              {task.comment_count} komentar {task.has_media && '📎'}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
         {/* Date Tasks */}
         <Card>
           <CardHeader>
-            <CardTitle>Task Tanggal Ini ({dateTasks.length})</CardTitle>
+            <CardTitle>Daily Task ({dateTasks.length})</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-6">
@@ -449,14 +408,7 @@ export default function OperationalKpiDashboard({
                         </div>
                         <div className="flex-1 space-y-1">
                           <div className="flex items-start justify-between gap-2 md:gap-4">
-                            <div className="flex-1">
-                              <p className="font-medium">{task.task_name}</p>
-                              {isManager && task.creator && (
-                                <p className="text-xs text-muted-foreground mt-0.5">
-                                  SPV: {task.creator.name} {task.team && `• ${task.team.name}`}
-                                </p>
-                              )}
-                            </div>
+                            <p className="flex-1 font-medium">{task.task_name}</p>
                             <Badge variant="secondary">{task.weight}%</Badge>
                           </div>
                           <p className="text-sm text-muted-foreground line-clamp-2">{task.description}</p>
@@ -506,18 +458,9 @@ export default function OperationalKpiDashboard({
 
       <KpiTaskModal
         task={selectedTask}
-        area="operational"
+        area="gudang"
         onClose={() => setSelectedTask(null)}
         readOnly={isAdminUser}
-      />
-
-      <TaskDetailModal
-        task={spvKanbanTasks.find(t => t.id === selectedKanbanTaskId) || null}
-        open={kanbanModalOpen}
-        onClose={() => {
-          setKanbanModalOpen(false);
-          setSelectedKanbanTaskId(null);
-        }}
       />
     </KpiLayout>
   );

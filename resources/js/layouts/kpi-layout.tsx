@@ -7,7 +7,7 @@ import { BarChart3, FileText, TrendingUp, Calendar, ClipboardList } from 'lucide
 
 interface KpiLayoutProps {
   children: React.ReactNode;
-  area: 'hr' | 'operational';
+  area: 'hr' | 'operational' | 'gudang';
 }
 
 export default function KpiLayout({ children, area }: KpiLayoutProps) {

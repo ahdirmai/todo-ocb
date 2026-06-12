@@ -22,6 +22,7 @@ interface Comment {
   content: string;
   created_at: string;
   user: {
+    id: number;
     name: string;
     email: string;
   };

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\KpiDailyReport;
+use App\Models\Position;
 use App\Services\KpiReportingService;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
@@ -26,13 +27,17 @@ class KpiReportController extends Controller
         if (str_starts_with($path, 'operational/')) {
             return 'operational';
         }
+        if (str_starts_with($path, 'gudang/')) {
+            return 'gudang';
+        }
 
         // Fallback: detect from position name
         $positionName = $user->jobPosition?->name;
 
-        return match ($positionName) {
-            'Manager HR' => 'hr',
-            'Manager Operasional' => 'operational',
+        return match (true) {
+            $positionName === 'Manager HR' => 'hr',
+            $positionName === 'Manager Operasional' => 'operational',
+            in_array($positionName, Position::GUDANG_POSITIONS) => 'gudang',
             default => throw new \Exception('Position tidak memiliki akses KPI'),
         };
     }
