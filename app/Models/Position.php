@@ -54,4 +54,9 @@ class Position extends Model
     {
         return $this->hasMany(KpiTaskDefinition::class);
     }
+
+    public function reportFields(): HasMany
+    {
+        return $this->hasMany(PositionReportField::class)->orderBy('sort_order');
+    }
 }

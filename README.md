@@ -31,6 +31,7 @@ Laravel-based task management system with advanced KPI tracking, position-based 
 - **Multi-Period Aggregation**: Daily → Weekly (7-day avg) → Monthly (4-week avg + bonus)
 - **Automated Grading**: A+ to D grades with specific thresholds
 - **CEO Reporting**: Daily report submission and editing with deadline tracking (22:30 WITA); date picker allows submitting for any past date
+- **Dynamic Report Templates**: Database-driven report fields per position — field definitions stored in `position_report_fields` table with support for text, textarea, number, date, and select types; field values stored as JSON in `kpi_daily_reports.fields_json`; shared components for form, detail view, and list across HR, Operational, and Gudang areas
 - **CEO Monitoring Area**: Executive dashboard for superadmin — daily scores, per-user drill-down, SPV task monitoring with clickable task detail modal (comments + files with thumbnails), critical alerts
 - **Dashboard Analytics**: Real-time score cards, trends, and category breakdowns
 

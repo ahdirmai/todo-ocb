@@ -320,8 +320,15 @@ class KpiDashboardController extends Controller
         if ($selectedUserId && $gudangUsers->firstWhere('id', (int) $selectedUserId)) {
             $targetUser = User::find($selectedUserId);
         } elseif ($selectedPosition && in_array($selectedPosition, Position::GUDANG_POSITIONS)) {
+            // Check line positions list first, then fall back to direct DB lookup
+            // (Manager Gudang is in GUDANG_POSITIONS but not in $gudangUsers dropdown)
             $firstOfPosition = $gudangUsers->firstWhere('position', $selectedPosition);
-            $targetUser = $firstOfPosition ? User::find($firstOfPosition['id']) : null;
+            if ($firstOfPosition) {
+                $targetUser = User::find($firstOfPosition['id']);
+            } else {
+                $targetUser = User::whereHas('jobPosition', fn ($q) => $q->where('name', $selectedPosition))
+                    ->first();
+            }
         } elseif ($gudangUsers->isNotEmpty()) {
             $targetUser = User::find($gudangUsers->first()['id']);
         }

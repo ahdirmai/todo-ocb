@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+- **Dynamic Report Templates**: Database-driven report fields replace hardcoded report forms
+  - New model: `PositionReportField` — stores field definitions per position (key, label, type, options, group, sort order)
+  - New migration: `create_position_report_fields_table` — field configuration per position
+  - New migration: `add_fields_json_to_kpi_daily_reports_table` — JSON column for submitted field values
+  - New seeder: `PositionReportFieldSeeder` — HR (14 fields/7 groups), Operational (11 fields/5 groups), Gudang (8 fields/4 groups)
+  - New shared components: `dynamic-report-form.tsx`, `dynamic-report-detail.tsx`, `dynamic-reports-list.tsx`
+  - Refactored HR, Operational, and Gudang report pages to use dynamic components — removed ~1800 lines of hardcoded form/list code
+  - `KpiReportingService` now handles generic JSON field data instead of position-specific logic
+  - `KpiReportController` refactored to use dynamic field validation from database
+  - Report edit now pre-populates fields from `fields_json`
+  - Supports field types: text, textarea, number, date, select
+
 ### Fixed
 - **CEO Dashboard — 500 Error When User Removed from Position**: Filtering scores by position threw when `job_position` was null
   - Root cause: `$s['user']['job_position']['name']` — no null guard on `job_position`

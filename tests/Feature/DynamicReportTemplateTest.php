@@ -1,0 +1,185 @@
+<?php
+
+use App\Models\KpiDailyReport;
+use App\Models\Position;
+use App\Models\PositionPermission;
+use App\Models\PositionReportField;
+use App\Models\User;
+use App\Services\KpiReportingService;
+use Spatie\Permission\Models\Role;
+
+use function Pest\Laravel\actingAs;
+
+function makeReportUser(string $positionName, string $routeKey = 'gudang'): User
+{
+    $position = Position::firstOrCreate(['name' => $positionName]);
+    PositionPermission::firstOrCreate([
+        'position_id' => $position->id,
+        'route_key' => $routeKey,
+    ]);
+
+    return User::factory()->create([
+        'email_verified_at' => now(),
+        'position_id' => $position->id,
+    ]);
+}
+
+function seedTemplateFields(string $positionName): void
+{
+    $position = Position::firstOrCreate(['name' => $positionName]);
+
+    $fields = match ($positionName) {
+        'Manager Gudang' => [
+            ['field_key' => 'recap', 'field_label' => 'Rekap', 'field_type' => 'textarea', 'group_label' => 'Rekap', 'is_required' => true, 'sort_order' => 1, 'field_options' => ['max_length' => 3000]],
+            ['field_key' => 'action_plan', 'field_label' => 'Action Plan', 'field_type' => 'textarea', 'group_label' => 'Rencana', 'is_required' => true, 'sort_order' => 2, 'field_options' => ['max_length' => 2000]],
+        ],
+        'Manager Operasional' => [
+            ['field_key' => 'status_34_tasks', 'field_label' => 'Status Task', 'field_type' => 'textarea', 'group_label' => 'Isi Laporan', 'is_required' => true, 'sort_order' => 1],
+            ['field_key' => 'action_plan', 'field_label' => 'Action Plan', 'field_type' => 'textarea', 'group_label' => 'Isi Laporan', 'is_required' => false, 'sort_order' => 2],
+        ],
+        default => [],
+    };
+
+    foreach ($fields as $field) {
+        PositionReportField::updateOrCreate(
+            ['position_id' => $position->id, 'field_key' => $field['field_key']],
+            $field + ['position_id' => $position->id],
+        );
+    }
+}
+
+test('report template service returns correct fields for position', function (): void {
+    seedTemplateFields('Manager Gudang');
+
+    $service = app(KpiReportingService::class);
+    $fields = $service->getReportFieldsTemplate('Manager Gudang');
+
+    expect($fields)->toHaveCount(2)
+        ->and($fields[0]['field_key'])->toBe('recap')
+        ->and($fields[0]['is_required'])->toBeTrue()
+        ->and($fields[1]['field_key'])->toBe('action_plan');
+});
+
+test('report template service returns empty for unknown position', function (): void {
+    $service = app(KpiReportingService::class);
+    $fields = $service->getReportFieldsTemplate('NonExistent');
+
+    expect($fields)->toBeEmpty();
+});
+
+test('validation rules built from template fields', function (): void {
+    seedTemplateFields('Manager Gudang');
+
+    $service = app(KpiReportingService::class);
+    $fields = $service->getReportFieldsTemplate('Manager Gudang');
+    $rules = $service->buildValidationRules($fields);
+
+    expect($rules)->toHaveKey('fields.recap')
+        ->and($rules['fields.recap'])->toContain('required')
+        ->and($rules['fields.recap'])->toContain('max:3000')
+        ->and($rules)->toHaveKey('attachments');
+});
+
+test('manager gudang can create report with dynamic fields', function (): void {
+    $user = makeReportUser('Manager Gudang');
+    seedTemplateFields('Manager Gudang');
+
+    actingAs($user)
+        ->get('/gudang/kpi/report/create')
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('gudang/kpi/report-form')
+            ->has('reportFields')
+        );
+});
+
+test('manager gudang can submit report with fields JSON', function (): void {
+    $user = makeReportUser('Manager Gudang');
+    seedTemplateFields('Manager Gudang');
+
+    actingAs($user)
+        ->post('/gudang/kpi/report/submit', [
+            'report_date' => now()->toDateString(),
+            'fields' => [
+                'recap' => 'Test recap content',
+                'action_plan' => 'Test action plan',
+            ],
+        ])
+        ->assertRedirect();
+
+    $report = KpiDailyReport::where('user_id', $user->id)->first();
+    expect($report)->not->toBeNull()
+        ->and($report->fields)->toBeArray()
+        ->and($report->fields['recap'])->toBe('Test recap content')
+        ->and($report->fields['action_plan'])->toBe('Test action plan');
+});
+
+test('manager operasional can submit report with dynamic fields', function (): void {
+    $user = makeReportUser('Manager Operasional', 'operational');
+    seedTemplateFields('Manager Operasional');
+
+    actingAs($user)
+        ->post('/operational/kpi/report/submit', [
+            'report_date' => now()->toDateString(),
+            'fields' => [
+                'status_34_tasks' => 'All tasks completed',
+                'action_plan' => 'Plan for tomorrow',
+            ],
+        ])
+        ->assertRedirect();
+
+    $report = KpiDailyReport::where('user_id', $user->id)->first();
+    expect($report)->not->toBeNull()
+        ->and($report->fields['status_34_tasks'])->toBe('All tasks completed');
+});
+
+test('duplicate report submission rejected with fields format', function (): void {
+    $user = makeReportUser('Manager Gudang');
+    seedTemplateFields('Manager Gudang');
+
+    KpiDailyReport::create([
+        'user_id' => $user->id,
+        'report_date' => now()->toDateString(),
+        'fields' => ['recap' => 'existing', 'action_plan' => 'existing'],
+        'submitted_at' => now(),
+    ]);
+
+    actingAs($user)
+        ->post('/gudang/kpi/report/submit', [
+            'report_date' => now()->toDateString(),
+            'fields' => [
+                'recap' => 'Duplicate attempt',
+                'action_plan' => 'Duplicate',
+            ],
+        ])
+        ->assertRedirect()
+        ->assertSessionHasErrors('report_date');
+});
+
+test('report index passes reportFields to frontend', function (): void {
+    $user = makeReportUser('Manager Gudang');
+    seedTemplateFields('Manager Gudang');
+
+    actingAs($user)
+        ->get('/gudang/kpi/reports')
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('gudang/kpi/reports')
+            ->has('reportFields')
+        );
+});
+
+test('admin can view reports with reportFields', function (): void {
+    $adminRole = Role::firstOrCreate(['name' => 'superadmin']);
+    $admin = User::factory()->create(['email_verified_at' => now()]);
+    $admin->assignRole($adminRole);
+
+    seedTemplateFields('Manager Gudang');
+
+    actingAs($admin)
+        ->get('/gudang/kpi/reports')
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->has('reportFields')
+        );
+});

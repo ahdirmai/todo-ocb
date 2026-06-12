@@ -14,11 +14,7 @@ class KpiDailyReport extends Model
         'user_id',
         'team_id',
         'report_date',
-        'status_34_tasks',
-        'spv_status',
-        'issues_today',
-        'follow_up',
-        'action_plan',
+        'fields',
         'report_data',
         'attachments',
         'submitted_at',
@@ -27,6 +23,7 @@ class KpiDailyReport extends Model
 
     protected $casts = [
         'report_date' => 'date',
+        'fields' => 'array',
         'report_data' => 'array',
         'attachments' => 'array',
         'submitted_at' => 'datetime',

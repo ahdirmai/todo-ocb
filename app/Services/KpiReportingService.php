@@ -4,9 +4,12 @@ namespace App\Services;
 
 use App\Models\KpiDailyReport;
 use App\Models\KpiDailyScore;
+use App\Models\Position;
+use App\Models\PositionReportField;
 use App\Models\Task;
 use App\Models\User;
 use Carbon\CarbonInterface;
+use Illuminate\Support\Arr;
 
 class KpiReportingService
 {
@@ -18,6 +21,10 @@ class KpiReportingService
         $submittedAt = $data['submitted_at'] ?? now();
         $isLate = $this->checkReportDeadline($submittedAt);
 
+        // Extract fields from data — everything except meta fields
+        $metaKeys = ['report_date', 'submitted_at', 'is_late', 'attachments', 'report_data'];
+        $fields = Arr::except($data, $metaKeys);
+
         return KpiDailyReport::updateOrCreate(
             [
                 'user_id' => $user->id,
@@ -25,11 +32,7 @@ class KpiReportingService
             ],
             [
                 'team_id' => $team?->id,
-                'status_34_tasks' => $data['status_34_tasks'] ?? null,
-                'spv_status' => $data['spv_status'] ?? null,
-                'issues_today' => $data['issues_today'] ?? null,
-                'follow_up' => $data['follow_up'] ?? null,
-                'action_plan' => $data['action_plan'] ?? null,
+                'fields' => $fields,
                 'report_data' => $data['report_data'] ?? null,
                 'attachments' => $data['attachments'] ?? null,
                 'submitted_at' => $submittedAt,
@@ -42,7 +45,6 @@ class KpiReportingService
     {
         $team = $user->teams()->where('is_spv_team', true)->first();
 
-        // For managers without team, query by creator_id only
         $tasksQuery = Task::where('is_kpi_task', true)
             ->where('creator_id', $user->id)
             ->whereDate('created_at', $date->toDateString())
@@ -72,6 +74,73 @@ class KpiReportingService
             'grade' => $dailyScore?->grade ?? '-',
             'category_breakdown' => $dailyScore?->category_breakdown ?? [],
         ];
+    }
+
+    /**
+     * Get report field template for a given position.
+     *
+     * @return array<int, array{field_key: string, field_label: string, field_type: string, field_options: ?array, group_label: ?string, is_required: bool, sort_order: int}>
+     */
+    public function getReportFieldsTemplate(string $positionName): array
+    {
+        $position = Position::where('name', $positionName)->first();
+        if (! $position) {
+            return [];
+        }
+
+        return PositionReportField::where('position_id', $position->id)
+            ->orderBy('sort_order')
+            ->get()
+            ->map(fn (PositionReportField $f) => [
+                'field_key' => $f->field_key,
+                'field_label' => $f->field_label,
+                'field_type' => $f->field_type,
+                'field_options' => $f->field_options,
+                'group_label' => $f->group_label,
+                'is_required' => $f->is_required,
+                'sort_order' => $f->sort_order,
+            ])
+            ->values()
+            ->toArray();
+    }
+
+    /**
+     * Build Laravel validation rules from template fields.
+     *
+     * @return array<string, string>
+     */
+    public function buildValidationRules(array $templateFields): array
+    {
+        $rules = [];
+
+        foreach ($templateFields as $field) {
+            $rule = [];
+
+            if ($field['is_required']) {
+                $rule[] = 'required';
+            } else {
+                $rule[] = 'nullable';
+            }
+
+            match ($field['field_type']) {
+                'textarea' => $rule[] = 'string',
+                'text' => $rule[] = 'string',
+                'number' => $rule[] = 'numeric',
+                default => $rule[] = 'string',
+            };
+
+            if (! empty($field['field_options']['max_length'])) {
+                $rule[] = 'max:'.$field['field_options']['max_length'];
+            }
+
+            $rules['fields.'.$field['field_key']] = implode('|', $rule);
+        }
+
+        // Always accept attachments
+        $rules['attachments'] = 'nullable|array|max:5';
+        $rules['attachments.*'] = 'file|mimes:jpg,jpeg,png,pdf|max:5120';
+
+        return $rules;
     }
 
     public function checkReportDeadline(CarbonInterface $submittedAt): bool
