@@ -32,4 +32,9 @@ class Position extends Model
     {
         return $this->hasMany(PositionPermission::class);
     }
+
+    public function kpiDefinitions(): HasMany
+    {
+        return $this->hasMany(KpiTaskDefinition::class);
+    }
 }

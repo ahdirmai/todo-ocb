@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/dialog';
 import { Plus, Edit, Trash2 } from 'lucide-react';
 import { useState } from 'react';
+import * as KpiAdminDefinitionsActions from '@/routes/kpi/admin/definitions';
 
 interface TaskDefinition {
   id: string;
@@ -78,17 +79,17 @@ export default function KpiAdminDefinitions({ positions }: Props) {
     setIsDialogOpen(true);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (editingDefinition) {
-      put(`/kpi/admin/definitions/${editingDefinition.id}`, {
+      put(KpiAdminDefinitionsActions.update.url({ definition: editingDefinition.id }), {
         onSuccess: () => {
           setIsDialogOpen(false);
           reset();
         },
       });
     } else {
-      post('/kpi/admin/definitions', {
+      post(KpiAdminDefinitionsActions.store.url(), {
         onSuccess: () => {
           setIsDialogOpen(false);
           reset();
@@ -99,11 +100,11 @@ export default function KpiAdminDefinitions({ positions }: Props) {
 
   const handleDelete = (definition: TaskDefinition) => {
     if (confirm(`Hapus task definition "${definition.task_name}"?`)) {
-      destroy(`/kpi/admin/definitions/${definition.id}`);
+      destroy(KpiAdminDefinitionsActions.destroy.url({ definition: definition.id }));
     }
   };
 
-  const totalWeight = selectedPosition?.kpi_definitions.reduce((sum, def) => sum + def.weight, 0) || 0;
+  const totalWeight = selectedPosition?.kpi_definitions.reduce((sum, def) => sum + Number(def.weight), 0) || 0;
 
   return (
     <AppLayout>

@@ -266,6 +266,14 @@ export function AppSidebar() {
                                         </Link>
                                     </SidebarMenuButton>
                                 </SidebarMenuItem>
+                                <SidebarMenuItem>
+                                    <SidebarMenuButton asChild>
+                                        <Link href="/kpi/admin/definitions">
+                                            <Settings className="h-4 w-4" />
+                                            <span>Task Definitions</span>
+                                        </Link>
+                                    </SidebarMenuButton>
+                                </SidebarMenuItem>
                                                 {isSuperadmin && (
                                     <SidebarMenuItem>
                                         <SidebarMenuButton asChild>
