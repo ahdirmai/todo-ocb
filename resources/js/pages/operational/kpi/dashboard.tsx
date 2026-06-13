@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { CheckCircle2, Circle, FileText, TrendingUp, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { KpiTaskModal } from '@/components/kpi/kpi-task-modal';
 import { TaskDetailModal } from '@/components/kanban/task-detail-modal';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 
 interface Media {
   id: number;
@@ -160,11 +160,14 @@ export default function OperationalKpiDashboard({
     }).format(date);
   };
 
-  const navigateDate = (days: number) => {
+  const getNavigationHref = (days: number) => {
     const date = new Date(selectedDate);
     date.setDate(date.getDate() + days);
-    router.get('/operational/kpi/dashboard', { date: date.toISOString().split('T')[0] }, { preserveState: true });
+    return `/operational/kpi/dashboard?date=${date.toISOString().split('T')[0]}`;
   };
+
+  const prevHref = useMemo(() => getNavigationHref(-1), [selectedDate]);
+  const nextHref = useMemo(() => getNavigationHref(1), [selectedDate]);
 
   const handleGenerateTasks = () => {
     router.post('/operational/kpi/tasks/generate', { date: selectedDate });
@@ -211,16 +214,14 @@ export default function OperationalKpiDashboard({
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center justify-between gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => navigateDate(-1)}
-                className="shrink-0"
+              <Link
+                href={prevHref}
+                className="inline-flex items-center justify-center h-10 px-3 text-sm font-medium rounded-md border border-input hover:bg-accent hover:text-accent-foreground shrink-0"
                 aria-label="Hari sebelumnya"
               >
                 <ChevronLeft className="h-4 w-4" />
                 <span className="hidden md:inline ml-1">Sebelumnya</span>
-              </Button>
+              </Link>
 
               <div className="text-center flex-1 min-w-0">
                 <p className="text-sm md:text-lg font-semibold truncate">{formatDate(selectedDate)}</p>
@@ -234,13 +235,15 @@ export default function OperationalKpiDashboard({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => navigateDate(1)}
                 disabled={isToday}
+                asChild
                 className="shrink-0"
                 aria-label="Hari berikutnya"
               >
-                <span className="hidden md:inline mr-1">Berikutnya</span>
-                <ChevronRight className="h-4 w-4" />
+                <Link href={nextHref}>
+                  <span className="hidden md:inline mr-1">Berikutnya</span>
+                  <ChevronRight className="h-4 w-4" />
+                </Link>
               </Button>
             </div>
           </CardContent>

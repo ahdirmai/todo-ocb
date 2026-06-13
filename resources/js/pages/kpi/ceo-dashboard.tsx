@@ -1,5 +1,5 @@
 import CeoLayout from '@/layouts/ceo-layout';
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { GradeBadge } from '@/components/kpi/grade-badge';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,7 @@ import {
     ChevronRight,
     Building2,
     Eye,
+    FileText,
 } from 'lucide-react';
 
 interface Score {
@@ -48,6 +49,7 @@ interface Props {
     allScores: Score[];
     hrScores: Score[];
     opsScores: Score[];
+    gudangScores: Score[];
     gradeDistribution: Record<string, number>;
     criticalAlerts: Score[];
     lateReports: Array<{ id: string; user: UserItem; submitted_at: string }>;
@@ -128,6 +130,7 @@ export default function KpiCeoDashboard({
     allScores,
     hrScores,
     opsScores,
+    gudangScores,
     gradeDistribution,
     criticalAlerts,
     lateReports,
@@ -156,16 +159,11 @@ export default function KpiCeoDashboard({
 
     const totalAlerts = criticalAlerts.length + lateReports.length + pendingReports.length;
 
-    const navigate = (d: string) => {
-        router.get('/kpi/ceo/dashboard', { date: d, position: positionFilter }, { preserveScroll: true });
-    };
-
-    const filterPosition = (pos: string) => {
-        router.get('/kpi/ceo/dashboard', { date, position: pos }, { preserveScroll: true });
-    };
+    const prevHref = `/kpi/ceo/dashboard?date=${prevDateStr}&position=${positionFilter}`;
+    const nextHref = `/kpi/ceo/dashboard?date=${nextDateStr}&position=${positionFilter}`;
 
     const displayScores =
-        positionFilter === 'hr' ? hrScores : positionFilter === 'operational' ? opsScores : allScores;
+        positionFilter === 'hr' ? hrScores : positionFilter === 'operational' ? opsScores : positionFilter === 'gudang' ? gudangScores : allScores;
 
     return (
         <CeoLayout>
@@ -177,33 +175,39 @@ export default function KpiCeoDashboard({
                     <div>
                         <h1 className="text-2xl font-bold">KPI Dashboard CEO</h1>
                         <p className="text-muted-foreground text-sm">
-                            Monitor performa Manager HR, Manager Operasional & Tim SPV
+                            Monitor performa Manager HR, Manager Operasional, Manager Gudang & Tim SPV
                         </p>
                     </div>
-                    {totalAlerts > 0 && (
-                        <Link href={`/kpi/ceo/alerts?date=${date}`}>
-                            <Button variant="destructive" size="sm">
-                                <AlertCircle className="mr-2 h-4 w-4" />
-                                {totalAlerts} Alert Kritis
+                    <div className="flex gap-2">
+                        {totalAlerts > 0 && (
+                            <Link href={`/kpi/ceo/alerts?date=${date}`}>
+                                <Button variant="destructive" size="sm">
+                                    <AlertCircle className="mr-2 h-4 w-4" />
+                                    {totalAlerts} Alert Kritis
+                                </Button>
+                            </Link>
+                        )}
+                        <Link href={`/kpi/ceo/daily-reports?date=${date}`}>
+                            <Button variant="outline" size="sm">
+                                <FileText className="mr-2 h-4 w-4" />
+                                Laporan Harian
                             </Button>
                         </Link>
-                    )}
+                    </div>
                 </div>
 
                 {/* Date Navigation */}
                 <Card>
                     <CardContent className="pt-6">
                         <div className="flex items-center justify-between gap-2">
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => navigate(prevDateStr)}
-                                className="shrink-0"
+                            <Link
+                                href={prevHref}
+                                className="inline-flex items-center justify-center h-10 px-3 text-sm font-medium rounded-md border border-input hover:bg-accent hover:text-accent-foreground shrink-0"
                                 aria-label="Hari sebelumnya"
                             >
                                 <ChevronLeft className="h-4 w-4" />
                                 <span className="hidden md:inline ml-1">Sebelumnya</span>
-                            </Button>
+                            </Link>
 
                             <div className="text-center flex-1 min-w-0">
                                 <p className="text-sm md:text-lg font-semibold truncate">
@@ -224,13 +228,15 @@ export default function KpiCeoDashboard({
                             <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => navigate(nextDateStr)}
                                 disabled={isToday}
+                                asChild
                                 className="shrink-0"
                                 aria-label="Hari berikutnya"
                             >
-                                <span className="hidden md:inline mr-1">Berikutnya</span>
-                                <ChevronRight className="h-4 w-4" />
+                                <Link href={nextHref}>
+                                    <span className="hidden md:inline mr-1">Berikutnya</span>
+                                    <ChevronRight className="h-4 w-4" />
+                                </Link>
                             </Button>
                         </div>
                     </CardContent>
@@ -248,7 +254,7 @@ export default function KpiCeoDashboard({
                         <CardContent>
                             <div className="text-3xl font-bold">{allScores.length}</div>
                             <p className="text-xs text-muted-foreground mt-1">
-                                HR: {hrScores.length} | Ops: {opsScores.length}
+                                HR: {hrScores.length} | Ops: {opsScores.length} | Gudang: {gudangScores.length}
                             </p>
                         </CardContent>
                     </Card>
@@ -399,10 +405,11 @@ export default function KpiCeoDashboard({
                         { key: 'all', label: `Semua (${allScores.length})` },
                         { key: 'hr', label: `Manager HR (${hrScores.length})` },
                         { key: 'operational', label: `Manager Ops (${opsScores.length})` },
+                        { key: 'gudang', label: `Manager Gudang (${gudangScores.length})` },
                     ].map((tab) => (
-                        <button
+                        <Link
                             key={tab.key}
-                            onClick={() => filterPosition(tab.key)}
+                            href={`/kpi/ceo/dashboard?date=${date}&position=${tab.key}`}
                             className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
                                 positionFilter === tab.key
                                     ? 'bg-primary text-primary-foreground'
@@ -410,7 +417,7 @@ export default function KpiCeoDashboard({
                             }`}
                         >
                             {tab.label}
-                        </button>
+                        </Link>
                     ))}
                 </div>
 
@@ -429,12 +436,18 @@ export default function KpiCeoDashboard({
                             date={date}
                             emptyText="Belum ada data skor Manager Operasional untuk tanggal ini"
                         />
+                        <PositionSection
+                            title="Manager Gudang"
+                            scores={gudangScores}
+                            date={date}
+                            emptyText="Belum ada data skor Manager Gudang untuk tanggal ini"
+                        />
                     </div>
                 ) : (
                     <Card>
                         <CardHeader className="pb-2">
                             <CardTitle>
-                                {positionFilter === 'hr' ? 'Manager HR' : 'Manager Operasional'}
+                                {positionFilter === 'hr' ? 'Manager HR' : positionFilter === 'operational' ? 'Manager Operasional' : 'Manager Gudang'}
                             </CardTitle>
                         </CardHeader>
                         <CardContent>

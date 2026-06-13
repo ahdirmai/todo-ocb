@@ -1,5 +1,5 @@
 import CeoLayout from '@/layouts/ceo-layout';
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { GradeBadge } from '@/components/kpi/grade-badge';
@@ -236,9 +236,7 @@ export default function CeoUserDetail({
     const prevDateStr = addDays(date, -1);
     const nextDateStr = addDays(date, 1);
 
-    const navigate = (d: string) => {
-        router.get(`/kpi/ceo/user/${user.id}`, { date: d }, { preserveScroll: true });
-    };
+    const getNavigationHref = (d: string) => `/kpi/ceo/user/${user.id}?date=${d}`;
 
     const tasksByCategory = dailyScore?.task_details
         ? dailyScore.task_details.reduce(
@@ -305,15 +303,13 @@ export default function CeoUserDetail({
                 <Card>
                     <CardContent className="pt-6">
                         <div className="flex items-center justify-between gap-2">
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => navigate(prevDateStr)}
-                                className="shrink-0"
+                            <Link
+                                href={getNavigationHref(prevDateStr)}
+                                className="inline-flex items-center justify-center h-10 px-3 text-sm font-medium rounded-md border border-input hover:bg-accent hover:text-accent-foreground shrink-0"
                             >
                                 <ChevronLeft className="h-4 w-4" />
                                 <span className="hidden md:inline ml-1">Sebelumnya</span>
-                            </Button>
+                            </Link>
                             <div className="text-center flex-1 min-w-0">
                                 <p className="text-sm md:text-lg font-semibold truncate">
                                     {new Intl.DateTimeFormat('id-ID', {
@@ -332,12 +328,14 @@ export default function CeoUserDetail({
                             <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => navigate(nextDateStr)}
                                 disabled={isToday}
+                                asChild
                                 className="shrink-0"
                             >
-                                <span className="hidden md:inline mr-1">Berikutnya</span>
-                                <ChevronRight className="h-4 w-4" />
+                                <Link href={getNavigationHref(nextDateStr)}>
+                                    <span className="hidden md:inline mr-1">Berikutnya</span>
+                                    <ChevronRight className="h-4 w-4" />
+                                </Link>
                             </Button>
                         </div>
                     </CardContent>
@@ -581,9 +579,11 @@ export default function CeoUserDetail({
                                                 variant="ghost"
                                                 size="sm"
                                                 className="h-6 text-xs px-2"
-                                                onClick={() => navigate(score.date)}
+                                                asChild
                                             >
-                                                Lihat
+                                                <Link href={getNavigationHref(score.date)}>
+                                                    Lihat
+                                                </Link>
                                             </Button>
                                         </div>
                                     </div>

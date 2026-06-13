@@ -1,5 +1,5 @@
 import CeoLayout from '@/layouts/ceo-layout';
-import { Head, router } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -43,13 +43,11 @@ export default function KpiCeoAlerts({ gradeDAlerts, lateReports, missingReports
 
     const prevDate = new Date(date + 'T00:00:00');
     prevDate.setDate(prevDate.getDate() - 1);
+    const prevHref = `/kpi/ceo/alerts?date=${prevDate.toISOString().split('T')[0]}`;
 
     const nextDate = new Date(date + 'T00:00:00');
     nextDate.setDate(nextDate.getDate() + 1);
-
-    const navigate = (d: string) => {
-        router.get('/kpi/ceo/alerts', { date: d }, { preserveScroll: true });
-    };
+    const nextHref = `/kpi/ceo/alerts?date=${nextDate.toISOString().split('T')[0]}`;
 
     return (
         <CeoLayout>
@@ -69,15 +67,13 @@ export default function KpiCeoAlerts({ gradeDAlerts, lateReports, missingReports
                 <Card>
                     <CardContent className="pt-6">
                         <div className="flex items-center justify-between gap-2">
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => navigate(prevDate.toISOString().split('T')[0])}
-                                className="shrink-0"
+                            <Link
+                                href={prevHref}
+                                className="inline-flex items-center justify-center h-10 px-3 text-sm font-medium rounded-md border border-input hover:bg-accent hover:text-accent-foreground shrink-0"
                             >
                                 <ChevronLeft className="h-4 w-4" />
                                 <span className="hidden md:inline ml-1">Sebelumnya</span>
-                            </Button>
+                            </Link>
                             <div className="text-center flex-1 min-w-0">
                                 <p className="text-sm md:text-lg font-semibold truncate">
                                     {new Intl.DateTimeFormat('id-ID', {
@@ -91,12 +87,14 @@ export default function KpiCeoAlerts({ gradeDAlerts, lateReports, missingReports
                             <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => navigate(nextDate.toISOString().split('T')[0])}
                                 disabled={isToday}
+                                asChild
                                 className="shrink-0"
                             >
-                                <span className="hidden md:inline mr-1">Berikutnya</span>
-                                <ChevronRight className="h-4 w-4" />
+                                <Link href={nextHref}>
+                                    <span className="hidden md:inline mr-1">Berikutnya</span>
+                                    <ChevronRight className="h-4 w-4" />
+                                </Link>
                             </Button>
                         </div>
                     </CardContent>

@@ -4,7 +4,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Head, useForm, router } from '@inertiajs/react';
+import { Head, Link, useForm, router } from '@inertiajs/react';
 import { Clock, Send, Paperclip, X, Calendar, AlertCircle } from 'lucide-react';
 import KpiLayout from '@/layouts/kpi-layout';
 
@@ -399,8 +399,10 @@ export default function DynamicReportForm({
             </Alert>
           )}
           <div className="flex justify-end gap-3">
-            <Button type="button" variant="outline" onClick={() => router.get(`/${area}/kpi/reports`)}>
-              Batal
+            <Button type="button" variant="outline" asChild>
+              <Link href={`/${area}/kpi/reports`}>
+                Batal
+              </Link>
             </Button>
             <Button type="submit" disabled={processing || !canSubmit}>
               <Send className="mr-2 h-4 w-4" />

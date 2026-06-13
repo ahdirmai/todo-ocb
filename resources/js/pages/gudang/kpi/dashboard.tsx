@@ -1,5 +1,5 @@
 import KpiLayout from '@/layouts/kpi-layout';
-import { Head, router, usePage } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScoreCard } from '@/components/kpi/score-card';
 import { GradeBadge } from '@/components/kpi/grade-badge';
@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle2, Circle, TrendingUp, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { KpiTaskModal } from '@/components/kpi/kpi-task-modal';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 
 interface Media {
   id: number;
@@ -181,24 +181,21 @@ export default function GudangKpiDashboard({
     }).format(date);
   };
 
-  const navigateDate = (days: number) => {
+  const getNavigationHref = (days: number) => {
     const date = new Date(selectedDate);
     date.setDate(date.getDate() + days);
-    const { url } = usePage();
-    const isOnMonitoringPage = url.includes('/gudang/kpi/monitoring');
-
-    router.get(
-      isOnMonitoringPage ? '/gudang/kpi/monitoring' : '/gudang/kpi/dashboard',
-      {
-        date: date.toISOString().split('T')[0],
-        ...(selectedUserId ? { user_id: selectedUserId } : {}),
-      },
-      { preserveState: true },
-    );
+    const nextDate = date.toISOString().split('T')[0];
+    const params = new URLSearchParams();
+    params.set('date', nextDate);
+    if (selectedUserId) params.set('user_id', selectedUserId.toString());
+    return `/gudang/kpi/dashboard?${params.toString()}`;
   };
 
+  const prevHref = useMemo(() => getNavigationHref(-1), [selectedDate, selectedUserId]);
+  const nextHref = useMemo(() => getNavigationHref(1), [selectedDate, selectedUserId]);
+
   const handleUserChange = (userId: string) => {
-    router.get('/gudang/kpi/dashboard', { user_id: userId, date: selectedDate }, { preserveState: true });
+    router.get('/gudang/kpi/monitoring', { user_id: userId, date: selectedDate }, { preserveState: true });
   };
 
   const handleGenerateTasks = () => {
@@ -267,16 +264,14 @@ export default function GudangKpiDashboard({
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center justify-between gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => navigateDate(-1)}
-                className="shrink-0"
+              <Link
+                href={prevHref}
+                className="inline-flex items-center justify-center h-10 px-3 text-sm font-medium rounded-md border border-input hover:bg-accent hover:text-accent-foreground shrink-0"
                 aria-label="Hari sebelumnya"
               >
                 <ChevronLeft className="h-4 w-4" />
                 <span className="hidden md:inline ml-1">Sebelumnya</span>
-              </Button>
+              </Link>
 
               <div className="text-center flex-1 min-w-0">
                 <p className="text-sm md:text-lg font-semibold truncate">{formatDate(selectedDate)}</p>
@@ -290,13 +285,15 @@ export default function GudangKpiDashboard({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => navigateDate(1)}
                 disabled={isToday}
+                asChild
                 className="shrink-0"
                 aria-label="Hari berikutnya"
               >
-                <span className="hidden md:inline mr-1">Berikutnya</span>
-                <ChevronRight className="h-4 w-4" />
+                <Link href={nextHref}>
+                  <span className="hidden md:inline mr-1">Berikutnya</span>
+                  <ChevronRight className="h-4 w-4" />
+                </Link>
               </Button>
             </div>
           </CardContent>

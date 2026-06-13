@@ -9,6 +9,7 @@ use App\Models\KpiWeeklyScore;
 use App\Models\Task;
 use App\Models\Team;
 use App\Models\User;
+use App\Services\KpiReportingService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -17,6 +18,8 @@ use Inertia\Response;
 
 class KpiCeoController extends Controller
 {
+    public function __construct(protected KpiReportingService $reportingService) {}
+
     public function index(Request $request): Response
     {
         $date = $request->input('date')
@@ -25,14 +28,18 @@ class KpiCeoController extends Controller
 
         $positionFilter = $request->input('position', 'all');
 
+        $managerPositions = ['Manager HR', 'Manager Operasional', 'Manager Gudang'];
+
         $scoreQuery = KpiDailyScore::with('user.jobPosition')
             ->where('score_date', $date)
-            ->whereHas('user', fn ($q) => $q->whereNotNull('position_id'));
+            ->whereHas('user.jobPosition', fn ($q) => $q->whereIn('name', $managerPositions));
 
         if ($positionFilter === 'hr') {
             $scoreQuery->whereHas('user.jobPosition', fn ($q) => $q->where('name', 'Manager HR'));
         } elseif ($positionFilter === 'operational') {
             $scoreQuery->whereHas('user.jobPosition', fn ($q) => $q->where('name', 'Manager Operasional'));
+        } elseif ($positionFilter === 'gudang') {
+            $scoreQuery->whereHas('user.jobPosition', fn ($q) => $q->where('name', 'Manager Gudang'));
         }
 
         $allScores = $scoreQuery->orderBy('total_score', 'desc')->get()
@@ -56,6 +63,7 @@ class KpiCeoController extends Controller
             ->values();
 
         $gradeDistribution = KpiDailyScore::where('score_date', $date)
+            ->whereHas('user.jobPosition', fn ($q) => $q->whereIn('name', $managerPositions))
             ->select('grade', DB::raw('count(*) as count'))
             ->groupBy('grade')
             ->get()
@@ -67,6 +75,10 @@ class KpiCeoController extends Controller
 
         $opsScores = $allScores->filter(
             fn ($s) => ($s['user']['job_position']['name'] ?? null) === 'Manager Operasional'
+        )->values();
+
+        $gudangScores = $allScores->filter(
+            fn ($s) => ($s['user']['job_position']['name'] ?? null) === 'Manager Gudang'
         )->values();
 
         $criticalAlerts = $allScores->filter(fn ($s) => $s['grade'] === 'D')->values();
@@ -81,7 +93,7 @@ class KpiCeoController extends Controller
                 'submitted_at' => $r->submitted_at,
             ]);
 
-        $managerPositionUserIds = User::whereHas('jobPosition', fn ($q) => $q->whereIn('name', ['Manager HR', 'Manager Operasional']))->pluck('id');
+        $managerPositionUserIds = User::whereHas('jobPosition', fn ($q) => $q->whereIn('name', $managerPositions))->pluck('id');
 
         $pendingReports = User::whereIn('id', $managerPositionUserIds)
             ->whereDoesntHave('kpiReports', fn ($q) => $q->where('report_date', $date))
@@ -105,6 +117,7 @@ class KpiCeoController extends Controller
             'allScores' => $allScores->values(),
             'hrScores' => $hrScores,
             'opsScores' => $opsScores,
+            'gudangScores' => $gudangScores,
             'gradeDistribution' => $gradeDistribution,
             'criticalAlerts' => $criticalAlerts,
             'lateReports' => $lateReports,
@@ -121,10 +134,35 @@ class KpiCeoController extends Controller
             ? Carbon::parse($request->input('date'))->toDateString()
             : now()->toDateString();
 
-        $reports = KpiDailyReport::with('user')
+        $reports = KpiDailyReport::with('user.jobPosition')
             ->where('report_date', $date)
+            ->whereHas('user.jobPosition', fn ($q) => $q->whereIn('name', ['Manager HR', 'Manager Operasional', 'Manager Gudang']))
             ->latest('submitted_at')
             ->get();
+
+        $fieldTemplateCache = [];
+
+        $reports = $reports->map(function (KpiDailyReport $report) use (&$fieldTemplateCache) {
+            $positionName = $report->user->jobPosition?->name;
+
+            if ($positionName && ! array_key_exists($positionName, $fieldTemplateCache)) {
+                $fieldTemplateCache[$positionName] = $this->reportingService->getReportFieldsTemplate($positionName);
+            }
+
+            return [
+                'id' => $report->id,
+                'user' => [
+                    'id' => $report->user->id,
+                    'name' => $report->user->name,
+                    'email' => $report->user->email,
+                    'job_position' => $positionName ? ['name' => $positionName] : null,
+                ],
+                'fields' => $report->fields ?? [],
+                'report_fields' => $positionName ? $fieldTemplateCache[$positionName] : [],
+                'submitted_at' => $report->submitted_at,
+                'is_late' => $report->is_late,
+            ];
+        });
 
         return Inertia::render('kpi/ceo-reports', [
             'reports' => $reports,
@@ -140,6 +178,7 @@ class KpiCeoController extends Controller
 
         $gradeDAlerts = KpiDailyScore::where('grade', 'D')
             ->where('score_date', $date)
+            ->whereHas('user.jobPosition', fn ($q) => $q->whereIn('name', ['Manager HR', 'Manager Operasional', 'Manager Gudang']))
             ->with('user.jobPosition')
             ->get()
             ->map(fn ($s) => [
@@ -166,7 +205,7 @@ class KpiCeoController extends Controller
                 'submitted_at' => $r->submitted_at,
             ]);
 
-        $managerPositionUserIds = User::whereHas('jobPosition', fn ($q) => $q->whereIn('name', ['Manager HR', 'Manager Operasional']))->pluck('id');
+        $managerPositionUserIds = User::whereHas('jobPosition', fn ($q) => $q->whereIn('name', ['Manager HR', 'Manager Operasional', 'Manager Gudang']))->pluck('id');
 
         $missingReports = User::whereIn('id', $managerPositionUserIds)
             ->whereDoesntHave('kpiReports', fn ($q) => $q->where('report_date', $date))

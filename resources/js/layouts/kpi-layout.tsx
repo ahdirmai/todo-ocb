@@ -16,7 +16,7 @@ export default function KpiLayout({ children, area }: KpiLayoutProps) {
 
   // @ts-ignore - user exists in shared props
   const userPosition = props.auth?.user?.jobPosition?.name;
-  const isManager = ['Manager HR', 'Manager Operasional'].includes(userPosition);
+  const isManager = ['Manager HR', 'Manager Operasional', 'Manager Gudang'].includes(userPosition);
 
   const allTabs = [
     {
@@ -55,6 +55,7 @@ export default function KpiLayout({ children, area }: KpiLayoutProps) {
       icon: ClipboardList,
       href: `${kpiUrl}/reports`,
       active: url === `${kpiUrl}/reports`,
+      onlyForManagers: true,
     },
   ];
 

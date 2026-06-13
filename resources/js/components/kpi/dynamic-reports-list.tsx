@@ -44,9 +44,15 @@ interface Props extends ReportsPageProps {
 export default function DynamicReportsList({ reports, canCreate, reportFields, area }: Props) {
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
 
+  const areaLabel = {
+    hr: 'Manager HR',
+    operational: 'Manager Operasional',
+    gudang: 'Manager Gudang',
+  };
+
   return (
     <KpiLayout area={area}>
-      <Head title="Riwayat Laporan CEO" />
+      <Head title={`Riwayat Laporan ${areaLabel[area]}`} />
 
       <div className="space-y-6">
         <div className="space-y-4">
@@ -58,7 +64,7 @@ export default function DynamicReportsList({ reports, canCreate, reportFields, a
           </Link>
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold">Riwayat Laporan CEO</h1>
+              <h1 className="text-2xl font-bold">Riwayat Laporan {areaLabel[area]}</h1>
               <p className="text-muted-foreground">{reports.total} laporan tersimpan</p>
             </div>
             {canCreate && (

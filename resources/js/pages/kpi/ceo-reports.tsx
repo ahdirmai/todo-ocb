@@ -1,9 +1,13 @@
 import CeoLayout from '@/layouts/ceo-layout';
-import { Head, router } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Clock, CheckCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Clock, CheckCircle, ChevronLeft, ChevronRight, Eye } from 'lucide-react';
+import { useState } from 'react';
+import DynamicReportDetail from '@/components/kpi/dynamic-report-detail';
+import type { ReportField } from '@/components/kpi/dynamic-report-form';
 
 interface Report {
     id: string;
@@ -11,13 +15,10 @@ interface Report {
         id: number;
         name: string;
         email: string;
+        job_position: { name: string } | null;
     };
-    status_34_tasks: string;
-    spv_status: string;
-    issues_today: string;
-    follow_up: string;
-    action_plan: string;
-    report_data: Record<string, string> | null;
+    fields: Record<string, unknown>;
+    report_fields: ReportField[];
     submitted_at: string;
     is_late: boolean;
 }
@@ -28,44 +29,39 @@ interface Props {
 }
 
 export default function KpiCeoReports({ reports, date }: Props) {
-    const today = new Date().toISOString().split('T')[0];
+    const [selectedReport, setSelectedReport] = useState<Report | null>(null);
+
+    const today = (() => {
+        const n = new Date();
+        return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}-${String(n.getDate()).padStart(2, '0')}`;
+    })();
     const isToday = date === today;
 
-    const prevDate = new Date(date + 'T00:00:00');
-    prevDate.setDate(prevDate.getDate() - 1);
-    const prevDateStr = prevDate.toISOString().split('T')[0];
+    const addDays = (dateStr: string, days: number): string => {
+        const [y, m, d] = dateStr.split('-').map(Number);
+        const dt = new Date(y, m - 1, d + days);
+        return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+    };
 
-    const nextDate = new Date(date + 'T00:00:00');
-    nextDate.setDate(nextDate.getDate() + 1);
-    const nextDateStr = nextDate.toISOString().split('T')[0];
+    const prevDateStr = addDays(date, -1);
+    const nextDateStr = addDays(date, 1);
 
-    const navigate = (d: string) => {
-        router.get('/kpi/ceo/daily-reports', { date: d }, { preserveScroll: true });
+    const prevHref = `/kpi/ceo/daily-reports?date=${prevDateStr}`;
+    const nextHref = `/kpi/ceo/daily-reports?date=${nextDateStr}`;
+
+    const getNested = (obj: Record<string, unknown>, key: string): string => {
+        let current: unknown = obj;
+        for (const part of key.split('.')) {
+            if (current == null || typeof current !== 'object') return '';
+            current = (current as Record<string, unknown>)[part];
+        }
+        return current == null ? '' : String(current);
     };
 
     const reportData = (report: Report): Array<{ label: string; value: string }> => {
-        if (report.report_data && Object.keys(report.report_data).length > 0) {
-            const labels: Record<string, string> = {
-                absensi: 'Absensi',
-                disiplin: 'Disiplin',
-                performance_sales: 'Performance Sales',
-                compliance: 'Compliance',
-                training: 'Training',
-                recruitment: 'Recruitment',
-                notes: 'Catatan',
-            };
-            return Object.entries(report.report_data)
-                .filter(([, v]) => v)
-                .map(([k, v]) => ({ label: labels[k] ?? k, value: v }));
-        }
-        const fields = [
-            { label: 'Status Task', value: report.status_34_tasks },
-            { label: 'Status SPV', value: report.spv_status },
-            { label: 'Masalah Hari Ini', value: report.issues_today },
-            { label: 'Tindak Lanjut', value: report.follow_up },
-            { label: 'Rencana Aksi Besok', value: report.action_plan },
-        ];
-        return fields.filter((f) => f.value);
+        return report.report_fields
+            .map((f) => ({ label: f.field_label, value: getNested(report.fields, f.field_key) }))
+            .filter((f) => f.value);
     };
 
     return (
@@ -76,22 +72,20 @@ export default function KpiCeoReports({ reports, date }: Props) {
                 {/* Header */}
                 <div>
                     <h1 className="text-2xl font-bold">Laporan Harian CEO</h1>
-                    <p className="text-muted-foreground text-sm">Laporan yang dikirim oleh Manager HR & Operasional</p>
+                    <p className="text-muted-foreground text-sm">Laporan yang dikirim oleh Manager HR, Operasional & Gudang</p>
                 </div>
 
                 {/* Date Navigation */}
                 <Card>
                     <CardContent className="pt-6">
                         <div className="flex items-center justify-between gap-2">
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => navigate(prevDateStr)}
-                                className="shrink-0"
+                            <Link
+                                href={prevHref}
+                                className="inline-flex items-center justify-center h-10 px-3 text-sm font-medium rounded-md border border-input hover:bg-accent hover:text-accent-foreground shrink-0"
                             >
                                 <ChevronLeft className="h-4 w-4" />
                                 <span className="hidden md:inline ml-1">Sebelumnya</span>
-                            </Button>
+                            </Link>
                             <div className="text-center flex-1 min-w-0">
                                 <p className="text-sm md:text-lg font-semibold truncate">
                                     {new Intl.DateTimeFormat('id-ID', {
@@ -105,12 +99,14 @@ export default function KpiCeoReports({ reports, date }: Props) {
                             <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => navigate(nextDateStr)}
                                 disabled={isToday}
+                                asChild
                                 className="shrink-0"
                             >
-                                <span className="hidden md:inline mr-1">Berikutnya</span>
-                                <ChevronRight className="h-4 w-4" />
+                                <Link href={nextHref}>
+                                    <span className="hidden md:inline mr-1">Berikutnya</span>
+                                    <ChevronRight className="h-4 w-4" />
+                                </Link>
                             </Button>
                         </div>
                     </CardContent>
@@ -182,13 +178,24 @@ export default function KpiCeoReports({ reports, date }: Props) {
                                     </div>
                                 </div>
                             </CardHeader>
-                            <CardContent className="space-y-3">
-                                {reportData(report).map(({ label, value }) => (
-                                    <div key={label}>
-                                        <h4 className="font-semibold text-sm mb-1">{label}:</h4>
-                                        <p className="text-sm text-muted-foreground">{value}</p>
-                                    </div>
-                                ))}
+                            <CardContent className="space-y-4">
+                                <div className="space-y-3">
+                                    {reportData(report).slice(0, 2).map(({ label, value }) => (
+                                        <div key={label}>
+                                            <h4 className="font-semibold text-sm mb-1">{label}:</h4>
+                                            <p className="text-sm text-muted-foreground line-clamp-2">{value}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setSelectedReport(report)}
+                                    className="w-full"
+                                >
+                                    <Eye className="mr-2 h-4 w-4" />
+                                    Lihat Laporan Harian
+                                </Button>
                             </CardContent>
                         </Card>
                     ))}
@@ -201,6 +208,43 @@ export default function KpiCeoReports({ reports, date }: Props) {
                         </Card>
                     )}
                 </div>
+
+                {/* Report Detail Modal */}
+                <Dialog open={!!selectedReport} onOpenChange={(open) => !open && setSelectedReport(null)}>
+                    {selectedReport && (
+                        <DialogContent className="mx-4 max-h-[80vh] max-w-2xl overflow-y-auto">
+                            <DialogHeader>
+                                <DialogTitle>
+                                    Laporan {selectedReport.user.name}
+                                </DialogTitle>
+                            </DialogHeader>
+                            <div className="space-y-4">
+                                <div className="text-sm text-muted-foreground">
+                                    <p>{selectedReport.user.email}</p>
+                                    <p>
+                                        {new Date(selectedReport.submitted_at).toLocaleString('id-ID', {
+                                            dateStyle: 'medium',
+                                            timeStyle: 'short',
+                                        })}{' '}
+                                        WITA
+                                    </p>
+                                </div>
+                                <div className="border-t pt-4">
+                                    {selectedReport.report_fields.length > 0 ? (
+                                        <DynamicReportDetail
+                                            fields={selectedReport.fields}
+                                            reportFields={selectedReport.report_fields}
+                                        />
+                                    ) : (
+                                        <p className="text-sm text-muted-foreground text-center py-4">
+                                            Laporan tidak memiliki isi detail
+                                        </p>
+                                    )}
+                                </div>
+                            </div>
+                        </DialogContent>
+                    )}
+                </Dialog>
             </div>
         </CeoLayout>
     );

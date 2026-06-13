@@ -1,5 +1,5 @@
 import CeoLayout from '@/layouts/ceo-layout';
-import { Head, router } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -412,9 +412,7 @@ export default function CeoSpv({ date, spvTeam, members, totalTasksToday, comple
     const nextDate = new Date(date + 'T00:00:00');
     nextDate.setDate(nextDate.getDate() + 1);
 
-    const navigate = (d: string) => {
-        router.get('/kpi/ceo/spv', { date: d }, { preserveScroll: true });
-    };
+    const getNavigationHref = (d: string) => `/kpi/ceo/spv?date=${d}`;
 
     const overallRate = totalTasksToday > 0 ? Math.round((completedTasksToday / totalTasksToday) * 100) : 0;
 
@@ -444,16 +442,14 @@ export default function CeoSpv({ date, spvTeam, members, totalTasksToday, comple
                 <Card>
                     <CardContent className="pt-6">
                         <div className="flex items-center justify-between gap-2">
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => navigate(fmtDate(prevDate))}
-                                className="shrink-0"
+                            <Link
+                                href={getNavigationHref(fmtDate(prevDate))}
+                                className="inline-flex items-center justify-center h-10 px-3 text-sm font-medium rounded-md border border-input hover:bg-accent hover:text-accent-foreground shrink-0"
                                 aria-label="Hari sebelumnya"
                             >
                                 <ChevronLeft className="h-4 w-4" />
                                 <span className="hidden md:inline ml-1">Sebelumnya</span>
-                            </Button>
+                            </Link>
                             <div className="text-center flex-1 min-w-0">
                                 <p className="text-sm md:text-lg font-semibold truncate">
                                     {new Intl.DateTimeFormat('id-ID', {
@@ -472,13 +468,15 @@ export default function CeoSpv({ date, spvTeam, members, totalTasksToday, comple
                             <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => navigate(fmtDate(nextDate))}
                                 disabled={date >= today}
+                                asChild
                                 className="shrink-0"
                                 aria-label="Hari berikutnya"
                             >
-                                <span className="hidden md:inline mr-1">Berikutnya</span>
-                                <ChevronRight className="h-4 w-4" />
+                                <Link href={getNavigationHref(fmtDate(nextDate))}>
+                                    <span className="hidden md:inline mr-1">Berikutnya</span>
+                                    <ChevronRight className="h-4 w-4" />
+                                </Link>
                             </Button>
                         </div>
                     </CardContent>

@@ -42,8 +42,7 @@ class KpiReportController extends Controller
 
     protected function canSubmitReports(string $positionName): bool
     {
-        return in_array($positionName, ['Manager HR', 'Manager Operasional'])
-            || $positionName === 'Manager Gudang';
+        return in_array($positionName, ['Manager HR', 'Manager Operasional', 'Manager Gudang']);
     }
 
     public function create(Request $request)
@@ -191,50 +190,21 @@ class KpiReportController extends Controller
         $positionName = $user->jobPosition?->name;
         $area = $this->getPositionArea();
 
-        if (in_array($positionName, ['Manager HR', 'Manager Operasional', 'Manager Gudang'])) {
-            $reports = KpiDailyReport::where('user_id', $user->id)
-                ->with('user:id,name')
-                ->with('user.jobPosition:id,name')
-                ->latest('report_date')
-                ->paginate(20);
-        } else {
-            $query = KpiDailyReport::with('user:id,name')
-                ->with('user.jobPosition:id,name');
-
-            if ($area === 'gudang') {
-                $query->whereHas('user.jobPosition', fn ($q) => $q->whereIn('name', Position::GUDANG_POSITIONS));
-            } elseif ($area === 'operational') {
-                $query->whereHas('user.jobPosition', fn ($q) => $q->where('name', 'Manager Operasional'));
-            } elseif ($area === 'hr') {
-                $query->whereHas('user.jobPosition', fn ($q) => $q->where('name', 'Manager HR'));
-            }
-
-            if ($request->has('user_id')) {
-                $query->where('user_id', $request->input('user_id'));
-            }
-
-            $reports = $query->latest('report_date')
-                ->paginate(20);
+        if (! in_array($positionName, ['Manager HR', 'Manager Operasional', 'Manager Gudang'])) {
+            return redirect()->route("{$area}.kpi.dashboard");
         }
 
-        $canCreate = in_array($positionName, ['Manager HR', 'Manager Operasional', 'Manager Gudang']);
+        $reports = KpiDailyReport::where('user_id', $user->id)
+            ->with('user:id,name')
+            ->with('user.jobPosition:id,name')
+            ->latest('report_date')
+            ->paginate(20);
 
-        // Get report fields template for viewing
-        $viewPositionName = $positionName;
-        if (! $canCreate) {
-            // Admin viewing: resolve from area
-            $viewPositionName = match ($area) {
-                'hr' => 'Manager HR',
-                'operational' => 'Manager Operasional',
-                'gudang' => 'Manager Gudang',
-                default => $positionName,
-            };
-        }
-        $reportFields = $this->reportingService->getReportFieldsTemplate($viewPositionName);
+        $reportFields = $this->reportingService->getReportFieldsTemplate($positionName);
 
         return Inertia::render("{$area}/kpi/reports", [
             'reports' => $reports,
-            'canCreate' => $canCreate,
+            'canCreate' => true,
             'reportFields' => $reportFields,
         ]);
     }
