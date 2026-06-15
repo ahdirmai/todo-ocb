@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\TaskReadController;
 use App\Http\Controllers\Api\TeamReadController;
+use App\Http\Controllers\Api\V1\AgentDailyReportController;
 use App\Http\Controllers\Api\V1\AnnouncementController as V1AnnouncementController;
 use App\Http\Controllers\Api\V1\AuthController as V1AuthController;
 use App\Http\Controllers\Api\V1\CommentController as V1CommentController;
@@ -32,6 +33,7 @@ Route::as('api.')
         Route::get('teams/{team}/search', [TeamReadController::class, 'search'])->name('teams.search');
         Route::get('teams/{team}/entity-map', [TeamReadController::class, 'entityMap'])->name('teams.entity-map');
         Route::post('teams/{team}/resolve-references', [TeamReadController::class, 'resolveReferences'])->name('teams.resolve-references');
+        Route::get('reports/daily-manager', [AgentDailyReportController::class, 'dailyReports'])->name('reports.daily-manager');
     });
 
 Route::prefix('v1/internal')

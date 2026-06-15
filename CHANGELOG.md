@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- **Agent Openclaw Daily Reports API**: Public endpoint for fetching yesterday's manager daily reports
+  - New endpoint: `GET /api/reports/daily-manager` — returns submitted reports and pending managers
+  - Response shape: `{ date, reports: [...], pending: [...] }` where `pending` lists managers yet to submit
+  - Filters to manager positions only: Manager HR, Manager Operasional, Manager Gudang
+  - Includes `report_fields` template per position for each manager
+  - Optional `?date=YYYY-MM-DD` query param — defaults to yesterday (H-1)
+  - New model: `AgentDailyReportController`, `AgentDailyReportRequest`, `AgentDailyReportResource`
+  - New test suite: `AgentDailyReportApiTest` (6 tests)
+
 - **Dynamic Report Templates**: Database-driven report fields replace hardcoded report forms
   - New model: `PositionReportField` — stores field definitions per position (key, label, type, options, group, sort order)
   - New migration: `create_position_report_fields_table` — field configuration per position
