@@ -25,6 +25,7 @@ class AgentDailyReportResource extends JsonResource
             ] : null,
             'fields' => $this->fields ?? [],
             'report_fields' => $this->report_fields ?? [],
+            'tasks' => $this->tasks ?? [],
             'submitted_at' => $this->submitted_at?->toDateTimeString(),
             'is_late' => $this->is_late,
         ];

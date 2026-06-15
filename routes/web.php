@@ -1,10 +1,12 @@
 <?php
 
 use App\Http\Controllers\ActivityLogController;
+use App\Http\Controllers\AdminFeedbackController;
 use App\Http\Controllers\AnnouncementController;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DocumentCommentController;
+use App\Http\Controllers\FeedbackController;
 use App\Http\Controllers\GudangController;
 use App\Http\Controllers\HrController;
 use App\Http\Controllers\KanbanBoardController;
@@ -21,6 +23,7 @@ use App\Http\Controllers\PositionAccessController;
 use App\Http\Controllers\PositionController;
 use App\Http\Controllers\ReportingController;
 use App\Http\Controllers\StoreController;
+use App\Http\Controllers\SurveyController;
 use App\Http\Controllers\SvpStoreController;
 use App\Http\Controllers\TagController;
 use App\Http\Controllers\TaskController;
@@ -110,8 +113,17 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::delete('teams/{team:slug}/sop/steps/{documentSopStep}', [TeamSopController::class, 'destroyStep'])->name('teams.sop.steps.destroy');
     });
 
-    // Member Management — Superadmin & Admin only
+    Route::post('feedback', [FeedbackController::class, 'store'])->name('feedback.store');
+    Route::get('survey', [SurveyController::class, 'create'])->name('survey.create');
+    Route::post('survey', [SurveyController::class, 'store'])->name('survey.store');
+
+    // Team Management — Superadmin & Admin only
     Route::middleware('role:superadmin|admin')->group(function () {
+        Route::get('admin/feedback', [AdminFeedbackController::class, 'index'])->name('admin.feedback.index');
+        Route::get('admin/feedback/export', [AdminFeedbackController::class, 'export'])->name('admin.feedback.export');
+        Route::post('admin/feedback/open', [AdminFeedbackController::class, 'openCycle'])->name('admin.feedback.open');
+        Route::post('admin/feedback/{cycle}/close', [AdminFeedbackController::class, 'closeCycle'])->name('admin.feedback.close');
+
         Route::get('reporting', [ReportingController::class, 'index'])->name('reporting.index');
         Route::get('reporting/{monthlyTaskReport}', [ReportingController::class, 'show'])->name('reporting.show');
         Route::post('reporting/generate', [ReportingController::class, 'generate'])->name('reporting.generate');

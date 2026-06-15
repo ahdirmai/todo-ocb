@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\FeedbackCycle;
 use App\Models\PositionPermission;
 use App\Models\Tag;
 use App\Models\Team;
@@ -61,6 +62,8 @@ class HandleInertiaRequests extends Middleware
                 ->toArray();
         }
 
+        $activeFeedbackCycle = rescue(fn () => FeedbackCycle::where('is_open', true)->first(['id', 'title', 'description']));
+
         return [
             ...parent::share($request),
             'name' => config('app.name'),
@@ -96,6 +99,11 @@ class HandleInertiaRequests extends Middleware
                     'allowedMimes' => config('uploads.documents.allowed_mimes', []),
                 ],
             ],
+            'activeFeedbackCycle' => $activeFeedbackCycle ? [
+                'id' => $activeFeedbackCycle->id,
+                'title' => $activeFeedbackCycle->title,
+                'description' => $activeFeedbackCycle->description,
+            ] : null,
         ];
     }
 }

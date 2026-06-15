@@ -9,6 +9,7 @@ import {
     Activity,
     Binoculars,
     FileBarChart2,
+    MessageSquarePlus,
     Briefcase,
     Settings,
     Lock,
@@ -66,6 +67,7 @@ export function AppSidebar() {
         auth?.roles?.includes('superadmin') || auth?.roles?.includes('admin');
     const isSuperadmin = auth?.roles?.includes('superadmin');
     const { appearance, updateAppearance } = useAppearance();
+    const { activeFeedbackCycle } = usePage<any>().props;
 
     // Check if user has access to a route (superadmin bypasses all; admin and others need position permission)
     const hasAccess = (routeKey: string) => {
@@ -261,6 +263,14 @@ export function AppSidebar() {
                                 </SidebarMenuItem>
                                 <SidebarMenuItem>
                                     <SidebarMenuButton asChild>
+                                        <Link href="/admin/feedback">
+                                            <MessageSquarePlus className="h-4 w-4" />
+                                            <span>Feedback</span>
+                                        </Link>
+                                    </SidebarMenuButton>
+                                </SidebarMenuItem>
+                                <SidebarMenuItem>
+                                    <SidebarMenuButton asChild>
                                         <Link href="/tags">
                                             <Tag className="h-4 w-4" />
                                             <span>Manajemen Tag</span>
@@ -314,6 +324,24 @@ export function AppSidebar() {
                                         <Link href="/activity">
                                             <Activity className="h-4 w-4" />
                                             <span>Log Aktivitas</span>
+                                        </Link>
+                                    </SidebarMenuButton>
+                                </SidebarMenuItem>
+                            </SidebarMenu>
+                        </SidebarGroup>
+                    )}
+
+                    {/* Position-Based Areas */}
+                    {/* Survey — shown to all users when cycle is active */}
+                    {activeFeedbackCycle && (
+                        <SidebarGroup>
+                            <SidebarGroupLabel>Survey</SidebarGroupLabel>
+                            <SidebarMenu>
+                                <SidebarMenuItem>
+                                    <SidebarMenuButton asChild>
+                                        <Link href="/survey">
+                                            <MessageSquarePlus className="h-4 w-4" />
+                                            <span>Survey Aplikasi</span>
                                         </Link>
                                     </SidebarMenuButton>
                                 </SidebarMenuItem>

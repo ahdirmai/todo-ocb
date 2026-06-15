@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- **In-App Feedback System**: Two-tier feedback collection — quick feedback + survey per cycle
+  - Quick feedback: Floating button (bottom-right) always visible, submit bug/feature/improvement reports anytime
+  - Survey per cycle: CEO opens/closes cycles via admin panel. Users submit comprehensive survey once per cycle
+  - Survey form: rating (1-5), usage duration, most-used features, technical issues, data loss, desired features, suggestions
+  - Admin management: Open/close cycles, view all feedback with survey detail dialog, export to Excel
+  - Sidebar: "Survey Aplikasi" link shown to all users when cycle is active
+  - Export: Full `.xlsx` export with 20 columns including all survey fields
+  - New models: `FeedbackCycle`, `Feedback` with `survey_data` JSON column
+  - New controller: `SurveyController`, `AdminFeedbackController`, `FeedbackController`
+  - New export class: `FeedbackExport` (OpenSpout XLSX writer)
+  - Routes: `POST /feedback`, `GET/POST /survey`, `GET /admin/feedback/export`
+  - Tests: 21 tests (quick feedback, admin cycles, survey submission/validation)
+
+### Changed
+- **Agent Daily Reports API**: Extended endpoint with KPI task details and per-manager task comments
+  - Response now includes `tasks` array per report with KPI task details and comment threads
+  - Nine test cases covering submission, pending, tasks, date filtering, error handling
+
 - **Agent Openclaw Daily Reports API**: Public endpoint for fetching yesterday's manager daily reports
   - New endpoint: `GET /api/reports/daily-manager` — returns submitted reports and pending managers
   - Response shape: `{ date, reports: [...], pending: [...] }` where `pending` lists managers yet to submit
