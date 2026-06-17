@@ -20,7 +20,8 @@ class AnnouncementController extends Controller
 
     public function store(Request $request, Team $team): RedirectResponse
     {
-        abort_unless($team->users()->where('user_id', request()->user()->id)->exists(), 403);
+        $isAdmin = $request->user()?->hasAnyRole(['superadmin', 'admin']) ?? false;
+        abort_unless($isAdmin || $team->users()->where('user_id', request()->user()->id)->exists(), 403);
         $isSuperadmin = $request->user()?->hasRole('superadmin') ?? false;
         $allowedRecurrenceUnits = $isSuperadmin
             ? ['second', 'minute', 'hour', 'day', 'week', 'month']

@@ -37,6 +37,29 @@ test('team member can create an announcement', function () {
         ->title->toBe('Info sprint');
 });
 
+test('admin non member can create an announcement in any team', function () {
+    Role::findOrCreate('admin', 'web');
+
+    $user = User::factory()->create();
+    $user->assignRole('admin');
+
+    $team = Team::create([
+        'name' => 'Admin Team',
+        'slug' => 'admin-team',
+        'grouping' => GroupingType::TEAM,
+        'is_active' => true,
+    ]);
+
+    $response = $this->actingAs($user)->post(route('teams.announcements.store', $team), [
+        'title' => 'Info sprint',
+        'content' => '<p>Standup dimulai jam 09.00.</p>',
+    ]);
+
+    $response->assertSessionHasNoErrors();
+
+    expect(Announcement::query()->where('team_id', $team->id)->count())->toBe(1);
+});
+
 test('non member cannot create an announcement in another team', function () {
     Role::findOrCreate('member', 'web');
 
