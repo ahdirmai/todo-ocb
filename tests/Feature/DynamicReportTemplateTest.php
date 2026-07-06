@@ -1,14 +1,36 @@
 <?php
 
 use App\Models\KpiDailyReport;
+use App\Models\KpiTaskDefinition;
 use App\Models\Position;
 use App\Models\PositionPermission;
 use App\Models\PositionReportField;
+use App\Models\Task;
 use App\Models\User;
 use App\Services\KpiReportingService;
 use Spatie\Permission\Models\Role;
 
 use function Pest\Laravel\actingAs;
+
+/**
+ * Create a KPI task for the user on today's date with the given weight and
+ * verified state — used to drive the 80% report-unlock gate.
+ */
+function makeKpiTask(User $user, float $weight, bool $verified): Task
+{
+    $definition = KpiTaskDefinition::factory()->create([
+        'position_id' => $user->position_id,
+        'weight' => $weight,
+    ]);
+
+    return Task::factory()->create([
+        'creator_id' => $user->id,
+        'kpi_task_definition_id' => $definition->id,
+        'is_kpi_task' => true,
+        'is_verified' => $verified,
+        'created_at' => now(),
+    ]);
+}
 
 function makeReportUser(string $positionName, string $routeKey = 'gudang'): User
 {
@@ -256,6 +278,63 @@ test('today create page allows submit', function (): void {
             ->where('canSubmit', true)
             ->where('isToday', true)
         );
+});
+
+test('submit blocked when task progress below 80 percent', function (): void {
+    $user = makeReportUser('Manager Gudang');
+    seedTemplateFields('Manager Gudang');
+
+    // 3 tasks, weight 10 each; 2 verified = 66.7% < 80%.
+    makeKpiTask($user, 10, true);
+    makeKpiTask($user, 10, true);
+    makeKpiTask($user, 10, false);
+
+    actingAs($user)
+        ->post('/gudang/kpi/report/submit', [
+            'report_date' => now()->toDateString(),
+            'fields' => ['recap' => 'x', 'action_plan' => 'x'],
+        ])
+        ->assertRedirect()
+        ->assertSessionHasErrors('report_date');
+
+    expect(KpiDailyReport::where('user_id', $user->id)->count())->toBe(0);
+});
+
+test('submit allowed when task progress at least 80 percent', function (): void {
+    $user = makeReportUser('Manager Gudang');
+    seedTemplateFields('Manager Gudang');
+
+    // 5 tasks, weight 10 each; 4 verified = 80%.
+    makeKpiTask($user, 10, true);
+    makeKpiTask($user, 10, true);
+    makeKpiTask($user, 10, true);
+    makeKpiTask($user, 10, true);
+    makeKpiTask($user, 10, false);
+
+    actingAs($user)
+        ->post('/gudang/kpi/report/submit', [
+            'report_date' => now()->toDateString(),
+            'fields' => ['recap' => 'x', 'action_plan' => 'x'],
+        ])
+        ->assertRedirect()
+        ->assertSessionDoesntHaveErrors();
+
+    expect(KpiDailyReport::where('user_id', $user->id)->count())->toBe(1);
+});
+
+test('submit allowed when user has no kpi tasks for the day', function (): void {
+    $user = makeReportUser('Manager Gudang');
+    seedTemplateFields('Manager Gudang');
+
+    actingAs($user)
+        ->post('/gudang/kpi/report/submit', [
+            'report_date' => now()->toDateString(),
+            'fields' => ['recap' => 'x', 'action_plan' => 'x'],
+        ])
+        ->assertRedirect()
+        ->assertSessionDoesntHaveErrors();
+
+    expect(KpiDailyReport::where('user_id', $user->id)->count())->toBe(1);
 });
 
 test('report index passes reportFields to frontend', function (): void {

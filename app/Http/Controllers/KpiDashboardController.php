@@ -124,6 +124,16 @@ class KpiDashboardController extends Controller
 
         $dateTasks = $dateTasksQuery->get();
 
+        // Weighted completion of the day's KPI tasks (verified weight / total
+        // weight). Drives the "report only after 80%" gate below.
+        $totalTaskWeight = $dateTasks->sum(fn ($task) => (float) ($task->kpiDefinition?->weight ?? 0));
+        $verifiedTaskWeight = $dateTasks
+            ->filter(fn ($task) => $task->is_verified)
+            ->sum(fn ($task) => (float) ($task->kpiDefinition?->weight ?? 0));
+        $reportProgress = $totalTaskWeight > 0
+            ? round(($verifiedTaskWeight / $totalTaskWeight) * 100, 2)
+            : 0.0;
+
         $dateTasks = $dateTasks->map(function ($task) {
             return [
                 'id' => $task->id,
@@ -271,9 +281,17 @@ class KpiDashboardController extends Controller
         // generate their own daily tasks from KpiTaskDefinition templates.
         $canGenerateTasks = $isManager || $isGudang || ((bool) $user->jobPosition?->has_kpi);
 
-        // Only real area members submit reports. Admin/superadmin viewers see
-        // the dashboard read-only (no submit button) — they monitor, not submit.
-        $canSubmitReport = ! $isAdmin && (bool) $user->jobPosition?->hasReportTemplate();
+        // Only real area members submit reports, and only once the day's KPI
+        // tasks are at least 80% complete (by weight) for today. Admin/superadmin
+        // viewers see the dashboard read-only (they monitor, not submit).
+        // Report unlocks at >=80% weighted task completion. When there are no
+        // KPI tasks for the day, there's nothing to gate on, so allow submit.
+        $reportThreshold = 80.0;
+        $isReportMember = ! $isAdmin && (bool) $user->jobPosition?->hasReportTemplate();
+        $meetsProgressGate = ! $hasTasksForDate || $reportProgress >= $reportThreshold;
+        $canSubmitReport = $isReportMember
+            && Carbon::parse($selectedDate)->isToday()
+            && $meetsProgressGate;
 
         // SPV users need their assigned stores for the store-selection modal
         $spvStores = [];
@@ -301,6 +319,9 @@ class KpiDashboardController extends Controller
             'canGenerateForDate' => $canGenerateForDate,
             'canGenerateTasks' => $canGenerateTasks,
             'canSubmitReport' => $canSubmitReport,
+            'isReportMember' => $isReportMember,
+            'reportProgress' => $reportProgress,
+            'reportThreshold' => $reportThreshold,
             'isManager' => $isManager,
             'spvStores' => $spvStores,
         ]);

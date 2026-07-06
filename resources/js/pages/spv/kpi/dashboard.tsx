@@ -101,6 +101,9 @@ interface Props {
   canGenerateForDate: boolean;
   canGenerateTasks: boolean;
   canSubmitReport: boolean;
+  isReportMember: boolean;
+  reportProgress: number;
+  reportThreshold: number;
   spvStores?: { id: number; name: string; branch_code: string }[];
 }
 
@@ -115,6 +118,9 @@ export default function SpvKpiDashboard({
   canGenerateForDate,
   canGenerateTasks,
   canSubmitReport,
+  isReportMember,
+  reportProgress,
+  reportThreshold,
   spvStores,
 }: Props) {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
@@ -210,6 +216,15 @@ export default function SpvKpiDashboard({
                   Kirim Laporan Harian
                 </Link>
               </Button>
+            )}
+            {isReportMember && isToday && !canSubmitReport && reportProgress < reportThreshold && (
+              <div className="flex items-center gap-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-400">
+                <FileText className="h-4 w-4 shrink-0" />
+                <span>
+                  Laporan bisa dikirim setelah task hari ini mencapai {reportThreshold}%
+                  (sekarang {reportProgress}%).
+                </span>
+              </div>
             )}
           </div>
         </div>

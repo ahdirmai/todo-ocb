@@ -24,6 +24,14 @@ All notable changes to this project will be documented in this file.
   - `dynamic-report-form.tsx` — `date` field type prefills today's date; `select` field type renders a real dropdown from `field_options.options`
   - Tests added in `DynamicReportTemplateTest.php` covering past-date submit rejection, read-only pages, edit block, and today-allows-submit
 
+- **Report Unlocks at 80% Task Completion**: The "Kirim Laporan" button appears only after the day's KPI tasks reach ≥80% weighted completion
+  - `KpiReportingService::getWeightedTaskProgress()` + `hasKpiTasksForDate()` — weighted verified/total progress per user per date
+  - `KpiDashboardController::index()` — `canSubmitReport` requires member + today + (no tasks OR progress ≥80%); passes `reportProgress`, `reportThreshold`, `isReportMember`
+  - `KpiReportController::submit()` — server-side guard rejects submit below 80% when KPI tasks exist for the day
+  - Dashboards (spv/operational/hr) — amber hint shown to members when below threshold ("Laporan bisa dikirim setelah task hari ini mencapai 80%")
+  - Gate skipped when the user has no KPI tasks for the day (nothing to measure)
+  - Tests: below-80% blocked, ≥80% allowed, no-tasks allowed
+
 - **SPV Store Selection — KPI Task Generation**: SPV users must select a store before generating daily KPI tasks
   - `KpiTaskGenerationService::generateDailyTasksForUser()` — added optional `$storeId` param; tasks created with `store_id` + `visit_date` = today
   - `KpiDashboardController::generateTasks()` — validates store belongs to SPV (`spv_id = auth()->id()`); duplicate check scoped per store

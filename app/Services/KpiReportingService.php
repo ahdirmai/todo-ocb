@@ -149,6 +149,55 @@ class KpiReportingService
         return $rules;
     }
 
+    /**
+     * Whether the user has any KPI task scheduled for the given date.
+     */
+    public function hasKpiTasksForDate(User $user, string $date): bool
+    {
+        $team = $user->teams()->where('is_spv_team', true)->first();
+
+        $query = Task::where('is_kpi_task', true)
+            ->where('creator_id', $user->id)
+            ->whereDate('created_at', $date);
+
+        if ($team) {
+            $query->where('team_id', $team->id);
+        }
+
+        return $query->exists();
+    }
+
+    /**
+     * Weighted completion (%) of a user's KPI tasks for a date — verified task
+     * weight over total task weight. Used to gate daily report submission.
+     */
+    public function getWeightedTaskProgress(User $user, string $date): float
+    {
+        $team = $user->teams()->where('is_spv_team', true)->first();
+
+        $query = Task::where('is_kpi_task', true)
+            ->where('creator_id', $user->id)
+            ->whereDate('created_at', $date)
+            ->with('kpiDefinition:id,weight');
+
+        if ($team) {
+            $query->where('team_id', $team->id);
+        }
+
+        $tasks = $query->get();
+
+        $totalWeight = $tasks->sum(fn (Task $task) => (float) ($task->kpiDefinition?->weight ?? 0));
+        if ($totalWeight <= 0) {
+            return 0.0;
+        }
+
+        $verifiedWeight = $tasks
+            ->filter(fn (Task $task) => $task->is_verified)
+            ->sum(fn (Task $task) => (float) ($task->kpiDefinition?->weight ?? 0));
+
+        return round(($verifiedWeight / $totalWeight) * 100, 2);
+    }
+
     public function checkReportDeadline(CarbonInterface $submittedAt): bool
     {
         $deadline = $submittedAt->copy()->setTime(22, 30, 0);
