@@ -1,4 +1,4 @@
-import { Camera, Loader2, RotateCcw, Check, X } from 'lucide-react';
+import { Camera, ImageIcon, Loader2, RotateCcw, Check, X } from 'lucide-react';
 import { useRef, useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -21,6 +21,15 @@ interface CameraCaptureProps {
     maxPhotos?: number;
     currentCount?: number;
     label?: string;
+    /** Accept string for fallback file input. Default "image/*" */
+    accept?: string;
+}
+
+/** Check if the MediaDevices API is available (secure context: HTTPS or localhost). */
+function isMediaDevicesSupported(): boolean {
+    return typeof navigator !== 'undefined' &&
+        typeof navigator.mediaDevices !== 'undefined' &&
+        typeof navigator.mediaDevices.getUserMedia === 'function';
 }
 
 export function CameraCapture({
@@ -29,22 +38,30 @@ export function CameraCapture({
     maxPhotos = 5,
     currentCount = 0,
     label,
+    accept = 'image/*',
 }: CameraCaptureProps) {
     const [open, setOpen] = useState(false);
     const [stream, setStream] = useState<MediaStream | null>(null);
     const [captured, setCaptured] = useState<CapturedPhoto[]>([]);
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
+    const [cameraSupported, setCameraSupported] = useState<boolean | null>(null);
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    const fallbackInputRef = useRef<HTMLInputElement>(null);
 
     const canCapture = currentCount < maxPhotos;
+
+    // Check camera support on mount
+    useEffect(() => {
+        setCameraSupported(isMediaDevicesSupported());
+    }, []);
 
     const startCamera = useCallback(async () => {
         setError(null);
         setLoading(true);
         try {
-            const mediaStream = await navigator.mediaDevices.getUserMedia({
+            const mediaStream = await navigator.mediaDevices!.getUserMedia({
                 video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } },
                 audio: false,
             });
@@ -124,6 +141,13 @@ export function CameraCapture({
         setOpen(false);
     }, [stopCamera]);
 
+    const handleFallbackChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files?.length) {
+            onCapture(Array.from(e.target.files));
+            e.target.value = '';
+        }
+    }, [onCapture]);
+
     // Start camera when dialog opens
     useEffect(() => {
         if (open) {
@@ -135,6 +159,32 @@ export function CameraCapture({
     }, [open, startCamera, stopCamera]);
 
     const hasReachedMax = captured.length >= maxPhotos;
+
+    // If MediaDevices API is not available, show fallback file input
+    if (cameraSupported === false) {
+        return (
+            <div className="flex items-center gap-1">
+                <input
+                    type="file"
+                    accept={accept}
+                    className="hidden"
+                    ref={fallbackInputRef}
+                    onChange={handleFallbackChange}
+                />
+                <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="flex h-7 items-center gap-1 text-xs text-muted-foreground"
+                    onClick={() => fallbackInputRef.current?.click()}
+                    disabled={disabled || !canCapture}
+                >
+                    <ImageIcon className="h-3.5 w-3.5" />{' '}
+                    {label || 'Ambil Foto'}
+                </Button>
+            </div>
+        );
+    }
 
     return (
         <>
