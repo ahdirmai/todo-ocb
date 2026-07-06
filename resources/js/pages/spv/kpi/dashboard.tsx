@@ -5,7 +5,7 @@ import { ScoreCard } from '@/components/kpi/score-card';
 import { GradeBadge } from '@/components/kpi/grade-badge';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle2, Circle, TrendingUp, Plus, ChevronLeft, ChevronRight, Store } from 'lucide-react';
+import { CheckCircle2, Circle, TrendingUp, Plus, ChevronLeft, ChevronRight, Store, FileText } from 'lucide-react';
 import { KpiTaskModal } from '@/components/kpi/kpi-task-modal';
 import { useState, useMemo } from 'react';
 import {
@@ -190,16 +190,24 @@ export default function SpvKpiDashboard({
               {positionName} — Evaluasi Kinerja Harian (34 Lajur Tugas)
             </p>
           </div>
-          {!hasTasksForDate && canGenerateForDate && canGenerateTasks && (
-            <Button
-              variant="outline"
-              onClick={handleGenerateTasks}
-              className="w-full sm:w-auto"
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              Generate Task
+          <div className="flex flex-col gap-2 sm:flex-row">
+            {!hasTasksForDate && canGenerateForDate && canGenerateTasks && (
+              <Button
+                variant="outline"
+                onClick={handleGenerateTasks}
+                className="w-full sm:w-auto"
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Generate Task
+              </Button>
+            )}
+            <Button asChild className="w-full sm:w-auto">
+              <Link href="/spv/kpi/report/create">
+                <FileText className="mr-2 h-4 w-4" />
+                Kirim Laporan Harian
+              </Link>
             </Button>
-          )}
+          </div>
         </div>
 
         {/* Date Navigation */}

@@ -114,7 +114,7 @@ export default function DynamicReportsList({ reports, canCreate, reportFields, a
                       </p>
                     </div>
                     <div className="flex gap-2">
-                      {canCreate && (
+                      {canCreate && report.report_date.slice(0, 10) === new Date().toISOString().slice(0, 10) && (
                         <Link href={`/${area}/kpi/report/${report.id}/edit`}>
                           <Button variant="outline" size="sm">
                             <Pencil className="mr-2 h-4 w-4" />

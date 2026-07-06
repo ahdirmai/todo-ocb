@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- **Report Fields Admin UI**: Manage dynamic daily-report fields per position without editing seeders
+  - `KpiAdminController` — added `reportFields`, `storeReportField`, `updateReportField`, `destroyReportField` + shared `validateReportField()` helper (per-position unique `field_key`, regex `^[a-z0-9_.]+$`, type whitelist, nested `field_options` rules)
+  - Routes `kpi/admin/report-fields` (GET/POST/PUT/DELETE) inside the admin/superadmin group
+  - New page `resources/js/pages/kpi/admin/report-fields.tsx` — position tabs, fields grouped by `group_label`, create/edit dialog with conditional `field_options` (placeholder, rows, max_length, select options)
+  - Sidebar link "Report Fields" (`ListChecks` icon)
+  - Tests: `tests/Feature/KpiAdminReportFieldTest.php` — CRUD, 403 for non-admin, duplicate/invalid `field_key`, template integration
+- **SPV Section C Report Template**: SPV Unit 1 daily report seeds the 13 sections of "Format Laporan Kunjungan Harian SPV" (PDF Bagian C) — 15 fields across audit, barcode, returan, pricing, kebersihan, brandingan, aset, training, mob-sale, catatan (`KpiSpvUnit1Seeder`)
+- **SPV Daily Report Access**: SPV KPI dashboard now has a "Kirim Laporan Harian" button linking to `/spv/kpi/report/create` (was missing; route + fields already existed)
+
+### Changed
+- **Daily Report — Today Only**: Reports can only be submitted/edited for the current day; past days are read-only
+  - `KpiReportController::create()` — `canSubmit` true only when the date is today AND no report exists; passes `isToday` prop
+  - `KpiReportController::submit()` — rejects any `report_date` other than today
+  - `KpiReportController::edit()` / `update()` — abort 403 for non-today reports
+  - `dynamic-report-form.tsx` — distinct warnings for (a) already submitted today, (b) past date read-only with report, (c) past date with no report; submit button hidden when not submittable
+  - `dynamic-reports-list.tsx` — "Edit" button only shown for today's report
+  - `dynamic-report-form.tsx` — `date` field type prefills today's date; `select` field type renders a real dropdown from `field_options.options`
+  - Tests added in `DynamicReportTemplateTest.php` covering past-date submit rejection, read-only pages, edit block, and today-allows-submit
+
 - **SPV Store Selection — KPI Task Generation**: SPV users must select a store before generating daily KPI tasks
   - `KpiTaskGenerationService::generateDailyTasksForUser()` — added optional `$storeId` param; tasks created with `store_id` + `visit_date` = today
   - `KpiDashboardController::generateTasks()` — validates store belongs to SPV (`spv_id = auth()->id()`); duplicate check scoped per store

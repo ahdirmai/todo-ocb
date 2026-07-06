@@ -33,8 +33,10 @@ Laravel-based task management system with advanced KPI tracking, position-based 
 - **SPV Store-Based Task Generation**: SPV users select an assigned store before generating 34 KPI tasks per store with visit date tracking
 - **Multi-Period Aggregation**: Daily → Weekly (7-day avg) → Monthly (4-week avg + bonus)
 - **Automated Grading**: A+ to D grades with specific thresholds
-- **CEO Reporting**: Daily report submission and editing with deadline tracking (22:30 WITA); date picker allows submitting for any past date
-- **Dynamic Report Templates**: Database-driven report fields per position — field definitions stored in `position_report_fields` table with support for text, textarea, number, date, and select types; field values stored as JSON in `kpi_daily_reports.fields_json`; shared components for form, detail view, and list across HR, Operational, and Gudang areas
+- **CEO Reporting**: Daily report submission and editing with deadline tracking (22:30 WITA); reports can only be submitted/edited for the current day — past dates are read-only (existing report shown, missing report left empty), enforced both server-side and in the UI
+- **Dynamic Report Templates**: Database-driven report fields per position — field definitions stored in `position_report_fields` table with support for text, textarea, number, date (prefills today), and select (dropdown) types; field values stored as JSON in `kpi_daily_reports.fields`; shared components for form, detail view, and list across HR, Operational, Gudang, and SPV areas
+- **Report Fields Admin**: Admin/superadmin UI at `/kpi/admin/report-fields` to CRUD daily-report fields per position (field key, label, type, group, order, required, options) — no seeder editing required
+- **SPV Daily Report**: SPV Unit 1 uses the 13-section "Format Laporan Kunjungan Harian" (PDF Bagian C); dashboard exposes a "Kirim Laporan Harian" button
 - **CEO Monitoring Area**: Executive dashboard for superadmin — daily scores, per-user drill-down, SPV task monitoring with clickable task detail modal (comments + files with thumbnails), critical alerts
 - **Dashboard Analytics**: Real-time score cards, trends, and category breakdowns
 - **Agent API**: Public endpoint at `GET /api/reports/daily-manager` for fetching daily manager reports (submitted + pending) for H-1, with per-position field templates and KPI task details

@@ -77,7 +77,9 @@ class KpiReportController extends Controller
             ->where('report_date', $selectedDate->toDateString())
             ->first();
 
-        $canSubmit = ! $existingReport;
+        // Only today's report can be submitted. Past dates are read-only:
+        // show the stored report if one exists, otherwise leave it empty.
+        $canSubmit = ! $existingReport && $selectedDate->isToday();
 
         $area = $this->getPositionArea();
 
@@ -87,6 +89,7 @@ class KpiReportController extends Controller
             'existingReport' => $existingReport,
             'canSubmit' => $canSubmit,
             'selectedDate' => $selectedDate->toDateString(),
+            'isToday' => $selectedDate->isToday(),
         ]);
     }
 
@@ -103,6 +106,11 @@ class KpiReportController extends Controller
             abort(403, 'Anda tidak memiliki akses untuk mengedit laporan');
         }
 
+        // Only today's report is editable. Past reports are read-only.
+        if (! $report->report_date->isToday()) {
+            abort(403, 'Laporan hari sebelumnya tidak dapat diubah (read-only).');
+        }
+
         $template = $this->reportingService->getDailyReportTemplate($user, $report->report_date);
         $reportFields = $this->reportingService->getReportFieldsTemplate($positionName);
 
@@ -115,6 +123,7 @@ class KpiReportController extends Controller
             'canSubmit' => true,
             'isEditing' => true,
             'reportId' => $report->id,
+            'isToday' => true,
         ]);
     }
 
@@ -129,6 +138,11 @@ class KpiReportController extends Controller
         $positionName = $user->jobPosition?->name;
         if (! $this->canSubmitReports($user)) {
             abort(403, 'Anda tidak memiliki akses untuk mengedit laporan');
+        }
+
+        // Only today's report is editable. Past reports are read-only.
+        if (! $report->report_date->isToday()) {
+            abort(403, 'Laporan hari sebelumnya tidak dapat diubah (read-only).');
         }
 
         $templateFields = $this->reportingService->getReportFieldsTemplate($positionName);
@@ -166,6 +180,14 @@ class KpiReportController extends Controller
         $isLate = $submittedAt->format('H:i') > '22:30';
 
         $reportDate = $request->input('report_date', now()->toDateString());
+
+        // Reports may only be submitted for the current day. Past/future dates
+        // are rejected — past reports are read-only, never created after the fact.
+        if ($reportDate !== now()->toDateString()) {
+            return back()->withErrors([
+                'report_date' => 'Laporan hanya dapat dikirim untuk hari ini.',
+            ]);
+        }
 
         $alreadySubmitted = KpiDailyReport::where('user_id', $user->id)
             ->where('report_date', $reportDate)

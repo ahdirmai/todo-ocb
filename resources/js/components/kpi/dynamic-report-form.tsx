@@ -50,6 +50,7 @@ interface Props {
   isEditing?: boolean;
   reportId?: string;
   selectedDate?: string;
+  isToday?: boolean;
 }
 
 /**
@@ -96,13 +97,16 @@ function setNestedValue(obj: Record<string, unknown>, key: string, value: string
  */
 function buildInitialFields(reportFields: ReportField[], existingReport: ExistingReportData | null): Record<string, unknown> {
   const fields: Record<string, unknown> = {};
+  const today = new Date().toISOString().slice(0, 10);
 
   for (const rf of reportFields) {
     const key = rf.field_key;
     const parts = key.split('.');
+    const fallback = rf.field_type === 'date' ? today : '';
 
     if (parts.length === 1) {
-      fields[key] = existingReport ? getNestedValue(existingReport.fields ?? {}, key) : '';
+      const existing = existingReport ? getNestedValue(existingReport.fields ?? {}, key) : '';
+      fields[key] = existing || fallback;
     } else {
       // Nested key — ensure parent exists
       const parent = parts[0];
@@ -116,8 +120,8 @@ function buildInitialFields(reportFields: ReportField[], existingReport: Existin
       }
       const parentObj = fields[parent] as Record<string, unknown>;
       const childKey = parts.slice(1).join('.');
-      if (parentObj[childKey] === undefined) {
-        parentObj[childKey] = '';
+      if (parentObj[childKey] === undefined || parentObj[childKey] === '') {
+        parentObj[childKey] = fallback;
       }
     }
   }
@@ -135,6 +139,7 @@ export default function DynamicReportForm({
   isEditing = false,
   reportId,
   selectedDate,
+  isToday = true,
 }: Props) {
   const initialFields = buildInitialFields(reportFields, existingReport);
 
@@ -179,6 +184,7 @@ export default function DynamicReportForm({
     timeZone: 'Asia/Makassar',
   });
   const isNearDeadline = parseInt(currentTime.split(':')[0]) >= 21;
+  const today = new Date().toISOString().slice(0, 10);
 
   // Group fields by group_label
   const grouped: { label: string; fields: ReportField[] }[] = [];
@@ -230,6 +236,28 @@ export default function DynamicReportForm({
             disabled={!canSubmit}
             className={error ? 'border-red-500' : ''}
           />
+        ) : field.field_type === 'date' ? (
+          <Input
+            id={field.field_key}
+            type="date"
+            value={value || today}
+            onChange={(e) => handleFieldChange(field.field_key, e.target.value)}
+            disabled={!canSubmit}
+            className={error ? 'border-red-500' : ''}
+          />
+        ) : field.field_type === 'select' ? (
+          <select
+            id={field.field_key}
+            value={value}
+            onChange={(e) => handleFieldChange(field.field_key, e.target.value)}
+            disabled={!canSubmit}
+            className={`flex h-10 w-full rounded-md border bg-background px-3 py-2 text-sm ${error ? 'border-red-500' : 'border-input'}`}
+          >
+            <option value="">Pilih...</option>
+            {(field.field_options?.options ?? []).map((opt) => (
+              <option key={opt} value={opt}>{opt}</option>
+            ))}
+          </select>
         ) : (
           <Input
             id={field.field_key}
@@ -288,12 +316,22 @@ export default function DynamicReportForm({
           </Alert>
         )}
 
-        {/* Already Submitted Warning */}
-        {!canSubmit && !isEditing && (
+        {/* Read-only / cannot-submit warnings */}
+        {!canSubmit && !isEditing && existingReport && (
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              Laporan untuk tanggal {data.report_date} sudah pernah dikirim. Untuk mengubahnya, gunakan tombol "Edit" di halaman riwayat laporan.
+              {isToday
+                ? `Laporan untuk hari ini sudah pernah dikirim. Untuk mengubahnya, gunakan tombol "Edit" di halaman riwayat laporan.`
+                : `Laporan tanggal ${data.report_date} hanya bisa dilihat (read-only). Laporan hari sebelumnya tidak dapat diubah.`}
+            </AlertDescription>
+          </Alert>
+        )}
+        {!canSubmit && !isEditing && !existingReport && !isToday && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              Tidak ada laporan untuk tanggal {data.report_date}. Laporan hari sebelumnya tidak dapat diisi — hanya laporan hari ini yang bisa dikirim.
             </AlertDescription>
           </Alert>
         )}
@@ -391,23 +429,18 @@ export default function DynamicReportForm({
           </Card>
 
           {/* Submit */}
-          {!canSubmit && !isEditing && (
-            <Alert>
-              <AlertDescription>
-                Anda tidak dapat mengisi laporan baru. Laporan sudah tersimpan untuk tanggal ini.
-              </AlertDescription>
-            </Alert>
-          )}
           <div className="flex justify-end gap-3">
             <Button type="button" variant="outline" asChild>
               <Link href={`/${area}/kpi/reports`}>
-                Batal
+                {canSubmit || isEditing ? 'Batal' : 'Kembali'}
               </Link>
             </Button>
-            <Button type="submit" disabled={processing || !canSubmit}>
-              <Send className="mr-2 h-4 w-4" />
-              {processing ? 'Menyimpan...' : isEditing ? 'Update Laporan' : 'Kirim Laporan'}
-            </Button>
+            {(canSubmit || isEditing) && (
+              <Button type="submit" disabled={processing || (!canSubmit && !isEditing)}>
+                <Send className="mr-2 h-4 w-4" />
+                {processing ? 'Menyimpan...' : isEditing ? 'Update Laporan' : 'Kirim Laporan'}
+              </Button>
+            )}
           </div>
         </form>
 

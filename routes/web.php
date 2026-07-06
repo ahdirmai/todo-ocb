@@ -173,6 +173,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::post('definitions', [KpiAdminController::class, 'storeDefinition'])->name('kpi.admin.definitions.store');
             Route::put('definitions/{definition}', [KpiAdminController::class, 'updateDefinition'])->name('kpi.admin.definitions.update');
             Route::delete('definitions/{definition}', [KpiAdminController::class, 'destroyDefinition'])->name('kpi.admin.definitions.destroy');
+            Route::get('report-fields', [KpiAdminController::class, 'reportFields'])->name('kpi.admin.report-fields');
+            Route::post('report-fields', [KpiAdminController::class, 'storeReportField'])->name('kpi.admin.report-fields.store');
+            Route::put('report-fields/{reportField}', [KpiAdminController::class, 'updateReportField'])->name('kpi.admin.report-fields.update');
+            Route::delete('report-fields/{reportField}', [KpiAdminController::class, 'destroyReportField'])->name('kpi.admin.report-fields.destroy');
             Route::get('scores', [KpiAdminController::class, 'scores'])->name('kpi.admin.scores');
         });
 
