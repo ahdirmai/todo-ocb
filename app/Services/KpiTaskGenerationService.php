@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Models\KpiTaskDefinition;
-use App\Models\Position;
 use App\Models\Task;
 use App\Models\Team;
 use App\Models\User;
@@ -25,22 +24,21 @@ class KpiTaskGenerationService
         }
     }
 
-    public function generateDailyTasksForUser(User $user, CarbonInterface $date, ?Team $spvTeam = null): Collection
+    public function generateDailyTasksForUser(User $user, CarbonInterface $date, ?Team $spvTeam = null, ?int $storeId = null): Collection
     {
         if (! $user->position_id) {
             throw new \Exception('User must have position');
         }
 
         // For managers and gudang positions, team is optional
-        $positionName = $user->jobPosition?->name;
-        $isManager = in_array($positionName, ['Manager HR', 'Manager Operasional'])
-            || in_array($positionName, Position::GUDANG_POSITIONS);
+        $isManager = (bool) $user->jobPosition?->is_manager;
+        $requiresSpv = (bool) $user->jobPosition?->requires_spv_team;
 
-        if (! $spvTeam && ! $isManager) {
+        if (! $spvTeam && $requiresSpv) {
             $spvTeam = $user->teams()->where('is_spv_team', true)->first();
         }
 
-        if (! $spvTeam && ! $isManager) {
+        if (! $spvTeam && $requiresSpv) {
             throw new \Exception('User must be in SPV team');
         }
 
@@ -57,6 +55,10 @@ class KpiTaskGenerationService
 
             if ($spvTeam) {
                 $existingTaskQuery->where('team_id', $spvTeam->id);
+            }
+
+            if ($storeId) {
+                $existingTaskQuery->where('store_id', $storeId);
             }
 
             $existingTask = $existingTaskQuery->first();
@@ -77,6 +79,8 @@ class KpiTaskGenerationService
                 'due_date' => $date->endOfDay(),
                 'order_position' => $order++,
                 'creator_id' => $user->id,
+                'store_id' => $storeId,
+                'visit_date' => $storeId ? $date->toDateString() : null,
                 'created_at' => $date,
                 'updated_at' => $date,
             ]);

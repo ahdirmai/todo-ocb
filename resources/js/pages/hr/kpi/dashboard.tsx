@@ -515,7 +515,7 @@ export default function HrKpiDashboard({
       />
 
       <TaskDetailModal
-        task={spvKanbanTasks.find(t => t.id === selectedKanbanTaskId) || null}
+         taskId={spvKanbanTasks.find(t => t.id === selectedKanbanTaskId) ?.id ?? null}
         open={kanbanModalOpen}
         onClose={() => {
           setKanbanModalOpen(false);

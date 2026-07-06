@@ -38,7 +38,7 @@ export interface ReportsPageProps {
 }
 
 interface Props extends ReportsPageProps {
-  area: 'hr' | 'operational' | 'gudang';
+  area: 'hr' | 'operational' | 'gudang' | 'spv';
 }
 
 export default function DynamicReportsList({ reports, canCreate, reportFields, area }: Props) {
@@ -48,6 +48,7 @@ export default function DynamicReportsList({ reports, canCreate, reportFields, a
     hr: 'Manager HR',
     operational: 'Manager Operasional',
     gudang: 'Manager Gudang',
+    spv: 'SPV Unit 1',
   };
 
   return (

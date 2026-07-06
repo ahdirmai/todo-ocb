@@ -5,7 +5,6 @@ namespace App\Services;
 use App\Models\KpiDailyScore;
 use App\Models\KpiMonthlyScore;
 use App\Models\KpiWeeklyScore;
-use App\Models\Position;
 use App\Models\Task;
 use App\Models\User;
 use Carbon\Carbon;
@@ -22,13 +21,12 @@ class KpiScoringService
             throw new \Exception('User must have position');
         }
 
-        $positionName = $user->jobPosition?->name;
-        $isManager = in_array($positionName, ['Manager HR', 'Manager Operasional'])
-            || in_array($positionName, Position::GUDANG_POSITIONS);
+        $isManager = (bool) $user->jobPosition?->is_manager;
+        $requiresSpv = (bool) $user->jobPosition?->requires_spv_team;
 
-        $team = $user->teams()->where('is_spv_team', true)->first();
+        $team = $requiresSpv ? $user->teams()->where('is_spv_team', true)->first() : null;
 
-        if (! $team && ! $isManager) {
+        if (! $team && $requiresSpv) {
             throw new \Exception('User must be in SPV team');
         }
 

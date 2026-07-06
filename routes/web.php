@@ -235,9 +235,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::get('report/{report}/edit', [KpiReportController::class, 'edit'])->name('gudang.kpi.report.edit');
             Route::put('report/{report}', [KpiReportController::class, 'update'])->name('gudang.kpi.report.update');
         });
-    });
-
-    // Operational Area - Manager Operasional
+    });    // Operational Area - Manager Operasional
     Route::prefix('operational')->middleware('position:operational')->group(function () {
         Route::get('/', OperationalController::class)->name('operational.index');
 
@@ -257,6 +255,60 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::get('reports', [KpiReportController::class, 'index'])->name('operational.kpi.reports');
         });
     });
+
+    // SPV Area - Pengawas SVP (store visit supervisors)
+    // Phase 9 fix: SPV position had no area_slug nor PositionPermission so the
+    // auto-derived kpiAreas link produced a phantom `/spv/kpi/dashboard` URL
+    // that 404'd. The DB backfill (Phase 9) set area_slug='spv' and added a
+    // PositionPermission with route_key='spv', mirroring the HR/Gudang/Operational
+    // pattern. SPV is_manager=false + requires_spv_team=true, so this dashboard
+    // shows the SPV team's store-visit tasks from the supervisor's vantage.
+    Route::prefix('spv')->middleware('position:spv')->group(function () {
+        // SPV KPI Routes — full dashboard with task generation & verification.
+        // SPV Unit 1 users have has_kpi=true + 34 KpiTaskDefinitions (seeded
+        // by KpiSpvUnit1Seeder), so they generate their own daily tasks and
+        // fill/verify them with evidence, same flow as Manager HR/Ops/Gudang.
+        Route::prefix('kpi')->group(function () {
+            Route::get('dashboard', [KpiDashboardController::class, 'index'])->name('spv.kpi.dashboard');
+            Route::get('daily/{date?}', [KpiDashboardController::class, 'daily'])->name('spv.kpi.daily');
+            Route::get('weekly/{weekStart?}', [KpiDashboardController::class, 'weekly'])->name('spv.kpi.weekly');
+            Route::get('monthly/{month?}', [KpiDashboardController::class, 'monthly'])->name('spv.kpi.monthly');
+            Route::post('tasks/{task}/verify', [KpiDashboardController::class, 'verifyTask'])->name('spv.kpi.tasks.verify');
+            Route::post('tasks/generate', [KpiDashboardController::class, 'generateTasks'])->name('spv.kpi.tasks.generate');
+
+            Route::get('report/create', [KpiReportController::class, 'create'])->name('spv.kpi.report.create');
+            Route::post('report/submit', [KpiReportController::class, 'submit'])->name('spv.kpi.report.submit');
+            Route::get('report/{report}/edit', [KpiReportController::class, 'edit'])->name('spv.kpi.report.edit');
+            Route::put('report/{report}', [KpiReportController::class, 'update'])->name('spv.kpi.report.update');
+            Route::get('reports', [KpiReportController::class, 'index'])->name('spv.kpi.reports');
+        });
+    });
+
+    // Generic KPI Area — any position with area_slug + has_kpi is reachable
+    // here without editing this file. Registered LAST so the explicit legacy
+    // prefixes (hr/gudang/operational/spv) match first; this catches every
+    // other valid area (e.g. finance). The `kpi.area` middleware validates
+    // the {area} segment against ValidAreasResolver (route-cache safe) and
+    // enforces access. Route names are prefixed `kpi.area.*` to avoid
+    // colliding with the existing `kpi.admin.*` / `kpi.ceo.*` groups.
+    Route::prefix('{area}/kpi')
+        ->middleware('kpi.area')
+        ->name('kpi.area.')
+        ->group(function () {
+            Route::get('dashboard', [KpiDashboardController::class, 'index'])->name('dashboard');
+            Route::get('daily/{date?}', [KpiDashboardController::class, 'daily'])->name('daily');
+            Route::get('weekly/{weekStart?}', [KpiDashboardController::class, 'weekly'])->name('weekly');
+            Route::get('monthly/{month?}', [KpiDashboardController::class, 'monthly'])->name('monthly');
+            Route::post('tasks/{task}/verify', [KpiDashboardController::class, 'verifyTask'])->name('tasks.verify');
+            Route::post('tasks/generate', [KpiDashboardController::class, 'generateTasks'])->name('tasks.generate');
+
+            Route::get('report/create', [KpiReportController::class, 'create'])->name('report.create');
+            Route::post('report/submit', [KpiReportController::class, 'submit'])->name('report.submit');
+            Route::get('report/{report}/edit', [KpiReportController::class, 'edit'])->name('report.edit');
+            Route::put('report/{report}', [KpiReportController::class, 'update'])->name('report.update');
+            Route::get('reports', [KpiReportController::class, 'index'])->name('reports');
+        });
+
 });
 
 require __DIR__.'/settings.php';

@@ -79,10 +79,16 @@ class KpiReportingService
     /**
      * Get report field template for a given position.
      *
+     * Accepts null (e.g. admin with no job position) — returns an empty template.
+     *
      * @return array<int, array{field_key: string, field_label: string, field_type: string, field_options: ?array, group_label: ?string, is_required: bool, sort_order: int}>
      */
-    public function getReportFieldsTemplate(string $positionName): array
+    public function getReportFieldsTemplate(?string $positionName): array
     {
+        if ($positionName === null || $positionName === '') {
+            return [];
+        }
+
         $position = Position::where('name', $positionName)->first();
         if (! $position) {
             return [];

@@ -47,24 +47,6 @@ export function KanbanBoard({
         () => optimisticColumns ?? kanban?.columns ?? [],
         [kanban?.columns, optimisticColumns],
     );
-    const selectedTask = useMemo(() => {
-        if (!selectedTaskId) {
-            return null;
-        }
-
-        for (const col of columns) {
-            const found = col.tasks?.find(
-                (task: any) => task.id === selectedTaskId,
-            );
-
-            if (found) {
-                return found;
-            }
-        }
-
-        return null;
-    }, [columns, selectedTaskId]);
-
     const handleCardClick = (task: any) => {
         setSelectedTaskId(task.id);
         setModalOpen(true);
@@ -359,7 +341,7 @@ export function KanbanBoard({
 
             {/* Centralized Task Detail Modal */}
             <TaskDetailModal
-                task={selectedTask}
+                taskId={selectedTaskId}
                 open={modalOpen}
                 onClose={() => {
                     setModalOpen(false);

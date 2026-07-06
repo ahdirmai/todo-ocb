@@ -1,5 +1,5 @@
 import { router, usePage } from '@inertiajs/react';
-import { Camera, Paperclip, CheckCircle2, Send, Download, Pencil, Trash2, X, Check } from 'lucide-react';
+import { Camera, Paperclip, CheckCircle2, Send, Download, Pencil, Trash2, X, Check, Upload } from 'lucide-react';
 import { useState, useRef } from 'react';
 import { CameraCapture } from '@/components/camera-capture';
 import { Button } from '@/components/ui/button';
@@ -40,11 +40,12 @@ interface KpiTask {
   comment_count: number;
   has_media: boolean;
   comments: Comment[];
+  can_upload_proof?: boolean;
 }
 
 interface KpiTaskModalProps {
   task: KpiTask | null;
-  area: 'hr' | 'operational' | 'gudang';
+  area: 'hr' | 'operational' | 'gudang' | 'spv';
   onClose: () => void;
   readOnly?: boolean;
 }
@@ -335,13 +336,36 @@ export function KpiTaskModal({ task, area, onClose, readOnly = false }: KpiTaskM
                 className="resize-none"
               />
 
-              <CameraCapture
-                onCapture={(files) => {
-                  setAttachments(files);
-                }}
-                currentCount={attachments.length}
-                label="Ambil Foto"
-              />
+              <div className="flex flex-wrap items-center gap-2">
+                <CameraCapture
+                  onCapture={(files) => {
+                    setAttachments(files);
+                  }}
+                  currentCount={attachments.length}
+                  label="Ambil Foto"
+                />
+
+                {task.can_upload_proof && (
+                  <>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      ref={fileInputRef}
+                      onChange={handleFileChange}
+                      className="hidden"
+                      multiple={false}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="inline-flex h-7 items-center gap-1 rounded-md px-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+                    >
+                      <Upload className="h-3.5 w-3.5" />
+                      Upload dari Galeri
+                    </button>
+                  </>
+                )}
+              </div>
 
               {attachments.length > 0 && (
                 <div className="flex flex-wrap gap-3">

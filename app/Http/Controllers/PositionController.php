@@ -29,10 +29,19 @@ class PositionController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255|unique:positions,name',
             'description' => 'nullable|string',
+            'area_slug' => 'nullable|string|max:64',
         ]);
 
         Position::create([
-            ...$validated,
+            'name' => $validated['name'],
+            'description' => $validated['description'] ?? null,
+            // KPI metadata (Phase 1): 3 booleans via $request->boolean() so unchecked
+            // checkboxes coerce to false (model casts already handle this). area_slug
+            // is a free string so admins can register new areas without migration.
+            'has_kpi' => $request->boolean('has_kpi'),
+            'is_manager' => $request->boolean('is_manager'),
+            'requires_spv_team' => $request->boolean('requires_spv_team'),
+            'area_slug' => $validated['area_slug'] ?: null,
             'created_by' => auth()->id(),
         ]);
 
@@ -44,9 +53,17 @@ class PositionController extends Controller
         $validated = $request->validate([
             'name' => "required|string|max:255|unique:positions,name,{$position->id}",
             'description' => 'nullable|string',
+            'area_slug' => 'nullable|string|max:64',
         ]);
 
-        $position->update($validated);
+        $position->update([
+            'name' => $validated['name'],
+            'description' => $validated['description'] ?? null,
+            'has_kpi' => $request->boolean('has_kpi'),
+            'is_manager' => $request->boolean('is_manager'),
+            'requires_spv_team' => $request->boolean('requires_spv_team'),
+            'area_slug' => $validated['area_slug'] ?: null,
+        ]);
 
         return back();
     }

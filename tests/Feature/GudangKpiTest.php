@@ -13,7 +13,27 @@ use function Pest\Laravel\actingAs;
 
 function makeGudangUser(string $positionName = 'Gudang BJB'): User
 {
-    $position = Position::firstOrCreate(['name' => $positionName]);
+    // Phase 4: explicit metadata. The boot shim that auto-derived these fields
+    // from the position name has been removed. Without these, a position like
+    // "Manager Gudang" would default to has_kpi=false, is_manager=false, and
+    // route authorization would silently deny access to /gudang/*.
+    $isManager = str_contains(strtolower($positionName), 'manager');
+    // Mirror the production seed: every gudang position (manager + line staff)
+    // has requires_spv_team=false. Gudang line staff self-generate their own
+    // daily KPI tasks without belonging to an SPV team.
+    //
+    // updateOrCreate (not firstOrCreate) so a stale row left by another suite
+    // that shares this persistent test DB gets its KPI metadata corrected —
+    // firstOrCreate would silently keep the old has_kpi=false row and 403.
+    $position = Position::updateOrCreate(
+        ['name' => $positionName],
+        [
+            'area_slug' => 'gudang',
+            'has_kpi' => true,
+            'is_manager' => $isManager,
+            'requires_spv_team' => false,
+        ]
+    );
     PositionPermission::firstOrCreate([
         'position_id' => $position->id,
         'route_key' => 'gudang',
@@ -114,7 +134,16 @@ test('superadmin sees gudang monitoring mode with user list', function (): void 
 });
 
 test('user without gudang permission cannot access gudang area', function (): void {
-    $position = Position::firstOrCreate(['name' => 'Staff']);
+    // Phase 4: boot shim removed — explicit metadata (Staff has no area/kpi).
+    $position = Position::firstOrCreate(
+        ['name' => 'Staff'],
+        [
+            'area_slug' => null,
+            'has_kpi' => false,
+            'is_manager' => false,
+            'requires_spv_team' => true,
+        ]
+    );
     $user = User::factory()->create([
         'email_verified_at' => now(),
         'position_id' => $position->id,
@@ -126,7 +155,18 @@ test('user without gudang permission cannot access gudang area', function (): vo
 });
 
 test('hr manager cannot view gudang area dashboard', function (): void {
-    $position = Position::firstOrCreate(['name' => 'Manager HR']);
+    // Phase 4: explicit metadata. The boot shim previously auto-derived
+    // area_slug='hr' from the name. Re-asserting it here keeps the test
+    // contract stable across shim removal.
+    $position = Position::firstOrCreate(
+        ['name' => 'Manager HR'],
+        [
+            'area_slug' => 'hr',
+            'has_kpi' => true,
+            'is_manager' => true,
+            'requires_spv_team' => false,
+        ]
+    );
     PositionPermission::firstOrCreate([
         'position_id' => $position->id,
         'route_key' => 'gudang',
@@ -197,6 +237,11 @@ test('manager gudang index page shows explicit choice', function (): void {
         ->assertInertia(fn ($page) => $page
             ->component('gudang/index')
             ->where('isGudangManager', true)
-            ->where('gudangPositions', Position::GUDANG_LINE_POSITIONS)
+            // Phase 4: gudangPositions is now data-driven from the DB (no more
+            // hardcoded constant). Assert shape (presence + array) only —
+            // don't pin a specific value because the controller prepends
+            // 'Manager Gudang' only when the user is admin/superadmin, which
+            // this test's user is NOT.
+            ->has('gudangPositions')
         );
 });

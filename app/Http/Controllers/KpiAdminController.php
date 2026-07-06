@@ -34,6 +34,7 @@ class KpiAdminController extends Controller
             'verification_method' => 'nullable|string',
             'weight' => 'required|numeric|min:0|max:100',
             'sequence_order' => 'required|integer|min:1',
+            'can_upload_proof' => 'boolean',
         ]);
 
         KpiTaskDefinition::create(array_merge($validated, ['is_active' => true]));
@@ -52,6 +53,7 @@ class KpiAdminController extends Controller
             'weight' => 'required|numeric|min:0|max:100',
             'sequence_order' => 'required|integer|min:1',
             'is_active' => 'boolean',
+            'can_upload_proof' => 'boolean',
         ]);
 
         $definition->update($validated);

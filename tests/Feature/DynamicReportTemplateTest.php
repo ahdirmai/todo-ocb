@@ -12,7 +12,18 @@ use function Pest\Laravel\actingAs;
 
 function makeReportUser(string $positionName, string $routeKey = 'gudang'): User
 {
-    $position = Position::firstOrCreate(['name' => $positionName]);
+    $isManager = str_contains(strtolower($positionName), 'manager');
+    // updateOrCreate so a stale row from another suite sharing this persistent
+    // test DB has its KPI metadata corrected instead of being reused as-is.
+    $position = Position::updateOrCreate(
+        ['name' => $positionName],
+        [
+            'area_slug' => $routeKey,
+            'has_kpi' => true,
+            'is_manager' => $isManager,
+            'requires_spv_team' => false,
+        ]
+    );
     PositionPermission::firstOrCreate([
         'position_id' => $position->id,
         'route_key' => $routeKey,

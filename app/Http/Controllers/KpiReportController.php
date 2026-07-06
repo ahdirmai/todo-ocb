@@ -3,8 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\KpiDailyReport;
-use App\Models\Position;
+use App\Models\User;
 use App\Services\KpiReportingService;
+use App\Support\Kpi\ValidAreasResolver;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -18,31 +19,39 @@ class KpiReportController extends Controller
     protected function getPositionArea(): string
     {
         $user = auth()->user();
-        $path = request()->path();
+        $segment = explode('/', request()->path())[0] ?? '';
+        $urlArea = ValidAreasResolver::isValid($segment) ? $segment : null;
 
-        if (str_starts_with($path, 'hr/')) {
-            return 'hr';
-        }
-        if (str_starts_with($path, 'operational/')) {
-            return 'operational';
-        }
-        if (str_starts_with($path, 'gudang/')) {
-            return 'gudang';
+        if ($user->hasAnyRole(['admin', 'superadmin'])) {
+            return $urlArea ?? 'operational';
         }
 
-        $positionName = $user->jobPosition?->name;
+        $position = $user->jobPosition;
 
-        return match (true) {
-            $positionName === 'Manager HR' => 'hr',
-            $positionName === 'Manager Operasional' => 'operational',
-            in_array($positionName, Position::GUDANG_POSITIONS) => 'gudang',
-            default => throw new \Exception('Position tidak memiliki akses KPI'),
-        };
+        if (! $position?->has_kpi || ! $position->area_slug) {
+            abort(403, 'Posisi Anda tidak memiliki akses KPI');
+        }
+
+        return $position->area_slug;
     }
 
-    protected function canSubmitReports(string $positionName): bool
+    protected function canSubmitReports(User $user): bool
     {
-        return in_array($positionName, ['Manager HR', 'Manager Operasional', 'Manager Gudang']);
+        return (bool) $user->jobPosition?->hasReportTemplate();
+    }
+
+    /**
+     * Resolve a KPI route for an area. Legacy areas (hr/gudang/operational)
+     * keep their explicit `{area}.kpi.*` route names; any other valid area
+     * falls back to the generic `kpi.area.*` group with the {area} param.
+     */
+    protected function kpiRoute(string $area, string $suffix): string
+    {
+        if (in_array($area, ['hr', 'gudang', 'operational'], true)) {
+            return route("{$area}.kpi.{$suffix}");
+        }
+
+        return route("kpi.area.{$suffix}", ['area' => $area]);
     }
 
     public function create(Request $request)
@@ -50,10 +59,10 @@ class KpiReportController extends Controller
         $user = auth()->user();
         $positionName = $user->jobPosition?->name;
 
-        if (! $this->canSubmitReports($positionName)) {
+        if (! $this->canSubmitReports($user)) {
             $area = $this->getPositionArea();
 
-            return redirect()->route("{$area}.kpi.reports")
+            return redirect()->to($this->kpiRoute($area, 'reports'))
                 ->with('error', 'Anda tidak memiliki akses untuk membuat laporan');
         }
 
@@ -90,7 +99,7 @@ class KpiReportController extends Controller
         }
 
         $positionName = $user->jobPosition?->name;
-        if (! $this->canSubmitReports($positionName)) {
+        if (! $this->canSubmitReports($user)) {
             abort(403, 'Anda tidak memiliki akses untuk mengedit laporan');
         }
 
@@ -118,7 +127,7 @@ class KpiReportController extends Controller
         }
 
         $positionName = $user->jobPosition?->name;
-        if (! $this->canSubmitReports($positionName)) {
+        if (! $this->canSubmitReports($user)) {
             abort(403, 'Anda tidak memiliki akses untuk mengedit laporan');
         }
 
@@ -137,7 +146,7 @@ class KpiReportController extends Controller
 
         $area = $this->getPositionArea();
 
-        return redirect()->route("{$area}.kpi.reports")->with('success', 'Laporan berhasil diperbarui');
+        return redirect()->to($this->kpiRoute($area, 'reports'))->with('success', 'Laporan berhasil diperbarui');
     }
 
     public function submit(Request $request): RedirectResponse
@@ -145,7 +154,7 @@ class KpiReportController extends Controller
         $user = auth()->user();
 
         $positionName = $user->jobPosition?->name;
-        if (! $this->canSubmitReports($positionName)) {
+        if (! $this->canSubmitReports($user)) {
             abort(403, 'Anda tidak memiliki akses untuk mengisi laporan');
         }
 
@@ -181,7 +190,7 @@ class KpiReportController extends Controller
 
         $area = $this->getPositionArea();
 
-        return redirect()->route("{$area}.kpi.dashboard")->with('success', $message);
+        return redirect()->to($this->kpiRoute($area, 'dashboard'))->with('success', $message);
     }
 
     public function index(Request $request): Response
@@ -190,8 +199,11 @@ class KpiReportController extends Controller
         $positionName = $user->jobPosition?->name;
         $area = $this->getPositionArea();
 
-        if (! in_array($positionName, ['Manager HR', 'Manager Operasional', 'Manager Gudang'])) {
-            return redirect()->route("{$area}.kpi.dashboard");
+        $isAdmin = $user->hasAnyRole(['admin', 'superadmin']);
+
+        // Admin/superadmin may VIEW report lists even without submit rights.
+        if (! $this->canSubmitReports($user) && ! $isAdmin) {
+            return redirect()->to($this->kpiRoute($area, 'dashboard'));
         }
 
         $reports = KpiDailyReport::where('user_id', $user->id)

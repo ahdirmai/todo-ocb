@@ -16,7 +16,7 @@ import {
     List,
     ListOrdered,
 } from 'lucide-react';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import * as TaskActions from '@/actions/App/Http/Controllers/TaskController';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { PendingFilePreview } from '@/components/pending-file-preview';
@@ -132,22 +132,29 @@ function formatFileSize(bytes: number): string {
 }
 
 interface TaskDetailModalProps {
-    task: any | null;
+    taskId: string | null;
     open: boolean;
     onClose: () => void;
 }
 
-export function TaskDetailModal({ task, open, onClose }: TaskDetailModalProps) {
+export function TaskDetailModal({ taskId, open, onClose }: TaskDetailModalProps) {
     const { tags: globalTags = [], auth, team, uploads, errors, spvSopSteps = [] } = usePage<any>().props;
 
     const isGlobalAdmin = auth?.roles?.some((r: string) =>
         ['superadmin', 'admin'].includes(r),
     );
-    const isTaskCreator = task?.creator_id === auth?.user?.id;
+    const attachmentUpload = uploads?.documents;
+    const maxAttachmentBytes = (attachmentUpload?.maxFileKb ?? 10240) * 1024;
+    const maxAttachmentLabel = formatFileSize(maxAttachmentBytes);
+
+    const [taskDetail, setTaskDetail] = useState<any | null>(null);
+    const [isLoading, setIsLoading] = useState(false);
+
+    const isTaskCreator = taskDetail?.creator_id === auth?.user?.id;
     const isTeamAdmin =
         team?.users?.find((u: any) => u.id === auth?.user?.id)?.pivot?.role ===
         'admin';
-    const isAssignee = task?.assignees?.some(
+    const isAssignee = taskDetail?.assignees?.some(
         (assignee: any) => assignee.id === auth?.user?.id,
     );
     const canEditTask = Boolean(
@@ -156,23 +163,19 @@ export function TaskDetailModal({ task, open, onClose }: TaskDetailModalProps) {
     const canDeleteTask = Boolean(
         isGlobalAdmin || isTaskCreator || isTeamAdmin,
     );
-    const attachmentUpload = uploads?.documents;
-    const maxAttachmentBytes = (attachmentUpload?.maxFileKb ?? 10240) * 1024;
-    const maxAttachmentLabel = formatFileSize(maxAttachmentBytes);
 
-    const currentTaskStateKey = task
-        ? `${task.id}:${open ? 'open' : 'closed'}`
-        : 'empty';
+    // Sync local form state when taskDetail arrives
+    const detailStateKey = taskDetail ? `${taskDetail.id}:${open ? 'open' : 'closed'}` : 'empty';
     const [syncedTaskStateKey, setSyncedTaskStateKey] =
-        useState(currentTaskStateKey);
-    const [title, setTitle] = useState(task?.title || '');
-    const [description, setDescription] = useState(task?.description || '');
-    const [dueDate, setDueDate] = useState(task?.due_date?.split('T')[0] || '');
+        useState(detailStateKey);
+    const [title, setTitle] = useState(taskDetail?.title || '');
+    const [description, setDescription] = useState(taskDetail?.description || '');
+    const [dueDate, setDueDate] = useState(taskDetail?.due_date?.split('T')[0] || '');
     const [selectedTagIds, setSelectedTagIds] = useState<string[]>(
-        task?.tags?.map((t: any) => t.id) ?? [],
+        taskDetail?.tags?.map((t: any) => t.id) ?? [],
     );
     const [selectedAssigneeIds, setSelectedAssigneeIds] = useState<string[]>(
-        task?.assignees?.map((a: any) => a.id) ?? [],
+        taskDetail?.assignees?.map((a: any) => a.id) ?? [],
     );
     const [saving, setSaving] = useState(false);
 
@@ -206,30 +209,59 @@ export function TaskDetailModal({ task, open, onClose }: TaskDetailModalProps) {
         return true;
     };
 
-    if (syncedTaskStateKey !== currentTaskStateKey) {
-        setSyncedTaskStateKey(currentTaskStateKey);
-        setTitle(task?.title || '');
-        setDescription(task?.description || '');
-        setDueDate(task?.due_date?.split('T')[0] || '');
-        setSelectedTagIds(task?.tags?.map((t: any) => t.id) ?? []);
-        setSelectedAssigneeIds(task?.assignees?.map((a: any) => a.id) ?? []);
-        setTaskAttachments([]);
-    }
-
-    // Realtime polling
+    // Fetch task detail from API when modal opens with a taskId
     useEffect(() => {
-        if (!open) {
+        if (!open || !taskId) {
+            setTaskDetail(null);
+            setIsLoading(false);
             return;
         }
 
-        const interval = setInterval(() => {
-            router.reload({
-                only: ['team'],
-            });
-        }, 5000);
+        let active = true;
+        setIsLoading(true);
 
-        return () => clearInterval(interval);
-    }, [open]);
+        const fetchTask = () => {
+            fetch(TaskActions.show.url(taskId), {
+                headers: { 'Accept': 'application/json' },
+            })
+                .then((r) => {
+                    if (!r.ok) throw new Error(`HTTP ${r.status}: ${r.statusText}`);
+                    return r.json();
+                })
+                .then((data) => {
+                    if (!active) return;
+                    setTaskDetail(data.task);
+                    setIsLoading(false);
+                })
+                .catch((err) => {
+                    if (!active) return;
+                    console.error('Failed to load task detail:', err);
+                    toast.error('Gagal memuat detail tugas. Coba refresh halaman.');
+                    setIsLoading(false);
+                });
+        };
+
+        fetchTask();
+
+        // Poll every 5s for new comments
+        const interval = setInterval(fetchTask, 5000);
+
+        return () => {
+            active = false;
+            clearInterval(interval);
+        };
+    }, [open, taskId]);
+
+    // Sync local form state when taskDetail changes
+    if (syncedTaskStateKey !== detailStateKey) {
+        setSyncedTaskStateKey(detailStateKey);
+        setTitle(taskDetail?.title || '');
+        setDescription(taskDetail?.description || '');
+        setDueDate(taskDetail?.due_date?.split('T')[0] || '');
+        setSelectedTagIds(taskDetail?.tags?.map((t: any) => t.id) ?? []);
+        setSelectedAssigneeIds(taskDetail?.assignees?.map((a: any) => a.id) ?? []);
+        setTaskAttachments([]);
+    }
 
     const toggleTag = (id: string) => {
         setSelectedTagIds((prev) =>
@@ -244,13 +276,13 @@ export function TaskDetailModal({ task, open, onClose }: TaskDetailModalProps) {
     };
 
     const handleSave = () => {
-        if (!task) {
+        if (!taskId) {
             return;
         }
 
         setSaving(true);
         router.post(
-            TaskActions.update.url(task.id),
+            TaskActions.update.url(taskId),
             {
                 _method: 'put',
                 title,
@@ -275,11 +307,11 @@ export function TaskDetailModal({ task, open, onClose }: TaskDetailModalProps) {
     };
 
     const handleDelete = () => {
-        if (!task || !confirm(`Hapus task "${task.title}"?`)) {
+        if (!taskId || !confirm(`Hapus task "${taskDetail?.title}"?`)) {
             return;
         }
 
-        router.delete(TaskActions.destroy.url(task.id), {
+        router.delete(TaskActions.destroy.url(taskId), {
             preserveScroll: true,
             onSuccess: onClose,
         });
@@ -295,14 +327,14 @@ export function TaskDetailModal({ task, open, onClose }: TaskDetailModalProps) {
         if (
             (!cleanContent && attachments.length === 0) ||
             sendingComment ||
-            !task
+            !taskId
         ) {
             return;
         }
 
         setSendingComment(true);
         router.post(
-            `/tasks/${task.id}/comments`,
+            `/tasks/${taskId}/comments`,
             {
                 content: cleanContent || '<p></p>',
                 parent_id: replyingTo,
@@ -382,21 +414,41 @@ export function TaskDetailModal({ task, open, onClose }: TaskDetailModalProps) {
     };
 
     const comments = (
-        task?.comments?.filter((c: any) => !c.parent_id) || []
+        taskDetail?.comments || []
     ).sort(
         (a: any, b: any) =>
             new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
     );
-    const getReplies = (parentId: string) =>
-        (
-            task?.comments?.filter((c: any) => c.parent_id === parentId) || []
-        ).sort(
-            (a: any, b: any) =>
-                new Date(a.created_at).getTime() -
-                new Date(b.created_at).getTime(),
-        );
+    const getReplies = (parentId: string) => {
+        const comment = taskDetail?.comments?.find((c: any) => c.id === parentId);
+
+        return comment?.replies || [];
+    };
     const canDeleteComment = (c: any) =>
         c.user_id === auth?.user?.id || isGlobalAdmin;
+
+    // Set of SOP step IDs already used in existing comments (exclude from picker)
+    const usedSopStepIds = useMemo(() => {
+        const ids = new Set<string>();
+
+        if (taskDetail?.comments) {
+            for (const comment of taskDetail.comments) {
+                if (comment.document_sop_step_id) {
+                    ids.add(String(comment.document_sop_step_id).trim());
+                }
+                // Also check replies
+                if (comment.replies) {
+                    for (const reply of comment.replies) {
+                        if (reply.document_sop_step_id) {
+                            ids.add(String(reply.document_sop_step_id).trim());
+                        }
+                    }
+                }
+            }
+        }
+
+        return ids;
+    }, [taskDetail?.comments]);
 
     const isImage = (mime: string) => mime?.startsWith('image/');
 
@@ -410,6 +462,14 @@ export function TaskDetailModal({ task, open, onClose }: TaskDetailModalProps) {
                 </DialogHeader>
 
                 <div className="mt-1 flex flex-col gap-4">
+                    {/* Loading state */}
+                    {isLoading && (
+                        <div className="flex items-center justify-center py-12">
+                            <Loader2 className="mr-2 h-6 w-6 animate-spin text-primary" />
+                            <span className="text-sm text-muted-foreground">Memuat detail tugas...</span>
+                        </div>
+                    )}
+
                     {/* Tags */}
                     <div>
                         <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
@@ -465,14 +525,14 @@ export function TaskDetailModal({ task, open, onClose }: TaskDetailModalProps) {
                                         onClick={() => {
                                             if (
                                                 canEditTask &&
-                                                user.id !== task?.creator_id
+                                                user.id !== taskDetail?.creator_id
                                             ) {
                                                 toggleAssignee(user.id);
                                             }
                                         }}
-                                        className={`flex items-center gap-1.5 rounded-full px-2 py-1 text-xs font-medium transition-all ${!canEditTask || user.id === task?.creator_id ? 'cursor-default opacity-80' : 'cursor-pointer hover:ring-1'} ${selected ? 'bg-primary text-primary-foreground shadow-sm ring-2 ring-primary ring-offset-1 dark:ring-offset-zinc-950' : 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-zinc-800 dark:text-slate-300 dark:hover:bg-zinc-700'}`}
+                                        className={`flex items-center gap-1.5 rounded-full px-2 py-1 text-xs font-medium transition-all ${!canEditTask || user.id === taskDetail?.creator_id ? 'cursor-default opacity-80' : 'cursor-pointer hover:ring-1'} ${selected ? 'bg-primary text-primary-foreground shadow-sm ring-2 ring-primary ring-offset-1 dark:ring-offset-zinc-950' : 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-zinc-800 dark:text-slate-300 dark:hover:bg-zinc-700'}`}
                                         title={
-                                            user.id === task?.creator_id
+                                            user.id === taskDetail?.creator_id
                                                 ? 'Pembuat tugas tidak dapat diunselect'
                                                 : ''
                                         }
@@ -569,9 +629,9 @@ export function TaskDetailModal({ task, open, onClose }: TaskDetailModalProps) {
                             Maks. {maxAttachmentLabel} per foto.
                         </p>
 
-                        {task?.media?.length > 0 && (
+                        {taskDetail?.media?.length > 0 && (
                             <div className="mt-2 flex flex-wrap gap-4 rounded-lg border border-dashed border-sidebar-border bg-slate-50/50 p-3 dark:bg-zinc-800/20">
-                                {task.media.map((m: any) => (
+                                {taskDetail.media.map((m: any) => (
                                     <div key={m.id} className="group relative">
                                         {isImage(m.mime_type) ? (
                                             <a
@@ -603,7 +663,7 @@ export function TaskDetailModal({ task, open, onClose }: TaskDetailModalProps) {
                                 ))}
                             </div>
                         )}
-                        {!task?.media?.length &&
+                        {!taskDetail?.media?.length &&
                             taskAttachments.length === 0 && (
                                 <span className="text-xs text-muted-foreground">
                                     Belum ada lampiran.
@@ -681,11 +741,17 @@ export function TaskDetailModal({ task, open, onClose }: TaskDetailModalProps) {
                                                 <SelectValue placeholder="Pilih SOP (opsional)" />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                {spvSopSteps.map((step: any) => (
-                                                    <SelectItem key={step.id} value={step.id} className="text-xs">
-                                                        {step.sequence_order}. {step.name}
-                                                    </SelectItem>
-                                                ))}
+                                                {spvSopSteps
+                                                    .filter((step: any) => {
+                                                        // Remove leading/trailing spaces from step id before comparison
+                                                        const stepId = String(step.id).trim();
+                                                        return !usedSopStepIds.has(stepId);
+                                                    })
+                                                    .map((step: any) => (
+                                                        <SelectItem key={step.id} value={step.id} className="text-xs">
+                                                            {step.sequence_order}. {step.name}
+                                                        </SelectItem>
+                                                    ))}
                                             </SelectContent>
                                         </Select>
                                     )}

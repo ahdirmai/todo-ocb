@@ -1,5 +1,7 @@
 <?php
 
+use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
+use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -17,6 +19,29 @@ use Tests\TestCase;
 pest()->extend(TestCase::class)
  // ->use(RefreshDatabase::class)
     ->in('Feature');
+
+/*
+|--------------------------------------------------------------------------
+| CSRF middleware disabled for Feature tests
+|--------------------------------------------------------------------------
+|
+| Pest's `actingAs()->post(...)` flow does not always propagate the
+| request-time CSRF token (session/storage driver mismatch can drop the
+| token between auth and request phases), causing HTTP 419 (CSRF
+| mismatch) on POST/PUT/DELETE in tests. Disable CSRF exclusively for
+| Feature tests via Pest's `withoutMiddleware` — production CSRF in
+| `bootstrap/app.php` is unaffected, these requests only fire inside
+| Pest's test execution. Other middleware (auth, role, position,
+| verified, throttling) stays active to keep authorization/validation
+| tests faithful.
+*/
+
+beforeEach(function (): void {
+    $this->withoutMiddleware([
+        PreventRequestForgery::class,
+        ValidateCsrfToken::class,
+    ]);
+})->in('Feature');
 
 /*
 |--------------------------------------------------------------------------

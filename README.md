@@ -26,9 +26,11 @@ Laravel-based task management system with advanced KPI tracking, position-based 
 - **Position Permissions**: RBAC for route-level access control
 
 ### KPI Evaluation System
-- **Position-Based Tracking**: Separate KPI definitions for Manager HR and Manager Operasional
+- **Position-Based Tracking**: Separate KPI definitions for Manager HR, Manager Operasional, Gudang, and SPV Unit 1
 - **Weighted Scoring**: Tasks weighted by importance (total 100% per position)
 - **Evidence Verification**: Three-tier scoring (100% full evidence, 30% partial, 0% none)
+- **Camera + Gallery Upload**: Camera capture always available for task evidence; gallery/file upload toggled per task definition via `can_upload_proof` flag
+- **SPV Store-Based Task Generation**: SPV users select an assigned store before generating 34 KPI tasks per store with visit date tracking
 - **Multi-Period Aggregation**: Daily → Weekly (7-day avg) → Monthly (4-week avg + bonus)
 - **Automated Grading**: A+ to D grades with specific thresholds
 - **CEO Reporting**: Daily report submission and editing with deadline tracking (22:30 WITA); date picker allows submitting for any past date
@@ -42,6 +44,11 @@ Laravel-based task management system with advanced KPI tracking, position-based 
 - **Survey Cycles**: CEO opens/closes survey sessions; users submit comprehensive feedback once per cycle
 - **Survey Fields**: Experience rating, usage duration, feature preferences, technical issues, feature requests
 - **Admin Dashboard**: Manage cycles, view detail of all feedback (quick + survey), export to Excel (.xlsx)
+
+### KPI Admin Definitions
+- **In-App Management**: CRUD for KPI task templates per position at `/kpi/admin/definitions`
+- **Weight Validation**: Total weight per position must equal 100%
+- **Upload Proof Toggle**: `can_upload_proof` checkbox controls whether task modal shows gallery/file upload (camera always available)
 
 ### Access Control
 - **Role-Based Access**: Admin, Superadmin, and User roles

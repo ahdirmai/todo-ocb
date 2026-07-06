@@ -74,7 +74,7 @@ class AppServiceProvider extends ServiceProvider
 
     protected function registerLogViewerGate(): void
     {
-        Gate::define('viewLogViewer', fn ($user): bool => $user->hasRole('superadmin'));
+        Gate::define('viewLogViewer', fn ($user): bool => $user->hasAnyRole(['superadmin', 'admin']));
     }
 
     /**

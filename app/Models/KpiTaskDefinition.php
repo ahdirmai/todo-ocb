@@ -24,11 +24,13 @@ class KpiTaskDefinition extends Model
         'weight',
         'sequence_order',
         'is_active',
+        'can_upload_proof',
     ];
 
     protected $casts = [
         'weight' => 'decimal:2',
         'is_active' => 'boolean',
+        'can_upload_proof' => 'boolean',
     ];
 
     public function position(): BelongsTo

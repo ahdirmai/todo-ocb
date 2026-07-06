@@ -24,6 +24,7 @@ interface TaskDefinition {
   weight: number;
   sequence_order: number;
   is_active: boolean;
+  can_upload_proof: boolean;
 }
 
 interface Position {
@@ -80,6 +81,7 @@ export default function KpiAdminDefinitions({ positions }: Props) {
     weight: 0,
     sequence_order: 1,
     is_active: true,
+    can_upload_proof: false,
   });
 
   const openCreate = () => {
@@ -96,6 +98,7 @@ export default function KpiAdminDefinitions({ positions }: Props) {
       weight: 0,
       sequence_order: tasks.length + 1,
       is_active: true,
+      can_upload_proof: false,
     });
     setOpen(true);
   };
@@ -116,6 +119,7 @@ export default function KpiAdminDefinitions({ positions }: Props) {
       weight: task.weight,
       sequence_order: task.sequence_order,
       is_active: task.is_active,
+      can_upload_proof: task.can_upload_proof,
     });
     setOpen(true);
   };
@@ -396,6 +400,22 @@ export default function KpiAdminDefinitions({ positions }: Props) {
                 rows={2}
                 placeholder="Bagaimana task ini diverifikasi"
               />
+            </div>
+
+            <div className="flex items-center gap-3 rounded-lg border border-input bg-background px-4 py-3">
+              <input
+                id="can_upload_proof"
+                type="checkbox"
+                checked={data.can_upload_proof}
+                onChange={(e) => setData('can_upload_proof', e.target.checked)}
+                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+              />
+              <Label htmlFor="can_upload_proof" className="mb-0 cursor-pointer text-sm font-normal">
+                <span className="font-medium">Can Upload Proof</span>
+                <p className="text-xs text-muted-foreground">
+                  Izinkan upload bukti (foto/dokumen) untuk task ini
+                </p>
+              </Label>
             </div>
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">

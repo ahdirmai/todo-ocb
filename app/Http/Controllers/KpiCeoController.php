@@ -28,18 +28,17 @@ class KpiCeoController extends Controller
 
         $positionFilter = $request->input('position', 'all');
 
-        $managerPositions = ['Manager HR', 'Manager Operasional', 'Manager Gudang'];
-
+        // Pakai Position::scope untuk filter — single source of truth:
+        // semua posisi dengan is_manager = true = portable sebagai filter manager
         $scoreQuery = KpiDailyScore::with('user.jobPosition')
             ->where('score_date', $date)
-            ->whereHas('user.jobPosition', fn ($q) => $q->whereIn('name', $managerPositions));
+            ->whereHas('user.jobPosition', fn ($q) => $q->managers());
 
-        if ($positionFilter === 'hr') {
-            $scoreQuery->whereHas('user.jobPosition', fn ($q) => $q->where('name', 'Manager HR'));
-        } elseif ($positionFilter === 'operational') {
-            $scoreQuery->whereHas('user.jobPosition', fn ($q) => $q->where('name', 'Manager Operasional'));
-        } elseif ($positionFilter === 'gudang') {
-            $scoreQuery->whereHas('user.jobPosition', fn ($q) => $q->where('name', 'Manager Gudang'));
+        if (in_array($positionFilter, ['hr', 'operational', 'gudang'], true)) {
+            $scoreQuery->whereHas(
+                'user.jobPosition',
+                fn ($q) => $q->managers()->area($positionFilter)
+            );
         }
 
         $allScores = $scoreQuery->orderBy('total_score', 'desc')->get()
@@ -52,6 +51,12 @@ class KpiCeoController extends Controller
                     'job_position' => $s->user->jobPosition ? [
                         'id' => $s->user->jobPosition->id,
                         'name' => $s->user->jobPosition->name,
+                        // Phase 9: include area_slug + is_manager so HR/Operasional/Gudang
+                        // filters use slug-based dispatch plus a manager-only scope
+                        // guard. Without is_manager the filter would over-match
+                        // future line-staff positions created in known areas.
+                        'area_slug' => $s->user->jobPosition->area_slug,
+                        'is_manager' => (bool) $s->user->jobPosition->is_manager,
                     ] : null,
                 ],
                 'total_score' => (float) $s->total_score,
@@ -63,22 +68,25 @@ class KpiCeoController extends Controller
             ->values();
 
         $gradeDistribution = KpiDailyScore::where('score_date', $date)
-            ->whereHas('user.jobPosition', fn ($q) => $q->whereIn('name', $managerPositions))
+            ->whereHas('user.jobPosition', fn ($q) => $q->managers())
             ->select('grade', DB::raw('count(*) as count'))
             ->groupBy('grade')
             ->get()
             ->pluck('count', 'grade');
 
         $hrScores = $allScores->filter(
-            fn ($s) => ($s['user']['job_position']['name'] ?? null) === 'Manager HR'
+            fn ($s) => ($s['user']['job_position']['area_slug'] ?? null) === 'hr'
+                && ($s['user']['job_position']['is_manager'] ?? false)
         )->values();
 
         $opsScores = $allScores->filter(
-            fn ($s) => ($s['user']['job_position']['name'] ?? null) === 'Manager Operasional'
+            fn ($s) => ($s['user']['job_position']['area_slug'] ?? null) === 'operational'
+                && ($s['user']['job_position']['is_manager'] ?? false)
         )->values();
 
         $gudangScores = $allScores->filter(
-            fn ($s) => ($s['user']['job_position']['name'] ?? null) === 'Manager Gudang'
+            fn ($s) => ($s['user']['job_position']['area_slug'] ?? null) === 'gudang'
+                && ($s['user']['job_position']['is_manager'] ?? false)
         )->values();
 
         $criticalAlerts = $allScores->filter(fn ($s) => $s['grade'] === 'D')->values();
@@ -93,7 +101,7 @@ class KpiCeoController extends Controller
                 'submitted_at' => $r->submitted_at,
             ]);
 
-        $managerPositionUserIds = User::whereHas('jobPosition', fn ($q) => $q->whereIn('name', $managerPositions))->pluck('id');
+        $managerPositionUserIds = User::whereHas('jobPosition', fn ($q) => $q->managers())->pluck('id');
 
         $pendingReports = User::whereIn('id', $managerPositionUserIds)
             ->whereDoesntHave('kpiReports', fn ($q) => $q->where('report_date', $date))
@@ -136,7 +144,7 @@ class KpiCeoController extends Controller
 
         $reports = KpiDailyReport::with('user.jobPosition')
             ->where('report_date', $date)
-            ->whereHas('user.jobPosition', fn ($q) => $q->whereIn('name', ['Manager HR', 'Manager Operasional', 'Manager Gudang']))
+            ->whereHas('user.jobPosition', fn ($q) => $q->managers())
             ->latest('submitted_at')
             ->get();
 
@@ -178,7 +186,7 @@ class KpiCeoController extends Controller
 
         $gradeDAlerts = KpiDailyScore::where('grade', 'D')
             ->where('score_date', $date)
-            ->whereHas('user.jobPosition', fn ($q) => $q->whereIn('name', ['Manager HR', 'Manager Operasional', 'Manager Gudang']))
+            ->whereHas('user.jobPosition', fn ($q) => $q->managers())
             ->with('user.jobPosition')
             ->get()
             ->map(fn ($s) => [
@@ -205,7 +213,7 @@ class KpiCeoController extends Controller
                 'submitted_at' => $r->submitted_at,
             ]);
 
-        $managerPositionUserIds = User::whereHas('jobPosition', fn ($q) => $q->whereIn('name', ['Manager HR', 'Manager Operasional', 'Manager Gudang']))->pluck('id');
+        $managerPositionUserIds = User::whereHas('jobPosition', fn ($q) => $q->managers())->pluck('id');
 
         $missingReports = User::whereIn('id', $managerPositionUserIds)
             ->whereDoesntHave('kpiReports', fn ($q) => $q->where('report_date', $date))

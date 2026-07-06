@@ -15,14 +15,23 @@ beforeEach(function (): void {
     $this->managerUsers = [];
 
     foreach ($this->managerPositions as $name) {
-        $position = Position::firstOrCreate(['name' => $name]);
+        $areaSlug = match ($name) {
+            'Manager HR' => 'hr',
+            'Manager Operasional' => 'operational',
+            default => 'gudang',
+        };
+        $position = Position::firstOrCreate(
+            ['name' => $name],
+            [
+                'area_slug' => $areaSlug,
+                'has_kpi' => true,
+                'is_manager' => true,
+                'requires_spv_team' => false,
+            ]
+        );
         PositionPermission::firstOrCreate([
             'position_id' => $position->id,
-            'route_key' => match ($name) {
-                'Manager HR' => 'hr',
-                'Manager Operasional' => 'operational',
-                default => 'gudang',
-            },
+            'route_key' => $areaSlug,
         ]);
 
         PositionReportField::updateOrCreate(

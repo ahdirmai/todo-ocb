@@ -4,6 +4,23 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+- **SPV Store Selection — KPI Task Generation**: SPV users must select a store before generating daily KPI tasks
+  - `KpiTaskGenerationService::generateDailyTasksForUser()` — added optional `$storeId` param; tasks created with `store_id` + `visit_date` = today
+  - `KpiDashboardController::generateTasks()` — validates store belongs to SPV (`spv_id = auth()->id()`); duplicate check scoped per store
+  - `KpiDashboardController::index()` — passes `spvStores` (assigned stores) to SPV dashboard view
+  - `spv/kpi/dashboard.tsx` — "Generate Task" opens store selection modal (Dialog + Select) before POSTing `store_id`; shows informative message when no stores assigned
+
+- **`can_upload_proof` Flag on KPI Task Definitions**: Admin can toggle whether a task definition allows file upload from gallery/file system
+  - New migration: `add_can_upload_proof_to_kpi_task_definitions_table` — boolean column, default `false`
+  - `KpiTaskDefinition` model — added to `$fillable` + `$casts` as boolean
+  - `KpiAdminController` — `can_upload_proof` validated in both `storeDefinition` and `updateDefinition`
+  - `kpi/admin/definitions.tsx` — checkbox "Can Upload Proof" in create/edit form
+
+- **Conditional File Upload in KPI Task Modal**: Camera capture always visible; gallery/file upload shown only when `can_upload_proof = true`
+  - `KpiDashboardController` — maps `can_upload_proof` from `$task->kpiDefinition?->can_upload_proof` in 3 task serialization points
+  - `kpi-task-modal.tsx` — `CameraCapture` always shown for non-verified tasks; "Upload dari Galeri" button + hidden file input shown only when `task.can_upload_proof === true`
+
 ### Changed
 - **Camera Capture for Comments & Tasks**: Replaced all file upload inputs with a proper camera capture component using MediaDevices API
   - New reusable `CameraCapture` component (`resources/js/components/camera-capture.tsx`) — uses `navigator.mediaDevices.getUserMedia` for live camera preview
@@ -488,3 +505,27 @@ All notable changes to this project will be documented in this file.
 - CommentController validates and stores `document_sop_step_id`
 - Task detail modal shows SOP step selector when available on SPV teams
 - Team overview tab displays SPV status badge and toggle for superadmins
+
+### Added
+- **PositionControllerTest**: 17 Pest tests covering all `/positions` admin endpoints — CRUD with the 4 metadata fields (`has_kpi`, `is_manager`, `area_slug`, `requires_spv_team`), assign/remove users, destroy guard against in-use positions, plus the `users-without-position` JSON endpoint. Uses `RefreshDatabase` for isolation and `Role::findOrCreate('admin'|'superadmin')` in a `beforeEach`.
+- **PositionFactory state methods (Phase 6)**: `→generic()`, `→lineStaff(string $area)`, `→kpiManager(string $area)`, `→withArea(string $slug)` — each bakes in the right metadata so new tests can't accidentally produce "a position that should be a KPI area but silently has `has_kpi=false`". `lineStaff`/`kpiManager` require an explicit `$area` to prevent the previous default-to-'gudang' bug pattern.
+
+### Changed
+- **Phase 1-5 Position Migration Cleanup (final pass)**: removed every transitional artifact from the position-metadata migration arc so `/positions` admin form is the single source of truth.
+  - Removed deprecated `Position::GUDANG_POSITIONS` and `Position::GUDANG_LINE_POSITIONS` constants from `app/Models/Position.php`. `GudangController` now dynamically queries `Position::area('gudang')->where('is_manager', false)->orderBy('name')->pluck('name')->all()` so the dropdown reflects whatever admins configured.
+  - Removed the `Position::creating()` boot shim that auto-derived metadata from position-name patterns (e.g., `*Manager*` ⇒ `is_manager=true`). It only ran for *new* positions, leaving 4 legacy positions stuck on migration defaults.
+  - `app/Models/Position.php` shrank from ~200 lines to 83 lines.
+  - Test helpers in `GudangKpiTest::makeGudangUser()` now set `area_slug='gudang'`, `has_kpi=true`, `is_manager=$isManager`, `requires_spv_team=!$isManager` explicitly via `firstOrCreate` — no longer rely on the shim.
+- **HandleInertiaRequests — kpiAreas caching (Phase 8)**: `Cache::remember("kpi_areas:user:{userId}", 60, fn () => $this->computeKpiAreas(...))`. Cuts repeated SQL on every Inertia request (page loads, polling, asset reloads, partial reloads) to zero in steady state. Cache invalidates per-user so admin vs member results don't bleed.
+- **HandleInertiaRequests — logged rescue for kpiAreas**: `rescue(..., function (\Throwable $e) { Log::warning(...); return []; })`. Silent failures now surface in Nightwatch and `laravel.log` with class/file/line, instead of producing an empty sidebar with zero diagnostic.
+- **HandleInertiaRequests — `computeKpiAreas` extracted (Phase 8)**: kpiAreas computation moved to a private method so `Cache::remember` can wrap the body cleanly without nesting closures inside `share()`.
+
+### Pending
+- 4 legacy positions (`Direktur`, `Staff`, `Tim IT`, `CS & Server`) carry null `area_slug` from migration defaults. They are intentionally NOT retroactively auto-populated (the auto-derivation shim is gone). Admins can fill them via `/positions`, or in bulk via tinker if they should appear in the dynamic sidebar.
+
+### Changed
+- **Phase 9 Slug-Dispatch Refactor**: Replaced hardcoded position-name string comparisons with `area_slug` column queries so the CEO dashboard and access checks use slug-based dispatch instead of brittle literal `Manager HR`/`Manager Operasional`/`Manager Gudang` matches.
+  - `app/Http/Controllers/KpiCeoController.php`: `job_position` mapper now carries both `area_slug` and `is_manager`. HR/Operational/Gudang-score filters now check `area_slug === '<slug>' && is_manager === true` so existing dashboards still scope to **managers only** (the previous literal-name match was implicitly manager-only).
+  - `app/Http/Controllers/KpiDashboardController.php` (`gudangMonitoring()`): gating check changed from `jobPosition->name === 'Manager Gudang'` to `area_slug === 'gudang' && is_manager` so admins renaming `Manager Gudang` → `Gudang Manager` via `/positions` keep monitoring access without code changes.
+  - `tests/Feature/KpiCeoDashboardTest.php`: `beforeEach` now seeds positions with `area_slug` + `is_manager` so the test fixtures match the production schema defaults. Non-manager `Gudang BJB` fixture intentionally keeps `is_manager=false` to verify exclusion behavior.
+  - Net effect: position-name is now ONLY used for DISPLAY (Vue labels, human-readable reports). All authorization, dashboard routing, and score filtering uses the stable `area_slug` column. Renaming positions via `/positions` no longer breaks CEO / Gudang / Admin views.

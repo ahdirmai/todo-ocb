@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Comment;
 use App\Models\KanbanColumn;
 use App\Models\Store;
 use App\Models\Task;
@@ -112,9 +113,134 @@ class TaskController extends Controller
     {
         Gate::authorize('view', $task);
 
-        $task->load(['tags', 'comments.user', 'media', 'assignees']);
+        $perPage = (int) request()->input('per_page', 50);
+        $page = (int) request()->input('page', 1);
 
-        return response()->json($task);
+        $task->load(['tags', 'media', 'assignees', 'creator']);
+
+        $commentsQuery = $task->comments()
+            ->with([
+                'user',
+                'media',
+                'sopStep',
+            ])
+            ->whereNull('parent_id')
+            ->latest();
+
+        $paginatedComments = $commentsQuery->paginate($perPage, ['*'], 'page', $page);
+
+        // Eager-load replies for loaded comments
+        $commentIds = $paginatedComments->pluck('id')->all();
+        $replies = Comment::whereIn('parent_id', $commentIds)
+            ->with([
+                'user',
+                'media',
+                'sopStep',
+            ])
+            ->oldest()
+            ->get()
+            ->groupBy('parent_id');
+
+        $commentsData = $paginatedComments->map(fn ($comment) => [
+            'id' => $comment->id,
+            'content' => $comment->content,
+            'user_id' => $comment->user_id,
+            'parent_id' => $comment->parent_id,
+            'document_sop_step_id' => $comment->document_sop_step_id,
+            'created_at' => $comment->created_at->toISOString(),
+            'updated_at' => $comment->updated_at?->toISOString(),
+            'user' => $comment->user ? [
+                'id' => $comment->user->id,
+                'name' => $comment->user->name,
+                'avatar_url' => $comment->user->avatar_url,
+            ] : null,
+            'media' => $comment->getMedia('*')->map(fn ($m) => [
+                'id' => $m->id,
+                'file_name' => $m->file_name,
+                'mime_type' => $m->mime_type,
+                'original_url' => $m->getUrl(),
+                'size' => $m->size,
+            ])->toArray(),
+            'sop_step' => $comment->sopStep ? [
+                'id' => $comment->sopStep->id,
+                'name' => $comment->sopStep->name,
+                'sequence_order' => $comment->sopStep->sequence_order,
+            ] : null,
+            'replies' => ($replies->get($comment->id) ?? collect())->map(fn ($reply) => [
+                'id' => $reply->id,
+                'content' => $reply->content,
+                'user_id' => $reply->user_id,
+                'parent_id' => $reply->parent_id,
+                'document_sop_step_id' => $reply->document_sop_step_id,
+                'created_at' => $reply->created_at->toISOString(),
+                'updated_at' => $reply->updated_at?->toISOString(),
+                'user' => $reply->user ? [
+                    'id' => $reply->user->id,
+                    'name' => $reply->user->name,
+                    'avatar_url' => $reply->user->avatar_url,
+                ] : null,
+                'media' => $reply->getMedia('*')->map(fn ($m) => [
+                    'id' => $m->id,
+                    'file_name' => $m->file_name,
+                    'mime_type' => $m->mime_type,
+                    'original_url' => $m->getUrl(),
+                    'size' => $m->size,
+                ])->toArray(),
+                'sop_step' => $reply->sopStep ? [
+                    'id' => $reply->sopStep->id,
+                    'name' => $reply->sopStep->name,
+                    'sequence_order' => $reply->sopStep->sequence_order,
+                ] : null,
+            ])->toArray(),
+        ]);
+
+        return response()->json([
+            'task' => [
+                'id' => $task->id,
+                'title' => $task->title,
+                'description' => $task->description,
+                'creator_id' => $task->creator_id,
+                'due_date' => $task->due_date?->toISOString(),
+                'visit_date' => $task->visit_date?->toDateString(),
+                'created_at' => $task->created_at?->toISOString(),
+                'updated_at' => $task->updated_at?->toISOString(),
+                'kanban_column_id' => $task->kanban_column_id,
+                'order_position' => $task->order_position,
+                'is_done' => (bool) $task->is_done,
+                'is_verified' => (bool) $task->is_verified,
+                'creator' => $task->creator ? [
+                    'id' => $task->creator->id,
+                    'name' => $task->creator->name,
+                    'avatar_url' => $task->creator->avatar_url,
+                ] : null,
+                'tags' => $task->tags->map(fn ($t) => [
+                    'id' => $t->id,
+                    'name' => $t->name,
+                    'color' => $t->color,
+                ])->toArray(),
+                'assignees' => $task->assignees->map(fn ($a) => [
+                    'id' => $a->id,
+                    'name' => $a->name,
+                    'avatar_url' => $a->avatar_url,
+                ])->toArray(),
+                'media' => $task->getMedia('*')->map(fn ($m) => [
+                    'id' => $m->id,
+                    'file_name' => $m->file_name,
+                    'mime_type' => $m->mime_type,
+                    'original_url' => $m->getUrl(),
+                    'size' => $m->size,
+                ])->toArray(),
+                'comments' => $commentsData->toArray(),
+                'comments_count' => $task->comments()->count(),
+                'media_count' => $task->media()->count(),
+            ],
+            'comments' => [
+                'data' => $commentsData->toArray(),
+                'current_page' => $paginatedComments->currentPage(),
+                'last_page' => $paginatedComments->lastPage(),
+                'total' => $paginatedComments->total(),
+            ],
+        ]);
     }
 
     public function update(Request $request, Task $task)

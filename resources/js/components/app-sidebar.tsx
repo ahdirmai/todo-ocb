@@ -60,6 +60,19 @@ import type { NavItem } from '@/types';
 
 const footerNavItems: NavItem[] = [];
 
+const iconForSlug = (slug: string) => {
+    switch (slug) {
+        case 'hr':
+            return Users2;
+        case 'gudang':
+            return Warehouse;
+        case 'operational':
+            return Settings;
+        default:
+            return Briefcase;
+    }
+};
+
 export function AppSidebar() {
     const mainNavGroups = useMainNav();
     const { auth } = usePage<any>().props;
@@ -68,6 +81,19 @@ export function AppSidebar() {
     const isSuperadmin = auth?.roles?.includes('superadmin');
     const { appearance, updateAppearance } = useAppearance();
     const { activeFeedbackCycle } = usePage<any>().props;
+
+    // KPI areas come from Position.area_slug rows that have at least one
+    // active KpiTaskDefinition. Each unique area-slug becomes one sidebar
+    // group — adding a new position area no longer requires editing this file.
+    const kpiAreas: Array<{
+        slug: string;
+        label: string;
+        positionName: string;
+        dashboardUrl: string;
+        legacyOverviewUrl: string | null;
+        isManager: boolean;
+        taskCount: number;
+    }> = auth?.kpiAreas ?? [];
 
     // Check if user has access to a route (superadmin bypasses all; admin and others need position permission)
     const hasAccess = (routeKey: string) => {
@@ -177,61 +203,47 @@ export function AppSidebar() {
                         </SidebarGroup>
                     )}
 
-                    {hasAccess('hr') && (
-                        <SidebarGroup>
-                            <SidebarGroupLabel>HR Area</SidebarGroupLabel>
-                            <SidebarMenu>
-                                <SidebarMenuItem>
-                                    <SidebarMenuButton asChild>
-                                        <Link href="/hr">
-                                            <Users2 className="h-4 w-4" />
-                                            <span>Dashboard HR</span>
-                                        </Link>
-                                    </SidebarMenuButton>
-                                </SidebarMenuItem>
-                            </SidebarMenu>
-                        </SidebarGroup>
-                    )}
-
-                    {hasAccess('gudang') && (
-                        <SidebarGroup>
-                            <SidebarGroupLabel>Gudang Area</SidebarGroupLabel>
-                            <SidebarMenu>
-                                <SidebarMenuItem>
-                                    <SidebarMenuButton asChild>
-                                        <Link href="/gudang">
-                                            <Warehouse className="h-4 w-4" />
-                                            <span>Dashboard Gudang</span>
-                                        </Link>
-                                    </SidebarMenuButton>
-                                </SidebarMenuItem>
-                                <SidebarMenuItem>
-                                    <SidebarMenuButton asChild>
-                                        <Link href="/gudang/kpi/dashboard">
-                                            <BarChart3 className="h-4 w-4" />
-                                            <span>KPI Dashboard</span>
-                                        </Link>
-                                    </SidebarMenuButton>
-                                </SidebarMenuItem>
-                            </SidebarMenu>
-                        </SidebarGroup>
-                    )}
-
-                    {hasAccess('operational') && (
-                        <SidebarGroup>
-                            <SidebarGroupLabel>Operational</SidebarGroupLabel>
-                            <SidebarMenu>
-                                <SidebarMenuItem>
-                                    <SidebarMenuButton asChild>
-                                        <Link href="/operational">
-                                            <Settings className="h-4 w-4" />
-                                            <span>Dashboard Operasional</span>
-                                        </Link>
-                                    </SidebarMenuButton>
-                                </SidebarMenuItem>
-                            </SidebarMenu>
-                        </SidebarGroup>
-                    )}
+                    {kpiAreas.map((area) => {
+                        const Icon = iconForSlug(area.slug);
+                        return (
+                            <SidebarGroup key={area.slug}>
+                                <SidebarGroupLabel>{area.label}</SidebarGroupLabel>
+                                <SidebarMenu>
+                                    {area.legacyOverviewUrl && (
+                                        <SidebarMenuItem>
+                                            <SidebarMenuButton asChild>
+                                                <Link href={area.legacyOverviewUrl}>
+                                                    <Icon className="h-4 w-4" />
+                                                    <span>
+                                                        Dashboard{' '}
+                                                        {area.label.replace(
+                                                            ' Area',
+                                                            '',
+                                                        )}
+                                                    </span>
+                                                </Link>
+                                            </SidebarMenuButton>
+                                        </SidebarMenuItem>
+                                    )}
+                                    <SidebarMenuItem>
+                                        <SidebarMenuButton asChild>
+                                            <Link href={area.dashboardUrl}>
+                                                <BarChart3 className="h-4 w-4" />
+                                                <span>
+                                                    KPI Dashboard
+                                                    {area.taskCount > 0 && (
+                                                        <span className="ml-2 rounded-full bg-sidebar-accent px-1.5 text-[10px] font-medium text-sidebar-accent-foreground">
+                                                            {area.taskCount}
+                                                        </span>
+                                                    )}
+                                                </span>
+                                            </Link>
+                                        </SidebarMenuButton>
+                                    </SidebarMenuItem>
+                                </SidebarMenu>
+                            </SidebarGroup>
+                        );
+                    })}
 
                     {isAdmin && (
                         <SidebarGroup>

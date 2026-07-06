@@ -41,7 +41,7 @@ export interface ExistingReportData {
 }
 
 interface Props {
-  area: 'hr' | 'operational' | 'gudang';
+  area: 'hr' | 'operational' | 'gudang' | 'spv';
   areaLabel: string;
   template: ReportTemplate;
   reportFields: ReportField[];

@@ -55,10 +55,6 @@ class TeamController extends Controller
                     }
                 },
                 'kanbans.columns.tasks.tags',
-                'kanbans.columns.tasks.media',
-                'kanbans.columns.tasks.comments.user',
-                'kanbans.columns.tasks.comments.media',
-                'kanbans.columns.tasks.comments.sopStep',
                 'kanbans.columns.tasks.assignees',
             ]);
 

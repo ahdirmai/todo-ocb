@@ -15,17 +15,24 @@ class GudangController extends Controller
     {
         $positionName = $request->user()->jobPosition?->name;
 
-        // For admin monitoring, include Manager Gudang + line positions
-        $positions = Position::GUDANG_LINE_POSITIONS;
-        if ($request->user()->hasAnyRole(['admin', 'superadmin'])) {
-            $positions = array_merge(['Manager Gudang'], $positions);
+        // `gudangPositions` is the user-picker list for the monitoring dropdown.
+        // Phase 4: positions metadata is now data-driven via the admin UI; query
+        // from DB so dropdown reflects whatever positions admins have configured.
+        // Order is preserved (alphabetical) so the dropdown layout stays stable.
+        $linePositions = Position::area('gudang')->where('is_manager', false)->orderBy('name')->pluck('name')->all();
+
+        $user = $request->user();
+        if ($user->hasAnyRole(['admin', 'superadmin'])) {
+            $linePositions = array_merge(['Manager Gudang'], $linePositions);
         }
+
+        $isGudang = $user->jobPosition?->area_slug === 'gudang';
 
         return Inertia::render('gudang/index', [
             'positionName' => $positionName,
-            'isMonitoring' => ! in_array($positionName, Position::GUDANG_POSITIONS),
-            'isGudangManager' => $positionName === 'Manager Gudang',
-            'gudangPositions' => $positions,
+            'isMonitoring' => ! ($isGudang && $user->jobPosition?->is_manager),
+            'isGudangManager' => (bool) $user->jobPosition?->is_manager && $isGudang,
+            'gudangPositions' => $linePositions,
         ]);
     }
 }

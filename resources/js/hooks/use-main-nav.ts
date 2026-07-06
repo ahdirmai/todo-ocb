@@ -10,8 +10,19 @@ export function useMainNav(): NavGroup[] {
 return [];
 }
 
-    const positionName = auth?.user?.job_position?.name;
-    const kpiArea = positionName === 'Manager HR' ? 'hr' : positionName === 'Manager Operasional' ? 'operational' : null;
+    // Derive the user's primary KPI area from the shared `kpiAreas` prop.
+    // This replaces the previous hardcoded Manager HR / Manager Operasional
+    // match and now works for ANY position (Manager Gudang, future positions).
+    const userPositionId = auth?.user?.jobPosition?.id;
+    const kpiAreas: Array<{
+        primaryPositionId: string;
+        slug: string;
+        dashboardUrl: string;
+    }> = auth?.kpiAreas ?? [];
+
+    const primaryKpiArea = kpiAreas.find(
+        (a) => a.primaryPositionId === userPositionId,
+    ) ?? kpiAreas[0] ?? null;
 
     return [
         {
@@ -23,11 +34,13 @@ return [];
                     href: dashboard(),
                     icon: Circle,
                 },
-                ...(kpiArea ? [{
-                    title: 'KPI Dashboard',
-                    href: `/${kpiArea}/kpi/dashboard`,
-                    icon: BarChart3,
-                }] : []),
+                ...(primaryKpiArea
+                    ? [{
+                        title: 'KPI Dashboard',
+                        href: primaryKpiArea.dashboardUrl,
+                        icon: BarChart3,
+                    }]
+                    : []),
             ],
         },
         ...(teamsData.hq && teamsData.hq.length > 0

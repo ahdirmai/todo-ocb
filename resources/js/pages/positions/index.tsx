@@ -31,9 +31,39 @@ interface Position {
     id: string;
     name: string;
     description: string | null;
+    has_kpi: boolean;
+    is_manager: boolean;
+    area_slug: string | null;
+    requires_spv_team: boolean;
     users_count: number;
     users: User[];
 }
+
+type PositionFormState = {
+    name: string;
+    description: string;
+    has_kpi: boolean;
+    is_manager: boolean;
+    area_slug: string;
+    requires_spv_team: boolean;
+};
+
+const METADATA_AREAS: Array<{ value: string; label: string }> = [
+    { value: '', label: '(tidak ada)' },
+    { value: 'hr', label: 'HR' },
+    { value: 'gudang', label: 'Gudang' },
+    { value: 'operational', label: 'Operational' },
+    { value: 'pengawas-svp', label: 'Pengawas SPV' },
+];
+
+const emptyForm: PositionFormState = {
+    name: '',
+    description: '',
+    has_kpi: false,
+    is_manager: false,
+    area_slug: '',
+    requires_spv_team: false,
+};
 
 type PaginatedPositions = {
     data: Position[];
@@ -53,7 +83,7 @@ export default function PositionsIndex() {
 
     const [open, setOpen] = useState(false);
     const [editing, setEditing] = useState<Position | null>(null);
-    const [form, setForm] = useState({ name: '', description: '' });
+    const [form, setForm] = useState<PositionFormState>(emptyForm);
     const [viewingUsers, setViewingUsers] = useState<Position | null>(null);
     const [usersWithoutPosition, setUsersWithoutPosition] = useState<User[]>(
         []
@@ -63,13 +93,20 @@ export default function PositionsIndex() {
 
     const openCreate = () => {
         setEditing(null);
-        setForm({ name: '', description: '' });
+        setForm(emptyForm);
         setOpen(true);
     };
 
     const openEdit = (position: Position) => {
         setEditing(position);
-        setForm({ name: position.name, description: position.description || '' });
+        setForm({
+            name: position.name,
+            description: position.description || '',
+            has_kpi: !!position.has_kpi,
+            is_manager: !!position.is_manager,
+            area_slug: position.area_slug ?? '',
+            requires_spv_team: position.requires_spv_team ?? false,
+        });
         setOpen(true);
     };
 
@@ -257,9 +294,47 @@ export default function PositionsIndex() {
                                             </button>
                                         </div>
                                     </div>
-                                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                                        <Users className="h-3.5 w-3.5" />
-                                        <span>{position.users_count} user</span>
+                                    {/* KPI metadata badges (Phase 1): visible at a glance */}
+                                    <div className="flex flex-wrap items-center gap-1.5">
+                                        {position.area_slug && (
+                                            <span
+                                                key={`area-${position.area_slug}`}
+                                                className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary"
+                                            >
+                                                {position.area_slug}
+                                            </span>
+                                        )}
+                                        {position.has_kpi && (
+                                            <span
+                                                key={`kpi-yes`}
+                                                className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-300"
+                                            >
+                                                📊 KPI
+                                            </span>
+                                        )}
+                                        {position.is_manager && (
+                                            <span
+                                                key={`mgr-yes`}
+                                                className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-medium text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
+                                            >
+                                                Manager
+                                            </span>
+                                        )}
+                                        {position.requires_spv_team && (
+                                            <span
+                                                key={`spv-yes`}
+                                                className="rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-medium text-slate-700 dark:bg-slate-700 dark:text-slate-200"
+                                            >
+                                                Wajib SPV
+                                            </span>
+                                        )}
+                                        <span
+                                            key={`users-${position.users_count}`}
+                                            className="ml-auto flex items-center gap-1 text-xs text-muted-foreground"
+                                        >
+                                            <Users className="h-3.5 w-3.5" />
+                                            <span>{position.users_count}</span>
+                                        </span>
                                     </div>
                                 </div>
                             ))
@@ -342,6 +417,85 @@ export default function PositionsIndex() {
                                 placeholder="Deskripsi singkat tentang posisi ini..."
                                 rows={3}
                             />
+                        </div>
+
+                        {/* KPI Metadata section (Phase 1) */}
+                        <div className="rounded-lg border border-sidebar-border/70 bg-slate-50/60 p-3 dark:bg-zinc-900/50">
+                            <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                KPI Metadata
+                            </h3>
+                            <div className="flex flex-col gap-3">
+                                <label className="flex items-center gap-2 text-sm">
+                                    <input
+                                        type="checkbox"
+                                        checked={form.has_kpi}
+                                        onChange={(e) =>
+                                            setForm({
+                                                ...form,
+                                                has_kpi: e.target.checked,
+                                            })
+                                        }
+                                        className="h-4 w-4 rounded border-sidebar-border/70 text-primary focus:ring-primary"
+                                    />
+                                    <span>Aktifkan KPI</span>
+                                </label>
+                                <label className="flex items-center gap-2 text-sm">
+                                    <input
+                                        type="checkbox"
+                                        checked={form.is_manager}
+                                        onChange={(e) =>
+                                            setForm({
+                                                ...form,
+                                                is_manager: e.target.checked,
+                                            })
+                                        }
+                                        className="h-4 w-4 rounded border-sidebar-border/70 text-primary focus:ring-primary"
+                                    />
+                                    <span>Posisi Manager</span>
+                                </label>
+                                <div>
+                                    <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                                        Area Slug
+                                    </label>
+                                    <Select
+                                        value={form.area_slug || '__none__'}
+                                        onValueChange={(v) =>
+                                            setForm({
+                                                ...form,
+                                                area_slug: v === '__none__' ? '' : v,
+                                            })
+                                        }
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Pilih area..." />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {METADATA_AREAS.map((opt) => (
+                                                <SelectItem
+                                                    key={opt.value || '__none__'}
+                                                    value={opt.value || '__none__'}
+                                                >
+                                                    {opt.label}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <label className="flex items-center gap-2 text-sm">
+                                    <input
+                                        type="checkbox"
+                                        checked={form.requires_spv_team}
+                                        onChange={(e) =>
+                                            setForm({
+                                                ...form,
+                                                requires_spv_team: e.target.checked,
+                                            })
+                                        }
+                                        className="h-4 w-4 rounded border-sidebar-border/70 text-primary focus:ring-primary"
+                                    />
+                                    <span>Wajib punya SPV Team</span>
+                                </label>
+                            </div>
                         </div>
 
                         <div className="flex justify-end gap-2 pt-1">

@@ -18,8 +18,16 @@ beforeEach(function () {
     $this->ceo = User::factory()->create();
     $this->ceo->assignRole('superadmin');
 
-    collect(['Manager HR', 'Manager Operasional', 'Manager Gudang', 'Gudang BJB'])
-        ->each(fn ($name) => Position::factory()->create(['name' => $name]));
+    collect([
+        ['name' => 'Manager HR', 'area_slug' => 'hr', 'is_manager' => true, 'has_kpi' => true],
+        ['name' => 'Manager Operasional', 'area_slug' => 'operational', 'is_manager' => true, 'has_kpi' => true],
+        ['name' => 'Manager Gudang', 'area_slug' => 'gudang', 'is_manager' => true, 'has_kpi' => true],
+        // Non-manager line staff: must remain excluded from manager-only filters.
+        ['name' => 'Gudang BJB', 'area_slug' => 'gudang', 'is_manager' => false, 'has_kpi' => false],
+        // updateOrCreate (not factory create) so rows committed by suites that
+        // share this persistent test DB but don't use RefreshDatabase (e.g.
+        // GudangKpiTest) don't trigger a unique-name collision here.
+    ])->each(fn ($attrs) => Position::updateOrCreate(['name' => $attrs['name']], $attrs));
 });
 
 function makeScore(string $positionName, string $grade, float $score, string $date): User

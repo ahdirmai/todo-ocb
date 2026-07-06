@@ -3,10 +3,13 @@
 use App\Http\Middleware\CheckPositionAccess;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\ValidateKpiArea;
 use App\Http\Middleware\ValidateSecretKey;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
+use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -27,6 +30,27 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
 
+        // Drop CSRF middleware when running tests, AND mark all routes as
+        // CSRF-exempt as a defensive belt-and-braces fallback at the
+        // PreventRequestForgery layer (`inExceptArray(['*'])`).
+        //
+        // Two detection paths because `PHPUNIT_COMPOSER_INSTALL` (Composer-
+        // prepended when PHPUnit runs via Composer's script layer) is NOT
+        // reliably set when Pest is invoked via `php artisan test` — the
+        // run path bypasses Composer's auto-prepend. APP_ENV=testing is
+        // forced by `phpunit.xml`, so it consistently catches Pest runs.
+        //
+        // Production CSRF protection is unaffected: BOTH conditions must
+        // be false in prod (APP_ENV=production|local + PHPUnit constant
+        // undefined).
+        if (defined('PHPUNIT_COMPOSER_INSTALL') || env('APP_ENV') === 'testing') {
+            $middleware->web(remove: [
+                PreventRequestForgery::class,
+                ValidateCsrfToken::class,
+            ]);
+            PreventRequestForgery::except(['*']);
+        }
+
         $middleware->web(append: [
             HandleAppearance::class,
             HandleInertiaRequests::class,
@@ -39,6 +63,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'role_or_permission' => RoleOrPermissionMiddleware::class,
             'secret' => ValidateSecretKey::class,
             'position' => CheckPositionAccess::class,
+            'kpi.area' => ValidateKpiArea::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

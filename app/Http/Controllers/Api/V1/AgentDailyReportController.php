@@ -19,18 +19,16 @@ class AgentDailyReportController extends Controller
     {
         $date = $request->reportDate();
 
-        $managerPositions = ['Manager HR', 'Manager Operasional', 'Manager Gudang'];
-
         $reports = KpiDailyReport::with('user.jobPosition')
             ->where('report_date', $date)
-            ->whereHas('user.jobPosition', fn ($q) => $q->whereIn('name', $managerPositions))
+            ->whereHas('user.jobPosition', fn ($q) => $q->managers())
             ->latest('submitted_at')
             ->get();
 
         $submittedUserIds = $reports->pluck('user_id')->toArray();
 
         $pendingManagers = User::with('jobPosition')
-            ->whereHas('jobPosition', fn ($q) => $q->whereIn('name', $managerPositions))
+            ->whereHas('jobPosition', fn ($q) => $q->managers())
             ->whereNotIn('id', $submittedUserIds)
             ->get();
 
