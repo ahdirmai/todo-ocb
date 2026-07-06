@@ -3,6 +3,7 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import {
     Calendar,
+    Camera,
     Loader2,
     MessageSquare,
     Pencil,
@@ -544,7 +545,8 @@ export function TaskDetailModal({ task, open, onClose }: TaskDetailModalProps) {
                                 <>
                                     <input
                                         type="file"
-                                        multiple
+                                        accept="image/*"
+                                        capture="environment"
                                         className="hidden"
                                         ref={taskFileInputRef}
                                         onChange={(e) => {
@@ -580,7 +582,8 @@ export function TaskDetailModal({ task, open, onClose }: TaskDetailModalProps) {
                                             taskFileInputRef.current?.click()
                                         }
                                     >
-                                        + Tambah Lampiran
+                                        <Camera className="mr-1 h-3.5 w-3.5" />
+                                        Ambil Foto
                                     </Button>
                                 </>
                             )}
@@ -604,7 +607,7 @@ export function TaskDetailModal({ task, open, onClose }: TaskDetailModalProps) {
                             </div>
                         )}
                         <p className="text-xs text-muted-foreground">
-                            Maks. {maxAttachmentLabel} per file.
+                            Maks. {maxAttachmentLabel} per foto.
                         </p>
 
                         {task?.media?.length > 0 && (
@@ -672,7 +675,8 @@ export function TaskDetailModal({ task, open, onClose }: TaskDetailModalProps) {
                         {/* Hidden File Input for Comments */}
                         <input
                             type="file"
-                            multiple
+                            accept="image/*"
+                            capture="environment"
                             className="hidden"
                             ref={fileInputRef}
                             onChange={(e) => {
@@ -694,7 +698,8 @@ export function TaskDetailModal({ task, open, onClose }: TaskDetailModalProps) {
                         {/* Hidden File Input for Comment Edit */}
                         <input
                             type="file"
-                            multiple
+                            accept="image/*"
+                            capture="environment"
                             className="hidden"
                             ref={editFileInputRef}
                             onChange={(e) => {
@@ -786,8 +791,8 @@ export function TaskDetailModal({ task, open, onClose }: TaskDetailModalProps) {
                                                     fileInputRef.current?.click()
                                                 }
                                             >
-                                                <Paperclip className="h-3.5 w-3.5" />{' '}
-                                                Lampirkan File
+                                                <Camera className="h-3.5 w-3.5" />{' '}
+                                                Ambil Foto
                                             </Button>
                                         </div>
                                         <Button
@@ -813,7 +818,7 @@ export function TaskDetailModal({ task, open, onClose }: TaskDetailModalProps) {
                                         </Button>
                                     </div>
                                     <p className="text-xs text-muted-foreground">
-                                        Maks. {maxAttachmentLabel} per file.
+                                        Maks. {maxAttachmentLabel} per foto.
                                     </p>
                                 </div>
                             </div>
@@ -983,8 +988,8 @@ export function TaskDetailModal({ task, open, onClose }: TaskDetailModalProps) {
                                                                 editFileInputRef.current?.click()
                                                             }
                                                         >
-                                                            <Paperclip className="h-3.5 w-3.5" />{' '}
-                                                            Lampirkan File
+                                                            <Camera className="h-3.5 w-3.5" />{' '}
+                                                            Ambil Foto
                                                         </Button>
                                                         <div className="flex gap-2">
                                                             <Button
@@ -1026,7 +1031,7 @@ export function TaskDetailModal({ task, open, onClose }: TaskDetailModalProps) {
                                                     <p className="text-xs text-muted-foreground">
                                                         Maks.{' '}
                                                         {maxAttachmentLabel} per
-                                                        file.
+                                                        foto.
                                                     </p>
                                                 </div>
                                             ) : (
@@ -1294,9 +1299,9 @@ export function TaskDetailModal({ task, open, onClose }: TaskDetailModalProps) {
                                                                                 editFileInputRef.current?.click()
                                                                             }
                                                                         >
-                                                                            <Paperclip className="h-3.5 w-3.5" />{' '}
-                                                                            Lampirkan
-                                                                            File
+                                                                            <Camera className="h-3.5 w-3.5" />{' '}
+                                                                            Ambil
+                                                                            Foto
                                                                         </Button>
                                                                         <div className="flex gap-2">
                                                                             <Button
@@ -1459,8 +1464,8 @@ export function TaskDetailModal({ task, open, onClose }: TaskDetailModalProps) {
                                                             fileInputRef.current?.click()
                                                         }
                                                     >
-                                                        <Paperclip className="h-3.5 w-3.5" />{' '}
-                                                        Lampirkan File
+                                                        <Camera className="h-3.5 w-3.5" />{' '}
+                                                        Ambil Foto
                                                     </Button>
                                                 </div>
                                                 <div className="flex gap-2">
@@ -1507,7 +1512,7 @@ export function TaskDetailModal({ task, open, onClose }: TaskDetailModalProps) {
                                             </div>
                                             <p className="text-xs text-muted-foreground">
                                                 Maks. {maxAttachmentLabel} per
-                                                file.
+                                                foto.
                                             </p>
                                         </div>
                                     )}

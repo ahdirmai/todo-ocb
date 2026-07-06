@@ -1,6 +1,6 @@
 import { Droppable } from '@hello-pangea/dnd';
 import { router, usePage } from '@inertiajs/react';
-import { MoreHorizontal, Pencil, Trash2, Check, X, Plus, CircleCheckBig } from 'lucide-react';
+import { Camera, MoreHorizontal, Pencil, Trash2, Check, X, Plus, CircleCheckBig } from 'lucide-react';
 import { useState, useRef, useMemo } from 'react';
 import { toast } from 'sonner';
 import * as ColumnActions from '@/actions/App/Http/Controllers/KanbanColumnController';
@@ -395,7 +395,8 @@ export function KanbanColumn({
                                     <div className="flex items-center gap-2">
                                         <input
                                             type="file"
-                                            multiple
+                                            accept="image/*"
+                                            capture="environment"
                                             className="hidden"
                                             ref={taskFileInputRef}
                                             onChange={(e) => {
@@ -410,7 +411,7 @@ export function KanbanColumn({
                                             }}
                                         />
                                         <button
-                                            title="Lampirkan File"
+                                            title="Ambil Foto"
                                             onClick={(e) => {
                                                 e.preventDefault();
                                                 taskFileInputRef.current?.click();
@@ -542,7 +543,8 @@ export function KanbanColumn({
                                 </label>
                                 <input
                                     type="file"
-                                    multiple
+                                    accept="image/*"
+                                    capture="environment"
                                     className="hidden"
                                     ref={taskFileInputRef}
                                     onChange={(e) => {
@@ -562,8 +564,8 @@ export function KanbanColumn({
                                     }
                                     className="w-full"
                                 >
-                                    <Plus className="mr-2 h-4 w-4" />
-                                    Tambah Lampiran
+                                    <Camera className="mr-2 h-4 w-4" />
+                                    Ambil Foto
                                 </Button>
 
                                 {newTaskAttachments.length > 0 && (

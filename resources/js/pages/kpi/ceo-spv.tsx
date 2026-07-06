@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Textarea } from '@/components/ui/textarea';
 import {
+    Camera,
     ChevronLeft,
     ChevronRight,
     Building2,
@@ -343,7 +344,8 @@ function TaskDetailModal({ task, onClose }: { task: Task; onClose: () => void })
 
                             <input
                                 type="file"
-                                multiple
+                                accept="image/*"
+                                capture="environment"
                                 className="hidden"
                                 ref={fileInputRef}
                                 onChange={(e) => {
@@ -363,7 +365,7 @@ function TaskDetailModal({ task, onClose }: { task: Task; onClose: () => void })
                                     onClick={() => fileInputRef.current?.click()}
                                     disabled={sending}
                                 >
-                                    <Paperclip className="h-3.5 w-3.5" /> Lampirkan File
+                                    <Camera className="h-3.5 w-3.5" /> Ambil Foto
                                 </Button>
                                 <Button
                                     size="sm"

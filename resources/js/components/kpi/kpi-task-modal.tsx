@@ -1,5 +1,5 @@
 import { router, usePage } from '@inertiajs/react';
-import { Paperclip, CheckCircle2, Send, Download, Pencil, Trash2, X, Check } from 'lucide-react';
+import { Camera, Paperclip, CheckCircle2, Send, Download, Pencil, Trash2, X, Check } from 'lucide-react';
 import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -338,8 +338,8 @@ export function KpiTaskModal({ task, area, onClose, readOnly = false }: KpiTaskM
                 <input
                   ref={fileInputRef}
                   type="file"
-                  multiple
-                  accept="image/*,.pdf"
+                  accept="image/*"
+                  capture="environment"
                   onChange={handleFileChange}
                   className="hidden"
                   id={`file-upload-${task.id}`}
@@ -347,8 +347,8 @@ export function KpiTaskModal({ task, area, onClose, readOnly = false }: KpiTaskM
                 <label htmlFor={`file-upload-${task.id}`}>
                   <Button type="button" variant="outline" className="w-full" asChild>
                     <span>
-                      <Paperclip className="h-4 w-4 mr-2" />
-                      Pilih File (Screenshot/Foto)
+                      <Camera className="h-4 w-4 mr-2" />
+                      Ambil Foto
                     </span>
                   </Button>
                 </label>
