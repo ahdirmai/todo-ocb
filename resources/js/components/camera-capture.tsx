@@ -41,6 +41,9 @@ export function CameraCapture({
 }: CameraCaptureProps) {
     const [open, setOpen] = useState(false);
     const [stream, setStream] = useState<MediaStream | null>(null);
+    const streamRef = useRef<MediaStream | null>(null);
+    // Mencegah getUserMedia dipanggil dua kali paralel (mis. klik "Coba Lagi" spam).
+    const startingRef = useRef<boolean>(false);
     const [captured, setCaptured] = useState<CapturedPhoto[]>([]);
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
@@ -53,6 +56,18 @@ export function CameraCapture({
         typeof navigator.mediaDevices?.getUserMedia === 'function';
 
     const startCamera = useCallback(async () => {
+        // Abaikan jika sedang ada getUserMedia berjalan agar tidak menumpuk
+        if (startingRef.current) return;
+        startingRef.current = true;
+
+        // Bersihkan stream sebelumnya agar tidak menggandakan akses kamera
+        if (streamRef.current) {
+            streamRef.current.getTracks().forEach((track) => track.stop());
+            streamRef.current = null;
+        }
+        if (videoRef.current) {
+            videoRef.current.srcObject = null;
+        }
         setError(null);
         setLoading(true);
         try {
@@ -65,6 +80,7 @@ export function CameraCapture({
                     setTimeout(() => reject(new Error('TIMEOUT')), CAMERA_TIMEOUT_MS),
                 ),
             ]);
+            streamRef.current = mediaStream;
             setStream(mediaStream);
             if (videoRef.current) {
                 videoRef.current.srcObject = mediaStream;
@@ -81,15 +97,20 @@ export function CameraCapture({
             }
         } finally {
             setLoading(false);
+            startingRef.current = false;
         }
     }, []);
 
     const stopCamera = useCallback(() => {
-        if (stream) {
-            stream.getTracks().forEach((track) => track.stop());
-            setStream(null);
+        if (streamRef.current) {
+            streamRef.current.getTracks().forEach((track) => track.stop());
+            streamRef.current = null;
         }
-    }, [stream]);
+        if (videoRef.current) {
+            videoRef.current.srcObject = null;
+        }
+        setStream(null);
+    }, []);
 
     const capturePhoto = useCallback(() => {
         const video = videoRef.current;
@@ -152,7 +173,9 @@ export function CameraCapture({
         if (open) startCamera();
         else stopCamera();
         return () => stopCamera();
-    }, [open, startCamera, stopCamera]);
+        // Hanya bergantung pada `open`: startCamera/stopCamera sudah stabil
+        // karena pakai streamRef, jadi tidak akan memicu loop getUserMedia.
+    }, [open]);
 
     const hasReachedMax = captured.length >= maxPhotos;
 

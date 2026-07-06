@@ -9,7 +9,7 @@ Laravel-based task management system with advanced KPI tracking, position-based 
 - **Team Collaboration**: Multi-team support with member assignments
 - **Document Attachments**: File uploads with media library integration
 - **Comments & Discussions**: Task-level commenting with SOP step linking
-- **Camera Capture**: Comments and task attachments use device camera on mobile — opens rear camera directly instead of file picker; desktop falls back to image selection
+- **Camera Capture**: Comments and task attachments use a live device camera with preview modal — `CameraCapture` component (`resources/js/components/camera-capture.tsx`) opens a dialog with rear-camera preview, multi-photo capture, retake, and confirm flow on both desktop and mobile; falls back to file picker when MediaDevices API is unavailable; lifecycle is stabilised via `useRef`-based stream cleanup and a single-flight `getUserMedia` guard so the preview never gets stuck
 - **Monthly Reporting**: Automated monthly task aggregation and scoring
 - **Store Management**: CRUD for managing store locations with search and pagination (40 stores: OC1-OC40)
 - **SPV Territory Management**: Assign stores to SPV teams for territory oversight

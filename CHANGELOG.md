@@ -14,6 +14,13 @@ All notable changes to this project will be documented in this file.
   - All 7 file inputs replaced with `CameraCapture` components
   - Removed unused `useRef` declarations and related cleanup code
 
+### Fixed
+- **Camera Capture — Kamera Stuck setelah Modal Dibuka**: `CameraCapture` macet tak menampilkan preview karena `useEffect` di-trigger berulang tanpa henti
+  - Root cause: callback `stopCamera` punya dependency `[stream]`; setiap kali state `stream` berubah, `stopCamera` jadi identity baru → `useEffect` re-fire → `startCamera` dipanggil lagi → infinite loop pemanggilan `navigator.mediaDevices.getUserMedia` yang membuat kamera tampak hang
+  - Fix utama di `resources/js/components/camera-capture.tsx`: stream dipindah ke `streamRef` (`useRef`), callback `stopCamera` jadi stabil, dan `useEffect` deps cukup `[open]` saja (tidak lagi bergantung pada `startCamera`/`stopCamera`)
+  - Stop/start sekarang membersihkan `streamRef.current` dan `videoRef.current.srcObject` agar browser benar-benar melepas akses kamera saat modal ditutup
+  - Tambahan guard `startingRef` di `startCamera` untuk mencegah `getUserMedia` dipanggil dua kali paralel (mis. klik "Coba Lagi" berulang)
+
 ### Added
 - **In-App Feedback System**: Two-tier feedback collection — quick feedback + survey per cycle
   - Quick feedback: Floating button (bottom-right) always visible, submit bug/feature/improvement reports anytime
