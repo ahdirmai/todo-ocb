@@ -36,6 +36,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { CameraCapture } from '@/components/camera-capture';
 import { toast } from 'sonner';
 
 const RichTextEditor = ({ content, onChange, disabled }: any) => {
@@ -189,10 +190,6 @@ export function TaskDetailModal({ task, open, onClose }: TaskDetailModalProps) {
     const [editRemovedMediaIds, setEditRemovedMediaIds] = useState<number[]>(
         [],
     );
-    const fileInputRef = useRef<HTMLInputElement>(null);
-    const taskFileInputRef = useRef<HTMLInputElement>(null);
-    const editFileInputRef = useRef<HTMLInputElement>(null);
-
     const validateAttachmentFiles = (files: File[]): boolean => {
         const invalidFiles = files.filter(
             (file) => file.size > maxAttachmentBytes,
@@ -270,10 +267,6 @@ export function TaskDetailModal({ task, open, onClose }: TaskDetailModalProps) {
                     setSaving(false);
                     setTaskAttachments([]);
 
-                    if (taskFileInputRef.current) {
-                        taskFileInputRef.current.value = '';
-                    }
-
                     onClose();
                 },
                 onError: () => setSaving(false),
@@ -326,10 +319,6 @@ export function TaskDetailModal({ task, open, onClose }: TaskDetailModalProps) {
                     setReplyingTo(null);
                     setSelectedSopStepId(null);
                     setSendingComment(false);
-
-                    if (fileInputRef.current) {
-                        fileInputRef.current.value = '';
-                    }
                 },
                 onError: (errors: any) => {
                     setSendingComment(false);
@@ -543,48 +532,18 @@ export function TaskDetailModal({ task, open, onClose }: TaskDetailModalProps) {
                             </label>
                             {canEditTask && (
                                 <>
-                                    <input
-                                        type="file"
-                                        accept="image/*"
-                                        capture="environment"
-                                        className="hidden"
-                                        ref={taskFileInputRef}
-                                        onChange={(e) => {
-                                            if (e.target.files?.length) {
-                                                const files = Array.from(
-                                                    e.target.files,
-                                                );
-
-                                                if (
-                                                    !validateAttachmentFiles(
-                                                        files,
-                                                    )
-                                                ) {
-                                                    e.target.value = '';
-
-                                                    return;
-                                                }
-
-                                                setTaskAttachments([
-                                                    ...taskAttachments,
+                                    <CameraCapture
+                                        onCapture={(files) => {
+                                            if (validateAttachmentFiles(files)) {
+                                                setTaskAttachments((prev) => [
+                                                    ...prev,
                                                     ...files,
                                                 ]);
-                                                e.target.value = '';
                                             }
                                         }}
+                                        currentCount={taskAttachments.length}
+                                        label="Ambil Foto"
                                     />
-                                    <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="sm"
-                                        className="h-6 p-0 text-xs text-primary"
-                                        onClick={() =>
-                                            taskFileInputRef.current?.click()
-                                        }
-                                    >
-                                        <Camera className="mr-1 h-3.5 w-3.5" />
-                                        Ambil Foto
-                                    </Button>
                                 </>
                             )}
                         </div>
@@ -672,55 +631,6 @@ export function TaskDetailModal({ task, open, onClose }: TaskDetailModalProps) {
                             <MessageSquare className="h-3.5 w-3.5" /> Komentar
                         </label>
 
-                        {/* Hidden File Input for Comments */}
-                        <input
-                            type="file"
-                            accept="image/*"
-                            capture="environment"
-                            className="hidden"
-                            ref={fileInputRef}
-                            onChange={(e) => {
-                                if (e.target.files?.length) {
-                                    const files = Array.from(e.target.files);
-
-                                    if (!validateAttachmentFiles(files)) {
-                                        e.target.value = '';
-
-                                        return;
-                                    }
-
-                                    setAttachments([...attachments, ...files]);
-                                    e.target.value = '';
-                                }
-                            }}
-                        />
-
-                        {/* Hidden File Input for Comment Edit */}
-                        <input
-                            type="file"
-                            accept="image/*"
-                            capture="environment"
-                            className="hidden"
-                            ref={editFileInputRef}
-                            onChange={(e) => {
-                                if (e.target.files?.length) {
-                                    const files = Array.from(e.target.files);
-
-                                    if (!validateAttachmentFiles(files)) {
-                                        e.target.value = '';
-
-                                        return;
-                                    }
-
-                                    setEditAttachments((prev) => [
-                                        ...prev,
-                                        ...files,
-                                    ]);
-                                    e.target.value = '';
-                                }
-                            }}
-                        />
-
                         {/* Main Comment Form */}
                         {!replyingTo && (
                             <div className="mb-4 flex items-start gap-2">
@@ -782,18 +692,15 @@ export function TaskDetailModal({ task, open, onClose }: TaskDetailModalProps) {
 
                                     <div className="mt-1 flex items-center justify-between">
                                         <div className="actions flex">
-                                            <Button
-                                                type="button"
-                                                variant="ghost"
-                                                size="sm"
-                                                className="flex h-8 items-center gap-1 text-xs text-muted-foreground"
-                                                onClick={() =>
-                                                    fileInputRef.current?.click()
-                                                }
-                                            >
-                                                <Camera className="h-3.5 w-3.5" />{' '}
-                                                Ambil Foto
-                                            </Button>
+                                            <CameraCapture
+                                                onCapture={(files) => {
+                                                    if (validateAttachmentFiles(files)) {
+                                                        setAttachments((prev) => [...prev, ...files]);
+                                                    }
+                                                }}
+                                                currentCount={attachments.length}
+                                                label="Ambil Foto"
+                                            />
                                         </div>
                                         <Button
                                             size="sm"
@@ -979,18 +886,15 @@ export function TaskDetailModal({ task, open, onClose }: TaskDetailModalProps) {
                                                             </div>
                                                         )}
                                                     <div className="flex items-center justify-between">
-                                                        <Button
-                                                            type="button"
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            className="flex h-7 items-center gap-1 text-xs text-muted-foreground"
-                                                            onClick={() =>
-                                                                editFileInputRef.current?.click()
-                                                            }
-                                                        >
-                                                            <Camera className="h-3.5 w-3.5" />{' '}
-                                                            Ambil Foto
-                                                        </Button>
+                                                        <CameraCapture
+                                                            onCapture={(files) => {
+                                                                if (validateAttachmentFiles(files)) {
+                                                                    setEditAttachments((prev) => [...prev, ...files]);
+                                                                }
+                                                            }}
+                                                            currentCount={editAttachments.length}
+                                                            label="Ambil Foto"
+                                                        />
                                                         <div className="flex gap-2">
                                                             <Button
                                                                 type="button"
@@ -1290,19 +1194,15 @@ export function TaskDetailModal({ task, open, onClose }: TaskDetailModalProps) {
                                                                             </div>
                                                                         )}
                                                                     <div className="flex items-center justify-between">
-                                                                        <Button
-                                                                            type="button"
-                                                                            variant="ghost"
-                                                                            size="sm"
-                                                                            className="flex h-6 items-center gap-1 text-xs text-muted-foreground"
-                                                                            onClick={() =>
-                                                                                editFileInputRef.current?.click()
-                                                                            }
-                                                                        >
-                                                                            <Camera className="h-3.5 w-3.5" />{' '}
-                                                                            Ambil
-                                                                            Foto
-                                                                        </Button>
+                                                                        <CameraCapture
+                                                                            onCapture={(files) => {
+                                                                                if (validateAttachmentFiles(files)) {
+                                                                                    setEditAttachments((prev) => [...prev, ...files]);
+                                                                                }
+                                                                            }}
+                                                                            currentCount={editAttachments.length}
+                                                                            label="Ambil Foto"
+                                                                        />
                                                                         <div className="flex gap-2">
                                                                             <Button
                                                                                 type="button"
@@ -1455,18 +1355,15 @@ export function TaskDetailModal({ task, open, onClose }: TaskDetailModalProps) {
 
                                             <div className="mt-1 flex items-center justify-between">
                                                 <div className="actions flex">
-                                                    <Button
-                                                        type="button"
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        className="flex h-8 items-center gap-1 text-xs text-muted-foreground"
-                                                        onClick={() =>
-                                                            fileInputRef.current?.click()
-                                                        }
-                                                    >
-                                                        <Camera className="h-3.5 w-3.5" />{' '}
-                                                        Ambil Foto
-                                                    </Button>
+                                                    <CameraCapture
+                                                        onCapture={(files) => {
+                                                            if (validateAttachmentFiles(files)) {
+                                                                setAttachments((prev) => [...prev, ...files]);
+                                                            }
+                                                        }}
+                                                        currentCount={attachments.length}
+                                                        label="Ambil Foto"
+                                                    />
                                                 </div>
                                                 <div className="flex gap-2">
                                                     <Button

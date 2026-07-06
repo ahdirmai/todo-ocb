@@ -1,6 +1,7 @@
 import { router, usePage } from '@inertiajs/react';
 import { Camera, Paperclip, CheckCircle2, Send, Download, Pencil, Trash2, X, Check } from 'lucide-react';
 import { useState, useRef } from 'react';
+import { CameraCapture } from '@/components/camera-capture';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
@@ -334,25 +335,13 @@ export function KpiTaskModal({ task, area, onClose, readOnly = false }: KpiTaskM
                 className="resize-none"
               />
 
-              <div>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  capture="environment"
-                  onChange={handleFileChange}
-                  className="hidden"
-                  id={`file-upload-${task.id}`}
-                />
-                <label htmlFor={`file-upload-${task.id}`}>
-                  <Button type="button" variant="outline" className="w-full" asChild>
-                    <span>
-                      <Camera className="h-4 w-4 mr-2" />
-                      Ambil Foto
-                    </span>
-                  </Button>
-                </label>
-              </div>
+              <CameraCapture
+                onCapture={(files) => {
+                  setAttachments(files);
+                }}
+                currentCount={attachments.length}
+                label="Ambil Foto"
+              />
 
               {attachments.length > 0 && (
                 <div className="flex flex-wrap gap-3">

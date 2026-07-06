@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Textarea } from '@/components/ui/textarea';
+import { CameraCapture } from '@/components/camera-capture';
 import {
     Camera,
     ChevronLeft,
@@ -342,31 +343,15 @@ function TaskDetailModal({ task, onClose }: { task: Task; onClose: () => void })
                                 </div>
                             )}
 
-                            <input
-                                type="file"
-                                accept="image/*"
-                                capture="environment"
-                                className="hidden"
-                                ref={fileInputRef}
-                                onChange={(e) => {
-                                    if (e.target.files?.length) {
-                                        setAttachments([...attachments, ...Array.from(e.target.files)]);
-                                        e.target.value = '';
-                                    }
-                                }}
-                            />
-
                             <div className="flex items-center justify-between">
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-7 text-xs text-muted-foreground gap-1"
-                                    onClick={() => fileInputRef.current?.click()}
+                                <CameraCapture
+                                    onCapture={(files) => {
+                                        setAttachments((prev) => [...prev, ...files]);
+                                    }}
+                                    currentCount={attachments.length}
+                                    label="Ambil Foto"
                                     disabled={sending}
-                                >
-                                    <Camera className="h-3.5 w-3.5" /> Ambil Foto
-                                </Button>
+                                />
                                 <Button
                                     size="sm"
                                     className="h-7 text-xs gap-1"

@@ -5,6 +5,7 @@ import { useState, useRef, useMemo } from 'react';
 import { toast } from 'sonner';
 import * as ColumnActions from '@/actions/App/Http/Controllers/KanbanColumnController';
 import * as TaskActions from '@/actions/App/Http/Controllers/TaskController';
+import { CameraCapture } from '@/components/camera-capture';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -65,7 +66,7 @@ export function KanbanColumn({
     const [newTaskAttachments, setNewTaskAttachments] = useState<File[]>([]);
     const [newTaskStoreId, setNewTaskStoreId] = useState<string>('');
     const [newTaskVisitDate, setNewTaskVisitDate] = useState<string>('');
-    const taskFileInputRef = useRef<HTMLInputElement>(null);
+
 
     // Get all existing store-date combinations from all columns
     const existingStoreVisits = useMemo(() => {
@@ -211,10 +212,6 @@ export function KanbanColumn({
                 setNewTaskAttachments([]);
                 setAddingTask(false);
                 setShowTaskModal(false);
-
-                if (taskFileInputRef.current) {
-                    taskFileInputRef.current.value = '';
-                }
 
                 toast.success('Task berhasil dibuat');
 
@@ -393,45 +390,16 @@ export function KanbanColumn({
                                     )}
 
                                     <div className="flex items-center gap-2">
-                                        <input
-                                            type="file"
-                                            accept="image/*"
-                                            capture="environment"
-                                            className="hidden"
-                                            ref={taskFileInputRef}
-                                            onChange={(e) => {
-                                                if (e.target.files?.length) {
-                                                    setNewTaskAttachments([
-                                                        ...newTaskAttachments,
-                                                        ...Array.from(
-                                                            e.target.files,
-                                                        ),
-                                                    ]);
-                                                }
+                                        <CameraCapture
+                                            onCapture={(files) => {
+                                                setNewTaskAttachments((prev) => [
+                                                    ...prev,
+                                                    ...files,
+                                                ]);
                                             }}
+                                            currentCount={newTaskAttachments.length}
+                                            label="Ambil Foto"
                                         />
-                                        <button
-                                            title="Ambil Foto"
-                                            onClick={(e) => {
-                                                e.preventDefault();
-                                                taskFileInputRef.current?.click();
-                                            }}
-                                            className="flex h-8 w-8 items-center justify-center rounded-md border border-sidebar-border text-slate-500 transition-colors hover:bg-slate-50 dark:hover:bg-zinc-800"
-                                        >
-                                            <svg
-                                                xmlns="http://www.w3.org/2000/svg"
-                                                width="16"
-                                                height="16"
-                                                viewBox="0 0 24 24"
-                                                fill="none"
-                                                stroke="currentColor"
-                                                strokeWidth="2"
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                            >
-                                                <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48" />
-                                            </svg>
-                                        </button>
                                         <button
                                             onClick={handleAddTask}
                                             disabled={savingTask}
@@ -541,32 +509,16 @@ export function KanbanColumn({
                                 <label className="text-sm font-medium">
                                     Lampiran (Opsional)
                                 </label>
-                                <input
-                                    type="file"
-                                    accept="image/*"
-                                    capture="environment"
-                                    className="hidden"
-                                    ref={taskFileInputRef}
-                                    onChange={(e) => {
-                                        if (e.target.files?.length) {
-                                            setNewTaskAttachments([
-                                                ...newTaskAttachments,
-                                                ...Array.from(e.target.files),
-                                            ]);
-                                        }
+                                <CameraCapture
+                                    onCapture={(files) => {
+                                        setNewTaskAttachments((prev) => [
+                                            ...prev,
+                                            ...files,
+                                        ]);
                                     }}
+                                    currentCount={newTaskAttachments.length}
+                                    label="Ambil Foto"
                                 />
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    onClick={() =>
-                                        taskFileInputRef.current?.click()
-                                    }
-                                    className="w-full"
-                                >
-                                    <Camera className="mr-2 h-4 w-4" />
-                                    Ambil Foto
-                                </Button>
 
                                 {newTaskAttachments.length > 0 && (
                                     <div className="mt-2 flex flex-wrap gap-2">

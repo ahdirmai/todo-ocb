@@ -5,14 +5,14 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Changed
-- **Camera Capture for Comments & Tasks**: All file upload inputs for comments and tasks now open the camera directly on mobile devices
+- **Camera Capture for Comments & Tasks**: Replaced all file upload inputs with a proper camera capture component using MediaDevices API
+  - New reusable `CameraCapture` component (`resources/js/components/camera-capture.tsx`) — uses `navigator.mediaDevices.getUserMedia` for live camera preview
+  - Opens a dialog with camera preview, capture button, retake, and multiple photo support
+  - Works on **both desktop and mobile** browsers (previously `capture="environment"` only worked on mobile)
+  - Error handling for permission denied, camera not found, and generic errors
   - 4 components updated: `task-detail-modal.tsx`, `kanban-column.tsx`, `kpi-task-modal.tsx`, `ceo-spv.tsx`
-  - File inputs changed from `type="file"` to `accept="image/*" capture="environment"`
-  - Mobile: opens rear camera to take photos directly
-  - Desktop: falls back to image file picker (no camera)
-  - Button labels updated: "Lampirkan File" / "Tambah Lampiran" → "Ambil Foto"
-  - Icons changed from Paperclip to Camera (lucide-react)
-  - Captions changed from "per file" to "per foto" for consistency
+  - All 7 file inputs replaced with `CameraCapture` components
+  - Removed unused `useRef` declarations and related cleanup code
 
 ### Added
 - **In-App Feedback System**: Two-tier feedback collection — quick feedback + survey per cycle
