@@ -112,6 +112,7 @@ interface Props {
   hasTasksForDate: boolean;
   canGenerateForDate: boolean;
   canGenerateTasks: boolean;
+  canSubmitReport: boolean;
   isManager: boolean;
 }
 
@@ -126,6 +127,7 @@ export default function OperationalKpiDashboard({
   hasTasksForDate,
   canGenerateForDate,
   canGenerateTasks,
+  canSubmitReport,
   isManager,
 }: Props) {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
@@ -199,7 +201,7 @@ export default function OperationalKpiDashboard({
                 Generate Task
               </Button>
             )}
-            {canGenerateTasks && (
+            {canSubmitReport && (
               <Link href="/operational/kpi/report/create">
                 <Button className="w-full sm:w-auto">
                   <FileText className="mr-2 h-4 w-4" />

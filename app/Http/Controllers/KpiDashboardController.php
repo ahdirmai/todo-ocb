@@ -271,6 +271,10 @@ class KpiDashboardController extends Controller
         // generate their own daily tasks from KpiTaskDefinition templates.
         $canGenerateTasks = $isManager || $isGudang || ((bool) $user->jobPosition?->has_kpi);
 
+        // Only real area members submit reports. Admin/superadmin viewers see
+        // the dashboard read-only (no submit button) — they monitor, not submit.
+        $canSubmitReport = ! $isAdmin && (bool) $user->jobPosition?->hasReportTemplate();
+
         // SPV users need their assigned stores for the store-selection modal
         $spvStores = [];
         if ($area === 'spv') {
@@ -296,6 +300,7 @@ class KpiDashboardController extends Controller
             'hasTasksForDate' => $hasTasksForDate,
             'canGenerateForDate' => $canGenerateForDate,
             'canGenerateTasks' => $canGenerateTasks,
+            'canSubmitReport' => $canSubmitReport,
             'isManager' => $isManager,
             'spvStores' => $spvStores,
         ]);

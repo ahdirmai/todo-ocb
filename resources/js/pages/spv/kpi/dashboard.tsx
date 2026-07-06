@@ -100,6 +100,7 @@ interface Props {
   hasTasksForDate: boolean;
   canGenerateForDate: boolean;
   canGenerateTasks: boolean;
+  canSubmitReport: boolean;
   spvStores?: { id: number; name: string; branch_code: string }[];
 }
 
@@ -113,6 +114,7 @@ export default function SpvKpiDashboard({
   hasTasksForDate,
   canGenerateForDate,
   canGenerateTasks,
+  canSubmitReport,
   spvStores,
 }: Props) {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
@@ -201,12 +203,14 @@ export default function SpvKpiDashboard({
                 Generate Task
               </Button>
             )}
-            <Button asChild className="w-full sm:w-auto">
-              <Link href="/spv/kpi/report/create">
-                <FileText className="mr-2 h-4 w-4" />
-                Kirim Laporan Harian
-              </Link>
-            </Button>
+            {canSubmitReport && (
+              <Button asChild className="w-full sm:w-auto">
+                <Link href="/spv/kpi/report/create">
+                  <FileText className="mr-2 h-4 w-4" />
+                  Kirim Laporan Harian
+                </Link>
+              </Button>
+            )}
           </div>
         </div>
 

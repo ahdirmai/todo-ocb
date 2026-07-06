@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\KpiDailyReport;
+use App\Models\Position;
 use App\Models\User;
 use App\Services\KpiReportingService;
 use App\Support\Kpi\ValidAreasResolver;
@@ -228,17 +229,33 @@ class KpiReportController extends Controller
             return redirect()->to($this->kpiRoute($area, 'dashboard'));
         }
 
-        $reports = KpiDailyReport::where('user_id', $user->id)
+        $reportsQuery = KpiDailyReport::query()
             ->with('user:id,name')
             ->with('user.jobPosition:id,name')
-            ->latest('report_date')
-            ->paginate(20);
+            ->latest('report_date');
 
-        $reportFields = $this->reportingService->getReportFieldsTemplate($positionName);
+        if ($isAdmin) {
+            // CEO/superadmin monitor the whole area — reports from every member
+            // whose position belongs to this area, read-only.
+            $reportsQuery->whereHas('user.jobPosition', fn ($q) => $q->where('area_slug', $area));
+
+            // Area may span multiple positions; use the first one that actually
+            // has a report template so the list can label field values.
+            $templatePosition = Position::where('area_slug', $area)
+                ->whereHas('reportFields')
+                ->orderBy('name')
+                ->first();
+            $reportFields = $this->reportingService->getReportFieldsTemplate($templatePosition?->name);
+        } else {
+            $reportsQuery->where('user_id', $user->id);
+            $reportFields = $this->reportingService->getReportFieldsTemplate($positionName);
+        }
+
+        $reports = $reportsQuery->paginate(20);
 
         return Inertia::render("{$area}/kpi/reports", [
             'reports' => $reports,
-            'canCreate' => true,
+            'canCreate' => ! $isAdmin && $this->canSubmitReports($user),
             'reportFields' => $reportFields,
         ]);
     }

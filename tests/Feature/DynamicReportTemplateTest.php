@@ -271,6 +271,52 @@ test('report index passes reportFields to frontend', function (): void {
         );
 });
 
+test('admin sees all area member reports, member sees only own', function (): void {
+    $userA = makeReportUser('Manager Gudang');
+    seedTemplateFields('Manager Gudang');
+    $userB = makeReportUser('Manager Gudang');
+
+    // Persistent test DB — clear gudang-area reports so the admin's area-wide
+    // count is deterministic (only the two we create below).
+    KpiDailyReport::whereHas('user.jobPosition', fn ($q) => $q->where('area_slug', 'gudang'))->delete();
+
+    $today = now()->toDateString();
+    KpiDailyReport::create([
+        'user_id' => $userA->id,
+        'report_date' => $today,
+        'fields' => ['recap' => 'A', 'action_plan' => 'A'],
+        'submitted_at' => now(),
+    ]);
+    KpiDailyReport::create([
+        'user_id' => $userB->id,
+        'report_date' => $today,
+        'fields' => ['recap' => 'B', 'action_plan' => 'B'],
+        'submitted_at' => now(),
+    ]);
+
+    // Member only sees their own report and can create.
+    actingAs($userA)
+        ->get('/gudang/kpi/reports')
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('canCreate', true)
+            ->where('reports.total', 1)
+        );
+
+    // Admin sees every gudang-area report, read-only (canCreate false).
+    $adminRole = Role::firstOrCreate(['name' => 'superadmin']);
+    $admin = User::factory()->create(['email_verified_at' => now()]);
+    $admin->assignRole($adminRole);
+
+    actingAs($admin)
+        ->get('/gudang/kpi/reports')
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('canCreate', false)
+            ->where('reports.total', 2)
+        );
+});
+
 test('admin can view reports with reportFields', function (): void {
     $adminRole = Role::firstOrCreate(['name' => 'superadmin']);
     $admin = User::factory()->create(['email_verified_at' => now()]);
