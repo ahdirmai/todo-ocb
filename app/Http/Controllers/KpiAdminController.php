@@ -38,6 +38,8 @@ class KpiAdminController extends Controller
             'sequence_order' => 'required|integer|min:1',
             'can_upload_proof' => 'boolean',
             'auto_done_on_report' => 'boolean',
+            'require_video_upload' => 'boolean',
+            'minimum_photos' => 'integer|min:0|max:20',
         ]);
 
         if (($validated['auto_done_on_report'] ?? false)
@@ -65,6 +67,8 @@ class KpiAdminController extends Controller
             'is_active' => 'boolean',
             'can_upload_proof' => 'boolean',
             'auto_done_on_report' => 'boolean',
+            'require_video_upload' => 'boolean',
+            'minimum_photos' => 'integer|min:0|max:20',
         ]);
 
         if (($validated['auto_done_on_report'] ?? false)

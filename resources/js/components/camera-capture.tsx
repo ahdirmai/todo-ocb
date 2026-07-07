@@ -1,4 +1,4 @@
-import { Camera, ImageIcon, Loader2, RotateCcw, Check, X, SwitchCamera } from 'lucide-react';
+import { Camera, Loader2, RotateCcw, Check, X, SwitchCamera, Video, Square, Circle } from 'lucide-react';
 import { useRef, useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -9,6 +9,7 @@ import {
 } from '@/components/ui/dialog';
 
 const CAMERA_TIMEOUT_MS = 10_000;
+const MAX_VIDEO_SECONDS = 60;
 
 interface CapturedPhoto {
     blob: Blob;
@@ -22,6 +23,8 @@ interface CameraCaptureProps {
     maxPhotos?: number;
     currentCount?: number;
     label?: string;
+    /** Enable a Foto/Video mode toggle with camera recording (MediaRecorder). */
+    allowVideo?: boolean;
 }
 
 function isSecureContext(): boolean {
@@ -38,6 +41,7 @@ export function CameraCapture({
     maxPhotos = 5,
     currentCount = 0,
     label,
+    allowVideo = false,
 }: CameraCaptureProps) {
     const [open, setOpen] = useState(false);
     const [stream, setStream] = useState<MediaStream | null>(null);
@@ -53,9 +57,20 @@ export function CameraCapture({
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const fallbackInputRef = useRef<HTMLInputElement>(null);
 
+    // Video recording state (only used when allowVideo)
+    const [mode, setMode] = useState<'photo' | 'video'>('photo');
+    const modeRef = useRef<'photo' | 'video'>('photo');
+    const [recording, setRecording] = useState(false);
+    const [elapsed, setElapsed] = useState(0);
+    const [recordedVideo, setRecordedVideo] = useState<{ url: string; file: File } | null>(null);
+    const recorderRef = useRef<MediaRecorder | null>(null);
+    const chunksRef = useRef<Blob[]>([]);
+    const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
     const canCapture = currentCount < maxPhotos;
     const hasCamera = isSecureContext() &&
         typeof navigator.mediaDevices?.getUserMedia === 'function';
+    const hasRecorder = typeof window !== 'undefined' && typeof window.MediaRecorder === 'function';
 
     const startCamera = useCallback(async () => {
         // Abaikan jika sedang ada getUserMedia berjalan agar tidak menumpuk
@@ -76,7 +91,7 @@ export function CameraCapture({
             const mediaStream = await Promise.race([
                 navigator.mediaDevices!.getUserMedia({
                     video: { facingMode: facingModeRef.current, width: { ideal: 1280 }, height: { ideal: 720 } },
-                    audio: false,
+                    audio: modeRef.current === 'video',
                 }),
                 new Promise<never>((_, reject) =>
                     setTimeout(() => reject(new Error('TIMEOUT')), CAMERA_TIMEOUT_MS),
@@ -152,20 +167,121 @@ export function CameraCapture({
         setOpen(false);
     }, [captured, onCapture]);
 
+    const stopTimer = useCallback(() => {
+        if (timerRef.current) {
+            clearInterval(timerRef.current);
+            timerRef.current = null;
+        }
+    }, []);
+
+    const stopRecording = useCallback(() => {
+        if (recorderRef.current && recorderRef.current.state !== 'inactive') {
+            recorderRef.current.stop();
+        }
+        stopTimer();
+        setRecording(false);
+    }, [stopTimer]);
+
+    const startRecording = useCallback(() => {
+        const activeStream = streamRef.current;
+        if (!activeStream || !hasRecorder) return;
+
+        chunksRef.current = [];
+        // Prefer mp4 when supported (iOS/Safari); fall back to webm.
+        const mimeType = MediaRecorder.isTypeSupported('video/mp4')
+            ? 'video/mp4'
+            : MediaRecorder.isTypeSupported('video/webm')
+              ? 'video/webm'
+              : '';
+
+        let recorder: MediaRecorder;
+        try {
+            recorder = mimeType ? new MediaRecorder(activeStream, { mimeType }) : new MediaRecorder(activeStream);
+        } catch {
+            setError('Perangkat tidak mendukung rekam video. Gunakan Upload File.');
+            return;
+        }
+
+        recorder.ondataavailable = (e) => {
+            if (e.data.size > 0) chunksRef.current.push(e.data);
+        };
+        recorder.onstop = () => {
+            const type = recorder.mimeType || mimeType || 'video/webm';
+            const blob = new Blob(chunksRef.current, { type });
+            const ext = type.includes('mp4') ? 'mp4' : 'webm';
+            const file = new File([blob], `video_${Date.now()}.${ext}`, { type });
+            setRecordedVideo({ url: URL.createObjectURL(blob), file });
+        };
+
+        recorderRef.current = recorder;
+        recorder.start();
+        setRecording(true);
+        setElapsed(0);
+        timerRef.current = setInterval(() => {
+            setElapsed((prev) => {
+                const next = prev + 1;
+                if (next >= MAX_VIDEO_SECONDS) {
+                    stopRecording();
+                }
+
+                return next;
+            });
+        }, 1000);
+    }, [hasRecorder, stopRecording]);
+
+    const switchMode = useCallback((next: 'photo' | 'video') => {
+        if (next === modeRef.current) return;
+        stopRecording();
+        setRecordedVideo((prev) => {
+            if (prev) URL.revokeObjectURL(prev.url);
+            return null;
+        });
+        setCaptured([]);
+        modeRef.current = next;
+        setMode(next);
+        // Restart stream so the audio track matches the new mode.
+        startCamera();
+    }, [startCamera, stopRecording]);
+
+    const confirmVideo = useCallback(() => {
+        if (!recordedVideo) return;
+        onCapture([recordedVideo.file]);
+        URL.revokeObjectURL(recordedVideo.url);
+        setRecordedVideo(null);
+        setOpen(false);
+    }, [recordedVideo, onCapture]);
+
+    const retakeVideo = useCallback(() => {
+        setRecordedVideo((prev) => {
+            if (prev) URL.revokeObjectURL(prev.url);
+            return null;
+        });
+        setElapsed(0);
+    }, []);
+
     const handleOpen = () => {
         setCaptured([]);
         setError(null);
         facingModeRef.current = 'environment';
         setFacingMode('environment');
+        modeRef.current = 'photo';
+        setMode('photo');
+        setRecordedVideo(null);
+        setElapsed(0);
         setOpen(true);
     };
 
     const handleClose = useCallback(() => {
+        stopRecording();
         stopCamera();
         setCaptured([]);
         setError(null);
+        setRecordedVideo((prev) => {
+            if (prev) URL.revokeObjectURL(prev.url);
+            return null;
+        });
         setOpen(false);
-    }, [stopCamera]);
+    }, [stopCamera, stopRecording]);
 
     const handleFallbackFile = useCallback(() => {
         stopCamera();
@@ -210,7 +326,7 @@ export function CameraCapture({
             <canvas ref={canvasRef} className="hidden" />
 
             {/* Hidden fallback file input */}
-            <input type="file" accept="image/*" className="hidden" ref={fallbackInputRef} onChange={handleFileChange} />
+            <input type="file" accept={mode === 'video' ? 'video/*' : 'image/*'} className="hidden" ref={fallbackInputRef} onChange={handleFileChange} />
 
             <button type="button" onClick={handleOpen} disabled={disabled || !canCapture}
                 className="inline-flex h-7 items-center gap-1 rounded-md px-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground disabled:cursor-not-allowed disabled:opacity-50">
@@ -222,12 +338,25 @@ export function CameraCapture({
                 <DialogContent className="max-w-full sm:max-w-lg">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2 text-base">
-                            <Camera className="h-4 w-4" />
-                            Ambil Foto
+                            {mode === 'video' ? <Video className="h-4 w-4" /> : <Camera className="h-4 w-4" />}
+                            {mode === 'video' ? 'Rekam Video' : 'Ambil Foto'}
                         </DialogTitle>
                     </DialogHeader>
 
                     <div className="flex flex-col gap-4">
+                        {/* Mode toggle Foto/Video */}
+                        {allowVideo && (
+                            <div className="flex items-center justify-center gap-1 rounded-lg bg-muted p-1">
+                                <button type="button" onClick={() => switchMode('photo')} disabled={recording}
+                                    className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50 ${mode === 'photo' ? 'bg-background shadow' : 'text-muted-foreground'}`}>
+                                    <Camera className="h-3.5 w-3.5" /> Foto
+                                </button>
+                                <button type="button" onClick={() => switchMode('video')} disabled={recording}
+                                    className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50 ${mode === 'video' ? 'bg-background shadow' : 'text-muted-foreground'}`}>
+                                    <Video className="h-3.5 w-3.5" /> Video
+                                </button>
+                            </div>
+                        )}
                         {/* Preview area */}
                         <div className="relative overflow-hidden rounded-xl bg-black">
                             {/* Video selalu ter-render biar stream tetap aktif */}
@@ -272,6 +401,21 @@ export function CameraCapture({
                                     className="absolute inset-0 h-full w-full object-contain"
                                     style={{ maxHeight: 280 }} />
                             )}
+
+                            {/* Indikator sedang merekam */}
+                            {recording && (
+                                <div className="absolute left-3 top-3 flex items-center gap-1.5 rounded-full bg-red-600/90 px-2.5 py-1 text-xs font-medium text-white">
+                                    <span className="h-2 w-2 animate-pulse rounded-full bg-white" />
+                                    {String(Math.floor(elapsed / 60)).padStart(2, '0')}:{String(elapsed % 60).padStart(2, '0')}
+                                </div>
+                            )}
+
+                            {/* Hasil rekaman video di atas preview */}
+                            {recordedVideo && (
+                                <video src={recordedVideo.url} controls playsInline
+                                    className="absolute inset-0 h-full w-full bg-black object-contain"
+                                    style={{ maxHeight: 280 }} />
+                            )}
                         </div>
 
                         {/* Thumbnails */}
@@ -289,8 +433,8 @@ export function CameraCapture({
                             </div>
                         )}
 
-                        {/* Controls */}
-                        {!error && (
+                        {/* Photo controls */}
+                        {!error && mode === 'photo' && (
                             <div className="flex items-center justify-center gap-3">
                                 {captured.length === 0 ? (
                                     <button type="button" onClick={capturePhoto} disabled={loading || !stream}
@@ -318,6 +462,42 @@ export function CameraCapture({
                                             Gunakan ({captured.length})
                                         </button>
                                     </>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Video controls */}
+                        {!error && mode === 'video' && (
+                            <div className="flex items-center justify-center gap-3">
+                                {!hasRecorder ? (
+                                    <Button variant="outline" size="sm" onClick={handleFallbackFile}>
+                                        Upload Video
+                                    </Button>
+                                ) : recordedVideo ? (
+                                    <>
+                                        <button type="button" onClick={retakeVideo}
+                                            className="inline-flex items-center gap-1.5 rounded-lg border border-sidebar-border bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-slate-200 dark:hover:bg-zinc-700">
+                                            <RotateCcw className="h-3.5 w-3.5" />
+                                            Rekam Ulang
+                                        </button>
+                                        <button type="button" onClick={confirmVideo}
+                                            className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90">
+                                            <Check className="h-3.5 w-3.5" />
+                                            Gunakan Video
+                                        </button>
+                                    </>
+                                ) : recording ? (
+                                    <button type="button" onClick={stopRecording}
+                                        className="flex h-14 w-14 items-center justify-center rounded-full bg-white p-0 shadow-lg transition-transform hover:scale-105"
+                                        title="Stop rekam">
+                                        <Square className="h-7 w-7 fill-red-600 text-red-600" />
+                                    </button>
+                                ) : (
+                                    <button type="button" onClick={startRecording} disabled={loading || !stream}
+                                        className="flex h-14 w-14 items-center justify-center rounded-full bg-white p-0 shadow-lg transition-transform hover:scale-105 disabled:opacity-50"
+                                        title="Mulai rekam">
+                                        <Circle className="h-9 w-9 fill-red-600 text-red-600" />
+                                    </button>
                                 )}
                             </div>
                         )}

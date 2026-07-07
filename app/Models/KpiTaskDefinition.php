@@ -26,6 +26,8 @@ class KpiTaskDefinition extends Model
         'is_active',
         'can_upload_proof',
         'auto_done_on_report',
+        'require_video_upload',
+        'minimum_photos',
     ];
 
     protected $casts = [
@@ -33,6 +35,8 @@ class KpiTaskDefinition extends Model
         'is_active' => 'boolean',
         'can_upload_proof' => 'boolean',
         'auto_done_on_report' => 'boolean',
+        'require_video_upload' => 'boolean',
+        'minimum_photos' => 'integer',
     ];
 
     public function position(): BelongsTo

@@ -32,8 +32,37 @@ function definitionPayload(Position $position, array $overrides = []): array
         'sequence_order' => 1,
         'can_upload_proof' => false,
         'auto_done_on_report' => false,
+        'require_video_upload' => false,
+        'minimum_photos' => 1,
     ], $overrides);
 }
+
+test('definition stores minimum_photos', function (): void {
+    $admin = makeAdmin();
+    $position = Position::factory()->create();
+
+    actingAs($admin)
+        ->post(route('kpi.admin.definitions.store'), definitionPayload($position, [
+            'minimum_photos' => 3,
+        ]))
+        ->assertSessionHasNoErrors();
+
+    expect((int) KpiTaskDefinition::where('position_id', $position->id)->value('minimum_photos'))->toBe(3);
+});
+
+test('definition stores require_video_upload flag', function (): void {
+    $admin = makeAdmin();
+    $position = Position::factory()->create();
+
+    actingAs($admin)
+        ->post(route('kpi.admin.definitions.store'), definitionPayload($position, [
+            'require_video_upload' => true,
+        ]))
+        ->assertSessionHasNoErrors();
+
+    expect(KpiTaskDefinition::where('position_id', $position->id)
+        ->where('require_video_upload', true)->exists())->toBeTrue();
+});
 
 test('definitions page lists all positions', function (): void {
     $admin = User::factory()->create(['email_verified_at' => now()]);

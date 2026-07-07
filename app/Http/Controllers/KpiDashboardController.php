@@ -142,6 +142,8 @@ class KpiDashboardController extends Controller
                 'task_name' => $task->kpiDefinition?->task_name ?? $task->title,
                 'weight' => $task->kpiDefinition?->weight,
                 'can_upload_proof' => (bool) $task->kpiDefinition?->can_upload_proof,
+                'require_video_upload' => (bool) $task->kpiDefinition?->require_video_upload,
+                'minimum_photos' => (int) ($task->kpiDefinition?->minimum_photos ?? 0),
                 'description' => $task->description,
                 'is_done' => $task->is_verified,
                 'is_verified' => $task->is_verified,
@@ -194,6 +196,8 @@ class KpiDashboardController extends Controller
                         'task_name' => $task->kpiDefinition?->task_name ?? $task->title,
                         'weight' => $task->kpiDefinition?->weight,
                         'can_upload_proof' => (bool) $task->kpiDefinition?->can_upload_proof,
+                        'require_video_upload' => (bool) $task->kpiDefinition?->require_video_upload,
+                        'minimum_photos' => (int) ($task->kpiDefinition?->minimum_photos ?? 0),
                         'description' => $task->description,
                         'visit_date' => $task->getRawOriginal('visit_date'),
                         'due_date' => $rawDueDate ? (is_string($rawDueDate) ? substr($rawDueDate, 0, 10) : $rawDueDate) : null,
@@ -404,6 +408,8 @@ class KpiDashboardController extends Controller
                     'task_name' => $task->kpiDefinition?->task_name ?? $task->title,
                     'weight' => $task->kpiDefinition?->weight,
                     'can_upload_proof' => (bool) $task->kpiDefinition?->can_upload_proof,
+                    'require_video_upload' => (bool) $task->kpiDefinition?->require_video_upload,
+                    'minimum_photos' => (int) ($task->kpiDefinition?->minimum_photos ?? 0),
                     'description' => $task->description,
                     'is_done' => $task->is_verified,
                     'is_verified' => $task->is_verified,
@@ -695,6 +701,25 @@ class KpiDashboardController extends Controller
 
         if (! $isCreator && ! $isAssigned) {
             abort(403, 'Anda tidak berhak memverifikasi task ini');
+        }
+
+        // Tasks flagged require_video_upload cannot be verified without a video
+        // attachment among their comment media.
+        if ($task->kpiDefinition?->require_video_upload
+            && ! $this->scoringService->hasVideoEvidence($task)) {
+            return back()->withErrors([
+                'error' => 'Task ini wajib melampirkan video bukti sebelum diverifikasi.',
+            ]);
+        }
+
+        // Tasks with a minimum_photos requirement need that many photos within a
+        // single comment before they can be verified.
+        $minimumPhotos = (int) ($task->kpiDefinition?->minimum_photos ?? 0);
+        if ($minimumPhotos > 0
+            && $this->scoringService->maxPhotosInSingleComment($task) < $minimumPhotos) {
+            return back()->withErrors([
+                'error' => "Task ini wajib melampirkan minimal {$minimumPhotos} foto dalam satu komentar bukti.",
+            ]);
         }
 
         $evidenceStatus = $this->scoringService->verifyTaskEvidence($task);

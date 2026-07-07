@@ -77,6 +77,24 @@ class KpiScoringService
                 $weightMultiplier = 1.0;
             } else {
                 $evidenceStatus = $this->verifyTaskEvidence($task);
+
+                // Tasks flagged require_video_upload cannot reach full credit
+                // (nor auto-verify) without a video attachment — cap at partial.
+                if ($evidenceStatus === 'full'
+                    && $definition->require_video_upload
+                    && ! $this->hasVideoEvidence($task)) {
+                    $evidenceStatus = 'partial';
+                }
+
+                // Tasks with a minimum_photos requirement cannot reach full credit
+                // until one comment holds that many photos — cap at partial.
+                $minimumPhotos = (int) ($definition->minimum_photos ?? 0);
+                if ($evidenceStatus === 'full'
+                    && $minimumPhotos > 0
+                    && $this->maxPhotosInSingleComment($task) < $minimumPhotos) {
+                    $evidenceStatus = 'partial';
+                }
+
                 $weightMultiplier = 0;
 
                 if ($evidenceStatus === 'full') {
@@ -255,6 +273,30 @@ class KpiScoringService
         }
 
         return 'none'; // No comment = 0% weight
+    }
+
+    /**
+     * True when the task has at least one video attachment among its comment
+     * media. Used to enforce the require_video_upload definition flag.
+     */
+    public function hasVideoEvidence(Task $task): bool
+    {
+        return $task->comments()
+            ->whereHas('media', fn ($q) => $q->where('mime_type', 'like', 'video/%'))
+            ->exists();
+    }
+
+    /**
+     * The highest number of photo (image) attachments contained in any single
+     * comment on the task. Used to enforce the minimum_photos definition flag,
+     * which requires N photos within one comment.
+     */
+    public function maxPhotosInSingleComment(Task $task): int
+    {
+        return (int) $task->comments()
+            ->withCount(['media as photo_count' => fn ($q) => $q->where('mime_type', 'like', 'image/%')])
+            ->get()
+            ->max('photo_count') ?? 0;
     }
 
     public function determineGrade(float $score): string

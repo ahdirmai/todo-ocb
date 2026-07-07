@@ -26,6 +26,8 @@ interface TaskDefinition {
   is_active: boolean;
   can_upload_proof: boolean;
   auto_done_on_report: boolean;
+  require_video_upload: boolean;
+  minimum_photos: number;
 }
 
 interface Position {
@@ -84,6 +86,8 @@ export default function KpiAdminDefinitions({ positions }: Props) {
     is_active: true,
     can_upload_proof: false,
     auto_done_on_report: false,
+    require_video_upload: false,
+    minimum_photos: 1,
   });
 
   const openCreate = () => {
@@ -102,6 +106,8 @@ export default function KpiAdminDefinitions({ positions }: Props) {
       is_active: true,
       can_upload_proof: false,
       auto_done_on_report: false,
+      require_video_upload: false,
+      minimum_photos: 1,
     });
     setOpen(true);
   };
@@ -124,6 +130,8 @@ export default function KpiAdminDefinitions({ positions }: Props) {
       is_active: task.is_active,
       can_upload_proof: task.can_upload_proof,
       auto_done_on_report: task.auto_done_on_report,
+      require_video_upload: task.require_video_upload,
+      minimum_photos: task.minimum_photos ?? 1,
     });
     setOpen(true);
   };
@@ -440,6 +448,42 @@ export default function KpiAdminDefinitions({ positions }: Props) {
             {errors.auto_done_on_report && (
               <p className="text-xs text-red-600">{errors.auto_done_on_report}</p>
             )}
+
+            <div className="flex items-center gap-3 rounded-lg border border-input bg-background px-4 py-3">
+              <input
+                id="require_video_upload"
+                type="checkbox"
+                checked={data.require_video_upload}
+                onChange={(e) => setData('require_video_upload', e.target.checked)}
+                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+              />
+              <Label htmlFor="require_video_upload" className="mb-0 cursor-pointer text-sm font-normal">
+                <span className="font-medium">Wajib Upload Video</span>
+                <p className="text-xs text-muted-foreground">
+                  Task hanya bisa diverifikasi setelah ada video bukti (rekam kamera atau upload galeri)
+                </p>
+              </Label>
+            </div>
+
+            <div>
+              <Label htmlFor="minimum_photos" className="mb-1">
+                Minimum Foto
+              </Label>
+              <Input
+                id="minimum_photos"
+                type="number"
+                min={0}
+                max={20}
+                value={data.minimum_photos}
+                onChange={(e) => setData('minimum_photos', Number(e.target.value))}
+              />
+              <p className="mt-1 text-xs text-muted-foreground">
+                Jumlah foto minimal dalam satu komentar bukti sebelum task bisa diverifikasi (0 = tidak wajib).
+              </p>
+              {errors.minimum_photos && (
+                <p className="mt-1 text-xs text-red-600">{errors.minimum_photos}</p>
+              )}
+            </div>
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div>

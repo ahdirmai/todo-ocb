@@ -1,4 +1,4 @@
-import { ImageIcon, Paperclip, X } from 'lucide-react';
+import { ImageIcon, Paperclip, Video, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 function formatFileSize(bytes: number): string {
@@ -17,6 +17,10 @@ function isImageFile(file: File): boolean {
     return file.type.startsWith('image/');
 }
 
+function isVideoFile(file: File): boolean {
+    return file.type.startsWith('video/');
+}
+
 export function PendingFilePreview({
     file,
     onRemove,
@@ -29,7 +33,7 @@ export function PendingFilePreview({
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
     useEffect(() => {
-        if (!isImageFile(file)) {
+        if (!isImageFile(file) && !isVideoFile(file)) {
             setPreviewUrl(null);
 
             return;
@@ -40,6 +44,36 @@ export function PendingFilePreview({
 
         return () => URL.revokeObjectURL(objectUrl);
     }, [file]);
+
+    if (previewUrl && isVideoFile(file)) {
+        return (
+            <div className="w-[180px] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900/70">
+                <div className="relative h-28 w-full bg-black">
+                    <video src={previewUrl} controls playsInline className="h-full w-full object-contain" />
+                    <button
+                        type="button"
+                        onClick={onRemove}
+                        className="absolute top-2 right-2 rounded-full bg-black/60 p-1 text-white transition hover:bg-black/75"
+                        title="Hapus file"
+                    >
+                        <X className="h-3.5 w-3.5" />
+                    </button>
+                </div>
+                <div className="flex items-start gap-2 p-3">
+                    <Video className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                    <div className="min-w-0 flex-1">
+                        <div className="truncate text-xs font-medium text-slate-800 dark:text-slate-200">
+                            {file.name}
+                            {label ? ` (${label})` : ''}
+                        </div>
+                        <div className="text-[11px] text-slate-400">
+                            {formatFileSize(file.size)}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     if (previewUrl) {
         return (

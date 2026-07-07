@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- **`require_video_upload` Flag on KPI Task Definitions**: Tasks flagged here cannot be verified/submitted until a video attachment exists among their comment media
+  - New migration: `add_require_video_upload_to_kpi_task_definitions_table` — boolean, default `false`
+  - `KpiTaskDefinition` model — `$fillable` + `$casts`; factory defaults to `false`
+  - `KpiAdminController` — validated in store/update; `definitions.tsx` checkbox "Wajib Upload Video"
+  - `KpiDashboardController` serializes the flag to the KPI task modal (3 points)
+  - Enforcement: `KpiScoringService::hasVideoEvidence()` (`mime_type like video/%`); `verifyTask()` blocks verification without a video; `calculateDailyScore()` caps a video-required task at partial credit (no auto-verify) until a video is attached
+  - `CameraCapture` — opt-in `allowVideo` prop adds a Foto/Video toggle with `MediaRecorder` recording (60s cap, front/rear, preview/retake) and an `accept="video/*"` gallery fallback for devices without MediaRecorder (iOS)
+  - `kpi-task-modal.tsx` — passes `allowVideo`, widens gallery accept to images+video, renders a requirement banner and video previews; `PendingFilePreview` shows a video thumbnail
+  - Tests: `KpiVideoRequirementTest.php` (verify blocked without video, succeeds with video, score gate)
+- **`minimum_photos` on KPI Task Definitions**: Tasks require at least N photos **within a single comment** before they can be verified/submitted (default `1`)
+  - New migration: `add_minimum_photos_to_kpi_task_definitions_table` — `unsignedTinyInteger`, default `1`
+  - Model `$fillable` + integer cast; factory default `1`; admin validation `integer|min:0|max:20`; `definitions.tsx` "Minimum Foto" number input
+  - Serialized to the KPI task modal (3 points)
+  - Enforcement: `KpiScoringService::maxPhotosInSingleComment()` (highest image count in any one comment); `verifyTask()` blocks below the minimum; `calculateDailyScore()` caps at partial credit until met
+  - `kpi-task-modal.tsx` — requirement banner, pending-photo counter, camera `maxPhotos` raised to cover the minimum
+  - Tests: `KpiMinimumPhotosTest.php` (below minimum blocked, single comment satisfies, photos split across comments do NOT satisfy, score gate)
+- **Submit Gate for Evidence Requirements**: The KPI task modal's "Kirim Bukti & Selesaikan Task" button is disabled (and the handler rejects) until the task's `require_video_upload` and `minimum_photos` requirements are satisfied by pending uploads or existing comment media
 - **`auto_done_on_report` Flag on KPI Task Definitions**: Tasks flagged here are auto-completed (verified) when the user submits their daily report — for tasks that have no independent evidence step and are "done" by the act of reporting
   - New migration: `add_auto_done_on_report_to_kpi_task_definitions_table` — boolean, default `false`, after `can_upload_proof`
   - `KpiTaskDefinition` model — added to `$fillable` + `$casts`; factory defaults to `false`

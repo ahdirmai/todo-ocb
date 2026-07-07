@@ -52,6 +52,8 @@ Laravel-based task management system with advanced KPI tracking, position-based 
 - **Weight Validation**: Total weight per position must equal 100%
 - **Upload Proof Toggle**: `can_upload_proof` checkbox controls whether task modal shows gallery/file upload (camera always available)
 - **Auto-Done on Report**: `auto_done_on_report` checkbox marks a task as automatically verified/done when the user submits the daily report (for tasks without an independent evidence step). Auto-done tasks earn full weight without evidence. Guardrail: total auto-done weight per position is capped at 10%
+- **Require Video**: `require_video_upload` checkbox blocks task verification/submission until a video attachment exists among the task's comment media. The evidence camera gains a Foto/Video toggle (MediaRecorder, 60s cap) plus a gallery video upload; iOS falls back to the `video/*` file picker
+- **Minimum Photos**: `minimum_photos` (default 1) requires at least N photos **within a single comment** before the task can be verified/submitted. Photos spread across multiple comments do not count toward the minimum. Both requirements are enforced server-side (`verifyTask`, `calculateDailyScore`) and gated in the task modal UI
 
 ### Access Control
 - **Role-Based Access**: Admin, Superadmin, and User roles

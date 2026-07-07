@@ -29,6 +29,8 @@ class KpiTaskDefinitionFactory extends Factory
             'sequence_order' => fake()->numberBetween(1, 100),
             'is_active' => true,
             'auto_done_on_report' => false,
+            'require_video_upload' => false,
+            'minimum_photos' => 1,
         ];
     }
 }

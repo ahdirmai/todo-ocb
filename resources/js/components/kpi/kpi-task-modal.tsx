@@ -1,5 +1,5 @@
 import { router, usePage } from '@inertiajs/react';
-import { Camera, Paperclip, CheckCircle2, Send, Download, Pencil, Trash2, X, Check, Upload } from 'lucide-react';
+import { Paperclip, CheckCircle2, Send, Download, Pencil, Trash2, X, Check, Upload, Video, ImageIcon } from 'lucide-react';
 import { useState, useRef } from 'react';
 import { CameraCapture } from '@/components/camera-capture';
 import { Button } from '@/components/ui/button';
@@ -41,6 +41,8 @@ interface KpiTask {
   has_media: boolean;
   comments: Comment[];
   can_upload_proof?: boolean;
+  require_video_upload?: boolean;
+  minimum_photos?: number;
 }
 
 interface KpiTaskModalProps {
@@ -65,6 +67,27 @@ export function KpiTaskModal({ task, area, onClose, readOnly = false }: KpiTaskM
   const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null);
 
   if (!task) return null;
+
+  const requiresVideo = task.require_video_upload === true;
+  const hasExistingVideo = task.comments.some((c) =>
+    c.media?.some((m) => m.mime_type.startsWith('video/')),
+  );
+  const hasPendingVideo = attachments.some((f) => f.type.startsWith('video/'));
+  const videoRequirementMet = !requiresVideo || hasExistingVideo || hasPendingVideo;
+
+  // Minimum photos are counted within a SINGLE comment: either an existing
+  // comment already meets it, or the current pending upload (one new comment)
+  // carries enough photos.
+  const minimumPhotos = task.minimum_photos ?? 0;
+  const maxPhotosInAnyComment = task.comments.reduce(
+    (max, c) => Math.max(max, c.media?.filter((m) => m.mime_type.startsWith('image/')).length ?? 0),
+    0,
+  );
+  const pendingPhotoCount = attachments.filter((f) => f.type.startsWith('image/')).length;
+  const photoRequirementMet =
+    minimumPhotos <= 0 ||
+    maxPhotosInAnyComment >= minimumPhotos ||
+    pendingPhotoCount >= minimumPhotos;
 
   const startEdit = (comment: Comment) => {
     setEditingCommentId(comment.id);
@@ -118,13 +141,24 @@ export function KpiTaskModal({ task, area, onClose, readOnly = false }: KpiTaskM
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-      setAttachments(Array.from(e.target.files));
+      const picked = Array.from(e.target.files);
+      setAttachments((prev) => [...prev, ...picked]);
     }
   };
 
   const handleSubmitComment = () => {
     if (!commentText.trim() && attachments.length === 0) {
       toast.error('Tambahkan komentar atau lampiran');
+      return;
+    }
+
+    if (!videoRequirementMet) {
+      toast.error('Task ini wajib melampirkan video bukti sebelum diselesaikan.');
+      return;
+    }
+
+    if (!photoRequirementMet) {
+      toast.error(`Task ini wajib minimal ${minimumPhotos} foto dalam satu komentar bukti.`);
       return;
     }
 
@@ -297,6 +331,13 @@ export function KpiTaskModal({ task, area, onClose, readOnly = false }: KpiTaskM
                                     className="h-24 w-24 object-cover rounded border hover:opacity-80 transition-opacity"
                                   />
                                 </a>
+                              ) : media.mime_type.startsWith('video/') ? (
+                                <video
+                                  src={media.original_url}
+                                  controls
+                                  playsInline
+                                  className="h-24 w-40 rounded border bg-black object-contain"
+                                />
                               ) : (
                                 <a
                                   href={media.original_url}
@@ -328,6 +369,23 @@ export function KpiTaskModal({ task, area, onClose, readOnly = false }: KpiTaskM
               </h3>
 
             <div className="space-y-3">
+              {requiresVideo && !videoRequirementMet && (
+                <div className="flex items-center gap-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-400">
+                  <Video className="h-4 w-4 shrink-0" />
+                  <span>Task ini wajib melampirkan video bukti (rekam kamera atau upload galeri) sebelum bisa diselesaikan.</span>
+                </div>
+              )}
+
+              {minimumPhotos > 0 && !photoRequirementMet && (
+                <div className="flex items-center gap-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-400">
+                  <ImageIcon className="h-4 w-4 shrink-0" />
+                  <span>
+                    Wajib minimal {minimumPhotos} foto dalam satu komentar bukti
+                    (sekarang {pendingPhotoCount} foto dipilih).
+                  </span>
+                </div>
+              )}
+
               <Textarea
                 placeholder="Catatan / keterangan bukti..."
                 value={commentText}
@@ -339,17 +397,19 @@ export function KpiTaskModal({ task, area, onClose, readOnly = false }: KpiTaskM
               <div className="flex flex-wrap items-center gap-2">
                 <CameraCapture
                   onCapture={(files) => {
-                    setAttachments(files);
+                    setAttachments((prev) => [...prev, ...files]);
                   }}
                   currentCount={attachments.length}
+                  maxPhotos={Math.max(5, minimumPhotos)}
                   label="Ambil Foto"
+                  allowVideo={requiresVideo}
                 />
 
-                {task.can_upload_proof && (
+                {(task.can_upload_proof || requiresVideo) && (
                   <>
                     <input
                       type="file"
-                      accept="image/*"
+                      accept={requiresVideo ? 'image/*,video/*' : 'image/*'}
                       ref={fileInputRef}
                       onChange={handleFileChange}
                       className="hidden"
@@ -361,7 +421,7 @@ export function KpiTaskModal({ task, area, onClose, readOnly = false }: KpiTaskM
                       className="inline-flex h-7 items-center gap-1 rounded-md px-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
                     >
                       <Upload className="h-3.5 w-3.5" />
-                      Upload dari Galeri
+                      {requiresVideo ? 'Upload dari Galeri (Foto/Video)' : 'Upload dari Galeri'}
                     </button>
                   </>
                 )}
@@ -383,7 +443,12 @@ export function KpiTaskModal({ task, area, onClose, readOnly = false }: KpiTaskM
 
               <Button
                 onClick={handleSubmitComment}
-                disabled={submitting || (!commentText.trim() && attachments.length === 0)}
+                disabled={
+                  submitting ||
+                  (!commentText.trim() && attachments.length === 0) ||
+                  !videoRequirementMet ||
+                  !photoRequirementMet
+                }
                 className="w-full"
               >
                 {submitting ? (
