@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- **Public Daily Reporters API**: `GET /api/reports/daily-reporters` returns the daily report feed for **every position required to submit a report** (any position with a report-field template — not just managers), with a `?date=YYYY-MM-DD` filter (defaults to yesterday)
+  - `DailyReporterController::index` — scopes reporters via `whereHas('jobPosition.reportFields')` (data-driven) instead of the manager-only scope used by `daily-manager`
+  - Returns `reports` (submitted, with field template + KPI tasks/comments/media) and `pending` (reporters who have not submitted for the date)
+  - Reuses `AgentDailyReportResource` and `AgentDailyReportRequest`
+  - Tests: `tests/Feature/Api/V1/DailyReporterApiTest.php` (includes non-manager reporters, date filter, excludes positions without a template, task inclusion)
 - **`require_video_upload` Flag on KPI Task Definitions**: Tasks flagged here cannot be verified/submitted until a video attachment exists among their comment media
   - New migration: `add_require_video_upload_to_kpi_task_definitions_table` — boolean, default `false`
   - `KpiTaskDefinition` model — `$fillable` + `$casts`; factory defaults to `false`

@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\AgentDailyReportController;
 use App\Http\Controllers\Api\V1\AnnouncementController as V1AnnouncementController;
 use App\Http\Controllers\Api\V1\AuthController as V1AuthController;
 use App\Http\Controllers\Api\V1\CommentController as V1CommentController;
+use App\Http\Controllers\Api\V1\DailyReporterController;
 use App\Http\Controllers\Api\V1\DashboardController as V1DashboardController;
 use App\Http\Controllers\Api\V1\DocumentController as V1DocumentController;
 use App\Http\Controllers\Api\V1\MonthlyTaskReportController as V1MonthlyTaskReportController;
@@ -34,6 +35,7 @@ Route::as('api.')
         Route::get('teams/{team}/entity-map', [TeamReadController::class, 'entityMap'])->name('teams.entity-map');
         Route::post('teams/{team}/resolve-references', [TeamReadController::class, 'resolveReferences'])->name('teams.resolve-references');
         Route::get('reports/daily-manager', [AgentDailyReportController::class, 'dailyReports'])->name('reports.daily-manager');
+        Route::get('reports/daily-reporters', [DailyReporterController::class, 'index'])->name('reports.daily-reporters');
     });
 
 Route::prefix('v1/internal')
