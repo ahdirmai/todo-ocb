@@ -114,26 +114,26 @@ test('excludes positions without a report template', function (): void {
         ->assertJsonCount(2, 'pending');
 });
 
-test('report includes reporter kpi tasks', function (): void {
+test('report payload omits kpi tasks', function (): void {
     $yesterday = now()->subDay()->toDateString();
     submitReporterReport($this->spv, $yesterday);
 
-    $task = Task::factory()->create([
+    Task::factory()->create([
         'creator_id' => $this->spv->id,
         'is_kpi_task' => true,
         'created_at' => $yesterday,
     ]);
 
-    $this->getJson('/api/reports/daily-reporters')
+    $response = $this->getJson('/api/reports/daily-reporters')
         ->assertOk()
-        ->assertJsonCount(1, 'reports.0.tasks')
-        ->assertJsonPath('reports.0.tasks.0.id', $task->id)
         ->assertJsonStructure([
             'reports' => [
-                '*' => ['id', 'user', 'fields', 'report_fields', 'tasks', 'submitted_at', 'is_late'],
+                '*' => ['id', 'user', 'fields', 'report_fields', 'submitted_at', 'is_late'],
             ],
             'pending' => [
                 '*' => ['user', 'report_fields'],
             ],
         ]);
+
+    expect($response->json('reports.0'))->not->toHaveKey('tasks');
 });
