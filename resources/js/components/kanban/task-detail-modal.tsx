@@ -15,8 +15,9 @@ import {
     Italic,
     List,
     ListOrdered,
+    Upload,
 } from 'lucide-react';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import * as TaskActions from '@/actions/App/Http/Controllers/TaskController';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { PendingFilePreview } from '@/components/pending-file-preview';
@@ -131,6 +132,47 @@ function formatFileSize(bytes: number): string {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+/**
+ * "Upload File" button for comment forms — hidden gallery/file input mirroring
+ * the KPI task modal's gallery upload. Shown only for non-KPI tasks so KPI
+ * evidence stays camera-only.
+ */
+function CommentFileButton({
+    onFiles,
+    label = 'Upload File',
+}: {
+    onFiles: (files: File[]) => void;
+    label?: string;
+}) {
+    const inputRef = useRef<HTMLInputElement>(null);
+
+    return (
+        <>
+            <input
+                type="file"
+                accept="image/*"
+                multiple
+                ref={inputRef}
+                onChange={(e) => {
+                    if (e.target.files?.length) {
+                        onFiles(Array.from(e.target.files));
+                        e.target.value = '';
+                    }
+                }}
+                className="hidden"
+            />
+            <button
+                type="button"
+                onClick={() => inputRef.current?.click()}
+                className="inline-flex h-7 items-center gap-1 rounded-md px-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+            >
+                <Upload className="h-3.5 w-3.5" />
+                {label}
+            </button>
+        </>
+    );
+}
+
 interface TaskDetailModalProps {
     taskId: string | null;
     open: boolean;
@@ -163,6 +205,10 @@ export function TaskDetailModal({ taskId, open, onClose }: TaskDetailModalProps)
     const canDeleteTask = Boolean(
         isGlobalAdmin || isTaskCreator || isTeamAdmin,
     );
+
+    // File upload in comments is allowed only for non-KPI tasks; KPI tasks keep
+    // camera-only evidence. Defaults to camera-only until the task loads.
+    const canUploadCommentFiles = taskDetail?.is_kpi_task === false;
 
     // Sync local form state when taskDetail arrives
     const detailStateKey = taskDetail ? `${taskDetail.id}:${open ? 'open' : 'closed'}` : 'empty';
@@ -767,6 +813,15 @@ export function TaskDetailModal({ taskId, open, onClose }: TaskDetailModalProps)
                                                 currentCount={attachments.length}
                                                 label="Ambil Foto"
                                             />
+                                            {canUploadCommentFiles && (
+                                                <CommentFileButton
+                                                    onFiles={(files) => {
+                                                        if (validateAttachmentFiles(files)) {
+                                                            setAttachments((prev) => [...prev, ...files]);
+                                                        }
+                                                    }}
+                                                />
+                                            )}
                                         </div>
                                         <Button
                                             size="sm"
@@ -952,15 +1007,26 @@ export function TaskDetailModal({ taskId, open, onClose }: TaskDetailModalProps)
                                                             </div>
                                                         )}
                                                     <div className="flex items-center justify-between">
-                                                        <CameraCapture
-                                                            onCapture={(files) => {
-                                                                if (validateAttachmentFiles(files)) {
-                                                                    setEditAttachments((prev) => [...prev, ...files]);
-                                                                }
-                                                            }}
-                                                            currentCount={editAttachments.length}
-                                                            label="Ambil Foto"
-                                                        />
+                                                        <div className="actions flex">
+                                                            <CameraCapture
+                                                                onCapture={(files) => {
+                                                                    if (validateAttachmentFiles(files)) {
+                                                                        setEditAttachments((prev) => [...prev, ...files]);
+                                                                    }
+                                                                }}
+                                                                currentCount={editAttachments.length}
+                                                                label="Ambil Foto"
+                                                            />
+                                                            {canUploadCommentFiles && (
+                                                                <CommentFileButton
+                                                                    onFiles={(files) => {
+                                                                        if (validateAttachmentFiles(files)) {
+                                                                            setEditAttachments((prev) => [...prev, ...files]);
+                                                                        }
+                                                                    }}
+                                                                />
+                                                            )}
+                                                        </div>
                                                         <div className="flex gap-2">
                                                             <Button
                                                                 type="button"
@@ -1260,15 +1326,26 @@ export function TaskDetailModal({ taskId, open, onClose }: TaskDetailModalProps)
                                                                             </div>
                                                                         )}
                                                                     <div className="flex items-center justify-between">
-                                                                        <CameraCapture
-                                                                            onCapture={(files) => {
-                                                                                if (validateAttachmentFiles(files)) {
-                                                                                    setEditAttachments((prev) => [...prev, ...files]);
-                                                                                }
-                                                                            }}
-                                                                            currentCount={editAttachments.length}
-                                                                            label="Ambil Foto"
-                                                                        />
+                                                                        <div className="actions flex">
+                                                                            <CameraCapture
+                                                                                onCapture={(files) => {
+                                                                                    if (validateAttachmentFiles(files)) {
+                                                                                        setEditAttachments((prev) => [...prev, ...files]);
+                                                                                    }
+                                                                                }}
+                                                                                currentCount={editAttachments.length}
+                                                                                label="Ambil Foto"
+                                                                            />
+                                                                            {canUploadCommentFiles && (
+                                                                                <CommentFileButton
+                                                                                    onFiles={(files) => {
+                                                                                        if (validateAttachmentFiles(files)) {
+                                                                                            setEditAttachments((prev) => [...prev, ...files]);
+                                                                                        }
+                                                                                    }}
+                                                                                />
+                                                                            )}
+                                                                        </div>
                                                                         <div className="flex gap-2">
                                                                             <Button
                                                                                 type="button"
@@ -1430,6 +1507,15 @@ export function TaskDetailModal({ taskId, open, onClose }: TaskDetailModalProps)
                                                         currentCount={attachments.length}
                                                         label="Ambil Foto"
                                                     />
+                                                    {canUploadCommentFiles && (
+                                                        <CommentFileButton
+                                                            onFiles={(files) => {
+                                                                if (validateAttachmentFiles(files)) {
+                                                                    setAttachments((prev) => [...prev, ...files]);
+                                                                }
+                                                            }}
+                                                        />
+                                                    )}
                                                 </div>
                                                 <div className="flex gap-2">
                                                     <Button

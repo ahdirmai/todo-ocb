@@ -208,6 +208,7 @@ class TaskController extends Controller
                 'order_position' => $task->order_position,
                 'is_done' => (bool) $task->is_done,
                 'is_verified' => (bool) $task->is_verified,
+                'is_kpi_task' => (bool) $task->is_kpi_task,
                 'creator' => $task->creator ? [
                     'id' => $task->creator->id,
                     'name' => $task->creator->name,
