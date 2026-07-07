@@ -28,7 +28,8 @@ Laravel-based task management system with advanced KPI tracking, position-based 
 ### KPI Evaluation System
 - **Position-Based Tracking**: Separate KPI definitions for Manager HR, Manager Operasional, Gudang, and SPV Unit 1
 - **Weighted Scoring**: Tasks weighted by importance (total 100% per position)
-- **Evidence Verification**: Three-tier scoring (100% full evidence, 30% partial, 0% none)
+- **AI Compliance Check**: When evidence is submitted, an AI (OpenAI `gpt-5.4-nano`) scores how well the comment matches the task's work_method and verification_method. Baseline 70 points for having comment + photo, AI adds 0–30 for content relevance. Total 70–100. Passed ≥81. Max 3 attempts; exhausted = partial credit
+- **Evidence Verification**: Three-tier scoring (100% full evidence, 30% partial, 0% none); AI compliance overrides for tasks with a definition
 - **Camera + Gallery Upload**: Camera capture always available for task evidence; gallery/file upload toggled per task definition via `can_upload_proof` flag
 - **SPV Store-Based Task Generation**: SPV users select an assigned store before generating 34 KPI tasks per store with visit date tracking
 - **Multi-Period Aggregation**: Daily → Weekly (7-day avg) → Monthly (4-week avg + bonus)

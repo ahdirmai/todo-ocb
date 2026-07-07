@@ -92,7 +92,7 @@ test('verify is blocked when a comment has fewer photos than the minimum', funct
     expect($task->fresh()->is_verified)->toBeFalse();
 });
 
-test('verify succeeds when a single comment meets the photo minimum', function (): void {
+test('verify passes the photo gate and enters AI check', function (): void {
     $user = makePhotoSpvUser();
     $task = makePhotoTask($user, minimumPhotos: 3);
     attachPhotoComment($task, $user, count: 3);
@@ -101,7 +101,8 @@ test('verify succeeds when a single comment meets the photo minimum', function (
         ->post(route('spv.kpi.tasks.verify', $task))
         ->assertSessionHasNoErrors();
 
-    expect($task->fresh()->is_verified)->toBeTrue();
+    // Photo gate passed → task entered the AI compliance flow (status set).
+    expect($task->fresh()->ai_check_status)->not->toBeNull();
 });
 
 test('photos spread across separate comments do not satisfy the minimum', function (): void {

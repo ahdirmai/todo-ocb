@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Jobs\CheckTaskComplianceJob;
 use App\Models\KpiDailyScore;
 use App\Models\KpiMonthlyScore;
 use App\Models\KpiWeeklyScore;
@@ -144,6 +145,11 @@ class KpiDashboardController extends Controller
                 'can_upload_proof' => (bool) $task->kpiDefinition?->can_upload_proof,
                 'require_video_upload' => (bool) $task->kpiDefinition?->require_video_upload,
                 'minimum_photos' => (int) ($task->kpiDefinition?->minimum_photos ?? 0),
+                'ai_check_status' => $task->ai_check_status,
+                'ai_compliance_score' => $task->ai_compliance_score,
+                'ai_check_attempts' => $task->ai_check_attempts,
+                'ai_check_feedback' => $task->ai_check_feedback,
+                'ai_max_attempts' => 3,
                 'description' => $task->description,
                 'is_done' => $task->is_verified,
                 'is_verified' => $task->is_verified,
@@ -198,6 +204,11 @@ class KpiDashboardController extends Controller
                         'can_upload_proof' => (bool) $task->kpiDefinition?->can_upload_proof,
                         'require_video_upload' => (bool) $task->kpiDefinition?->require_video_upload,
                         'minimum_photos' => (int) ($task->kpiDefinition?->minimum_photos ?? 0),
+                        'ai_check_status' => $task->ai_check_status,
+                        'ai_compliance_score' => $task->ai_compliance_score,
+                        'ai_check_attempts' => $task->ai_check_attempts,
+                        'ai_check_feedback' => $task->ai_check_feedback,
+                        'ai_max_attempts' => 3,
                         'description' => $task->description,
                         'visit_date' => $task->getRawOriginal('visit_date'),
                         'due_date' => $rawDueDate ? (is_string($rawDueDate) ? substr($rawDueDate, 0, 10) : $rawDueDate) : null,
@@ -410,6 +421,11 @@ class KpiDashboardController extends Controller
                     'can_upload_proof' => (bool) $task->kpiDefinition?->can_upload_proof,
                     'require_video_upload' => (bool) $task->kpiDefinition?->require_video_upload,
                     'minimum_photos' => (int) ($task->kpiDefinition?->minimum_photos ?? 0),
+                    'ai_check_status' => $task->ai_check_status,
+                    'ai_compliance_score' => $task->ai_compliance_score,
+                    'ai_check_attempts' => $task->ai_check_attempts,
+                    'ai_check_feedback' => $task->ai_check_feedback,
+                    'ai_max_attempts' => 3,
                     'description' => $task->description,
                     'is_done' => $task->is_verified,
                     'is_verified' => $task->is_verified,
@@ -722,35 +738,50 @@ class KpiDashboardController extends Controller
             ]);
         }
 
-        $evidenceStatus = $this->scoringService->verifyTaskEvidence($task);
-
-        // Only mark as verified if there's full evidence (comment + attachment)
-        if ($evidenceStatus === 'full') {
-            $task->update([
-                'is_verified' => true,
-                'verified_at' => now(),
+        // Structural evidence must be complete (comment + attachment) before the
+        // AI reads the evidence content.
+        if ($this->scoringService->verifyTaskEvidence($task) !== 'full') {
+            return back()->withErrors([
+                'error' => 'Lengkapi komentar dan foto bukti terlebih dahulu.',
             ]);
         }
 
-        // Calculate scores regardless of evidence status (partial gets 30%, none gets 0%)
+        // AI compliance check owns verification for KPI tasks with a definition.
+        if ($task->kpiDefinition) {
+            if ($task->ai_check_status === 'passed') {
+                return back()->withErrors(['error' => 'Task ini sudah lulus cek AI.']);
+            }
+
+            if ($task->ai_check_attempts >= 3) {
+                return back()->withErrors(['error' => 'Jatah cek AI 3× sudah habis untuk task ini.']);
+            }
+
+            $task->update(['ai_check_status' => 'pending']);
+            CheckTaskComplianceJob::dispatch($task->id);
+
+            return back()->with('success', 'Bukti sedang dicek AI, tunggu sebentar...');
+        }
+
+        // KPI task without a definition: fall back to structural verification.
+        $task->update([
+            'is_verified' => true,
+            'verified_at' => now(),
+        ]);
+
         $taskDate = $task->created_at;
 
-        // Calculate daily score
         try {
             $this->scoringService->calculateDailyScore($user, $taskDate);
         } catch (\Exception $e) {
             report($e);
         }
 
-        // Calculate weekly score if there are daily scores
-        $weekStart = $taskDate->copy()->startOfWeek(Carbon::MONDAY);
         try {
-            $this->scoringService->calculateWeeklyScore($user, $weekStart);
+            $this->scoringService->calculateWeeklyScore($user, $taskDate->copy()->startOfWeek(Carbon::MONDAY));
         } catch (\Exception $e) {
             // Weekly score calculation might fail if not enough daily scores
         }
 
-        // Calculate monthly score if there are weekly scores
         try {
             $this->scoringService->calculateMonthlyScore($user, $taskDate);
         } catch (\Exception $e) {

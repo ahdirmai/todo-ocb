@@ -24,6 +24,9 @@ class Task extends Model implements HasMedia
             'is_kpi_task' => 'boolean',
             'is_verified' => 'boolean',
             'verified_at' => 'datetime',
+            'ai_check_attempts' => 'integer',
+            'ai_compliance_score' => 'decimal:2',
+            'ai_checked_at' => 'datetime',
         ];
     }
 

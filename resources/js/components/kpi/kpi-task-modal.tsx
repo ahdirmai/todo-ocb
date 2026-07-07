@@ -1,6 +1,6 @@
 import { router, usePage } from '@inertiajs/react';
-import { Paperclip, CheckCircle2, Send, Download, Pencil, Trash2, X, Check, Upload, Video, ImageIcon } from 'lucide-react';
-import { useState, useRef } from 'react';
+import { Paperclip, CheckCircle2, Send, Download, Pencil, Trash2, X, Check, Upload, Video, ImageIcon, Loader2, Sparkles, AlertTriangle } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
 import { CameraCapture } from '@/components/camera-capture';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -43,6 +43,11 @@ interface KpiTask {
   can_upload_proof?: boolean;
   require_video_upload?: boolean;
   minimum_photos?: number;
+  ai_check_status?: 'pending' | 'passed' | 'failed' | 'exhausted' | null;
+  ai_compliance_score?: number | string | null;
+  ai_check_attempts?: number;
+  ai_check_feedback?: string | null;
+  ai_max_attempts?: number;
 }
 
 interface KpiTaskModalProps {
@@ -66,6 +71,21 @@ export function KpiTaskModal({ task, area, onClose, readOnly = false }: KpiTaskM
   const [savingEdit, setSavingEdit] = useState(false);
   const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null);
 
+  // Poll while the AI compliance check runs so the result appears without a
+  // manual refresh. Reloads only the KPI dashboard task props.
+  const aiPending = task?.ai_check_status === 'pending';
+  useEffect(() => {
+    if (!aiPending) {
+      return;
+    }
+
+    const interval = setInterval(() => {
+      router.reload({ only: ['dateTasks', 'spvKanbanTasks', 'todayTasks'] });
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [aiPending]);
+
   if (!task) return null;
 
   const requiresVideo = task.require_video_upload === true;
@@ -88,6 +108,15 @@ export function KpiTaskModal({ task, area, onClose, readOnly = false }: KpiTaskM
     minimumPhotos <= 0 ||
     maxPhotosInAnyComment >= minimumPhotos ||
     pendingPhotoCount >= minimumPhotos;
+
+  const aiStatus = task.ai_check_status ?? null;
+  const aiScore = task.ai_compliance_score != null ? Number(task.ai_compliance_score) : null;
+  const aiAttempts = task.ai_check_attempts ?? 0;
+  const aiMaxAttempts = task.ai_max_attempts ?? 3;
+  const aiRemaining = Math.max(0, aiMaxAttempts - aiAttempts);
+  // Upload / submit is locked while a check runs, once passed, or once the AI
+  // attempts are exhausted.
+  const aiLocked = aiStatus === 'pending' || aiStatus === 'passed' || aiStatus === 'exhausted';
 
   const startEdit = (comment: Comment) => {
     setEditingCommentId(comment.id);
@@ -237,6 +266,51 @@ export function KpiTaskModal({ task, area, onClose, readOnly = false }: KpiTaskM
             />
           </div>
 
+          {/* AI Check Status */}
+          {aiStatus && (
+            <div className="border-t pt-6">
+              {aiStatus === 'pending' && (
+                <div className="flex items-center gap-3 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-700 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-300">
+                  <Loader2 className="h-5 w-5 shrink-0 animate-spin" />
+                  <span>AI sedang mengecek kesesuaian bukti dengan cara kerja task…</span>
+                </div>
+              )}
+              {aiStatus === 'passed' && (
+                <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm dark:border-green-900 dark:bg-green-950/40">
+                  <div className="flex items-center gap-2 font-medium text-green-700 dark:text-green-300">
+                    <Sparkles className="h-4 w-4" /> Lulus cek AI ({aiScore != null ? aiScore.toFixed(0) : '-'}%)
+                  </div>
+                  {task.ai_check_feedback && (
+                    <p className="mt-1 text-xs text-green-700/80 dark:text-green-300/80">{task.ai_check_feedback}</p>
+                  )}
+                </div>
+              )}
+              {aiStatus === 'failed' && (
+                <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm dark:border-red-900 dark:bg-red-950/40">
+                  <div className="flex items-center gap-2 font-medium text-red-700 dark:text-red-300">
+                    <AlertTriangle className="h-4 w-4" /> Belum sesuai ({aiScore != null ? aiScore.toFixed(0) : '-'}%) — sisa {aiRemaining}× percobaan
+                  </div>
+                  <p className="mt-1 text-xs text-red-700/80 dark:text-red-300/80">
+                    <span className="font-medium">Alasan: </span>
+                    {task.ai_check_feedback || 'Bukti belum sesuai dengan cara kerja & cara verifikasi task.'}
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">Perbaiki bukti lalu submit ulang.</p>
+                </div>
+              )}
+              {aiStatus === 'exhausted' && (
+                <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm dark:border-amber-900 dark:bg-amber-950/40">
+                  <div className="flex items-center gap-2 font-medium text-amber-700 dark:text-amber-300">
+                    <AlertTriangle className="h-4 w-4" /> Jatah cek AI habis — skor parsial {aiScore != null ? aiScore.toFixed(0) : '-'}%
+                  </div>
+                  <p className="mt-1 text-xs text-amber-700/80 dark:text-amber-300/80">
+                    <span className="font-medium">Alasan: </span>
+                    {task.ai_check_feedback || 'Bukti belum sesuai dengan cara kerja & cara verifikasi task.'}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Existing Evidence */}
           {task.comments && task.comments.length > 0 && (
             <div className="border-t pt-6">
@@ -362,7 +436,7 @@ export function KpiTaskModal({ task, area, onClose, readOnly = false }: KpiTaskM
           )}
 
           {/* Upload Evidence Section */}
-          {!task.is_verified && !readOnly && (
+          {!task.is_verified && !readOnly && !aiLocked && (
             <div className="border-t pt-6">
               <h3 className="font-semibold mb-4">
                 {task.comments.length > 0 ? 'Upload Bukti Tambahan' : 'Upload Bukti Penyelesaian'}

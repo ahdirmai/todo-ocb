@@ -75,7 +75,23 @@ class KpiScoringService
             if ($definition->auto_done_on_report && $task->is_verified) {
                 $evidenceStatus = 'full';
                 $weightMultiplier = 1.0;
+            } elseif ($task->ai_check_status === 'passed') {
+                // AI compliance check passed → full credit.
+                $evidenceStatus = 'full';
+                $weightMultiplier = 1.0;
+            } elseif ($task->ai_check_status === 'exhausted') {
+                // 3 AI attempts used without passing → partial credit equal to
+                // the last compliance score (not verified).
+                $evidenceStatus = 'partial';
+                $weightMultiplier = ((float) $task->ai_compliance_score) / 100;
+            } elseif (in_array($task->ai_check_status, ['pending', 'failed'], true)) {
+                // AI check in progress or failed a non-final attempt → no credit
+                // yet; the user must resubmit.
+                $evidenceStatus = 'none';
+                $weightMultiplier = 0;
             } else {
+                // No AI flow yet (ai_check_status === null): fall back to the
+                // structural evidence logic so legacy tasks don't regress.
                 $evidenceStatus = $this->verifyTaskEvidence($task);
 
                 // Tasks flagged require_video_upload cannot reach full credit
@@ -129,6 +145,9 @@ class KpiScoringService
                 'completed' => $weightMultiplier > 0,
                 'verified' => $evidenceStatus === 'full',
                 'evidence_status' => $evidenceStatus,
+                'ai_check_status' => $task->ai_check_status,
+                'ai_compliance_score' => $task->ai_compliance_score,
+                'ai_check_attempts' => $task->ai_check_attempts,
             ];
         }
 

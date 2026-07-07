@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- **AI Compliance Check for KPI Tasks**: When a user submits evidence (comment + photo), the system automatically runs an AI compliance check via OpenAI (`gpt-5.4-nano`) that scores how well the evidence matches the task's work_method and verification_method
+  - New columns on `tasks`: `ai_check_status` (null/pending/passed/failed/exhausted), `ai_check_attempts` (0–3), `ai_compliance_score` (70–100 total), `ai_check_feedback`, `ai_checked_at`
+  - **Scoring model**: baseline 70 points for having comment + photo, AI adds 0–30 for content relevance. Total 70–100. Passed at total ≥81 (content ≥11)
+  - `AiTaskCheckService` — OpenAI Responses API with strict JSON schema, model `gpt-5.4-nano` (configurable via `OPENAI_TASK_CHECK_MODEL`)
+  - `CheckTaskComplianceJob` — async queue job (90s timeout); API failure → `failed` status without burning an attempt
+  - `verifyTask()` flow: video/photo gates → evidence-full guard → attempt limit guard → dispatch AI job. Fallback to structural verification for tasks without a definition
+  - Scoring branches: `passed` = full credit (1.0), `exhausted` = partial credit (score/100), `null` = fallback legacy evidence logic (no regression)
+  - KPI task modal: polling while pending, AI status badges (passed/failed/exhausted), feedback with "Alasan:" prefix, upload section hidden when AI-locked
+  - Tests: `AiTaskCheckTest.php` (8 tests: dispatch, evidence gate, attempt limits, pass/fail/exhaust, error resilience, feedback fallback)
 - **Public Daily Reporters API**: `GET /api/reports/daily-reporters` returns the daily report feed for **every position required to submit a report** (any position with a report-field template — not just managers), with a `?date=YYYY-MM-DD` filter (defaults to yesterday)
   - `DailyReporterController::index` — scopes reporters via `whereHas('jobPosition.reportFields')` (data-driven) instead of the manager-only scope used by `daily-manager`
   - Returns `reports` (submitted, with field template only — no KPI task details) and `pending` (reporters who have not submitted for the date)
@@ -27,6 +36,7 @@ All notable changes to this project will be documented in this file.
   - `kpi-task-modal.tsx` — requirement banner, pending-photo counter, camera `maxPhotos` raised to cover the minimum
   - Tests: `KpiMinimumPhotosTest.php` (below minimum blocked, single comment satisfies, photos split across comments do NOT satisfy, score gate)
 - **Submit Gate for Evidence Requirements**: The KPI task modal's "Kirim Bukti & Selesaikan Task" button is disabled (and the handler rejects) until the task's `require_video_upload` and `minimum_photos` requirements are satisfied by pending uploads or existing comment media
+- **AI Task Check Plan**: `docs/plan-ai-task-check.md` — full design doc for the AI compliance check feature (implemented)
 - **`auto_done_on_report` Flag on KPI Task Definitions**: Tasks flagged here are auto-completed (verified) when the user submits their daily report — for tasks that have no independent evidence step and are "done" by the act of reporting
   - New migration: `add_auto_done_on_report_to_kpi_task_definitions_table` — boolean, default `false`, after `can_upload_proof`
   - `KpiTaskDefinition` model — added to `$fillable` + `$casts`; factory defaults to `false`

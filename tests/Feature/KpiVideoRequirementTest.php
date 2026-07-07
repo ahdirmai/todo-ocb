@@ -102,10 +102,11 @@ test('verify succeeds when a video is attached', function (): void {
         ->post(route('spv.kpi.tasks.verify', $task))
         ->assertSessionHasNoErrors();
 
-    expect($task->fresh()->is_verified)->toBeTrue();
+    // Video gate passed → task proceeds to AI compliance check.
+    expect($task->fresh()->ai_check_status)->not->toBeNull();
 });
 
-test('non-video task verifies with a photo as before', function (): void {
+test('non-video task passes the gate and enters AI check', function (): void {
     $user = makeVideoSpvUser();
     $task = makeVideoTask($user, requireVideo: false);
     attachMediaToTask($task, $user, 'photo.jpg', 'image/jpeg');
@@ -114,7 +115,7 @@ test('non-video task verifies with a photo as before', function (): void {
         ->post(route('spv.kpi.tasks.verify', $task))
         ->assertSessionHasNoErrors();
 
-    expect($task->fresh()->is_verified)->toBeTrue();
+    expect($task->fresh()->ai_check_status)->not->toBeNull();
 });
 
 test('daily score does not auto-verify a video-required task without video', function (): void {
