@@ -321,9 +321,16 @@ export default function DynamicReportForm({
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              {isToday
-                ? `Laporan untuk hari ini sudah pernah dikirim. Untuk mengubahnya, gunakan tombol "Edit" di halaman riwayat laporan.`
-                : `Laporan tanggal ${data.report_date} hanya bisa dilihat (read-only). Laporan hari sebelumnya tidak dapat diubah.`}
+              {isToday ? (
+                <>
+                  Laporan untuk hari ini sudah pernah dikirim.{' '}
+                  <Link href={`/${area}/kpi/reports`} className="underline font-medium">
+                    Lihat Riwayat Laporan
+                  </Link>
+                </>
+              ) : (
+                `Laporan tanggal ${data.report_date} hanya bisa dilihat (read-only). Laporan hari sebelumnya tidak dapat diubah.`
+              )}
             </AlertDescription>
           </Alert>
         )}

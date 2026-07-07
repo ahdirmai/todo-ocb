@@ -15,6 +15,8 @@ interface Report {
   submitted_at: string;
   is_late: boolean;
   fields: Record<string, unknown>;
+  store_name?: string;
+  store_code?: string;
   user?: {
     id: number;
     name: string;
@@ -97,6 +99,9 @@ export default function DynamicReportsList({ reports, canCreate, reportFields, a
                           {report.user && (
                             <p className="text-xs text-muted-foreground">
                               {report.user.name} — {report.user.jobPosition?.name || '-'}
+                              {report.store_name && (
+                                <> — <span className="font-medium">{report.store_name}</span>{report.store_code && <> ({report.store_code})</>}</>
+                              )}
                             </p>
                           )}
                         </div>
@@ -114,7 +119,7 @@ export default function DynamicReportsList({ reports, canCreate, reportFields, a
                       </p>
                     </div>
                     <div className="flex gap-2">
-                      {canCreate && report.report_date.slice(0, 10) === new Date().toISOString().slice(0, 10) && (
+                      {canCreate && report.report_date.slice(0, 10) === new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Makassar' }) && (
                         <Link href={`/${area}/kpi/report/${report.id}/edit`}>
                           <Button variant="outline" size="sm">
                             <Pencil className="mr-2 h-4 w-4" />
@@ -136,6 +141,9 @@ export default function DynamicReportsList({ reports, canCreate, reportFields, a
                               {report.user && (
                                 <span className="block text-sm font-normal text-muted-foreground">
                                   {report.user.name} — {report.user.jobPosition?.name || '-'}
+                                  {report.store_name && (
+                                    <> — {report.store_name}{report.store_code && <> ({report.store_code})</>}</>
+                                  )}
                                 </span>
                               )}
                             </DialogTitle>

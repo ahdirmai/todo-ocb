@@ -1,4 +1,4 @@
-import { Camera, ImageIcon, Loader2, RotateCcw, Check, X } from 'lucide-react';
+import { Camera, ImageIcon, Loader2, RotateCcw, Check, X, SwitchCamera } from 'lucide-react';
 import { useRef, useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -42,6 +42,8 @@ export function CameraCapture({
     const [open, setOpen] = useState(false);
     const [stream, setStream] = useState<MediaStream | null>(null);
     const streamRef = useRef<MediaStream | null>(null);
+    const [facingMode, setFacingMode] = useState<'environment' | 'user'>('environment');
+    const facingModeRef = useRef<'environment' | 'user'>('environment');
     // Mencegah getUserMedia dipanggil dua kali paralel (mis. klik "Coba Lagi" spam).
     const startingRef = useRef<boolean>(false);
     const [captured, setCaptured] = useState<CapturedPhoto[]>([]);
@@ -73,7 +75,7 @@ export function CameraCapture({
         try {
             const mediaStream = await Promise.race([
                 navigator.mediaDevices!.getUserMedia({
-                    video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
+                    video: { facingMode: facingModeRef.current, width: { ideal: 1280 }, height: { ideal: 720 } },
                     audio: false,
                 }),
                 new Promise<never>((_, reject) =>
@@ -100,6 +102,13 @@ export function CameraCapture({
             startingRef.current = false;
         }
     }, []);
+
+    const switchCamera = useCallback(() => {
+        const next = facingModeRef.current === 'environment' ? 'user' : 'environment';
+        facingModeRef.current = next;
+        setFacingMode(next);
+        startCamera();
+    }, [startCamera]);
 
     const stopCamera = useCallback(() => {
         if (streamRef.current) {
@@ -146,6 +155,8 @@ export function CameraCapture({
     const handleOpen = () => {
         setCaptured([]);
         setError(null);
+        facingModeRef.current = 'environment';
+        setFacingMode('environment');
         setOpen(true);
     };
 
@@ -245,6 +256,15 @@ export function CameraCapture({
                                     </div>
                                 </div>
                             ) : null}
+
+                            {/* Tombol ganti kamera depan/belakang */}
+                            {!loading && !error && stream && captured.length === 0 && (
+                                <button type="button" onClick={switchCamera}
+                                    className="absolute right-3 top-3 rounded-full bg-black/50 p-2 text-white transition-colors hover:bg-black/70"
+                                    title={facingMode === 'environment' ? 'Ganti ke kamera depan' : 'Ganti ke kamera belakang'}>
+                                    <SwitchCamera className="h-5 w-5" />
+                                </button>
+                            )}
 
                             {/* Tampilkan hasil foto di atas video */}
                             {captured.length > 0 && captured.length <= 1 && (

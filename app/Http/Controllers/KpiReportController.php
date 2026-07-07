@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\KpiDailyReport;
 use App\Models\Position;
+use App\Models\Task;
 use App\Models\User;
 use App\Services\KpiReportingService;
 use App\Support\Kpi\ValidAreasResolver;
@@ -78,9 +79,11 @@ class KpiReportController extends Controller
             ->where('report_date', $selectedDate->toDateString())
             ->first();
 
-        // Only today's report can be submitted. Past dates are read-only:
-        // show the stored report if one exists, otherwise leave it empty.
-        $canSubmit = ! $existingReport && $selectedDate->isToday();
+        // Only today's report can be submitted, and only before the 23:00 WITA
+        // cutoff. Past dates are read-only: show the stored report if one exists,
+        // otherwise leave it empty.
+        $pastCutoff = now()->format('H:i') > '23:00';
+        $canSubmit = ! $existingReport && $selectedDate->isToday() && ! $pastCutoff;
 
         $area = $this->getPositionArea();
 
@@ -173,11 +176,19 @@ class KpiReportController extends Controller
             abort(403, 'Anda tidak memiliki akses untuk mengisi laporan');
         }
 
+        $submittedAt = now();
+
+        // Hard cutoff: reports cannot be submitted after 23:00 WITA.
+        if ($submittedAt->format('H:i') > '23:00') {
+            return back()->withErrors([
+                'report_date' => 'Batas pengiriman laporan pukul 23:00 WITA telah lewat.',
+            ]);
+        }
+
         $templateFields = $this->reportingService->getReportFieldsTemplate($positionName);
         $rules = $this->reportingService->buildValidationRules($templateFields);
         $validated = $request->validate($rules);
 
-        $submittedAt = now();
         $isLate = $submittedAt->format('H:i') > '22:30';
 
         $reportDate = $request->input('report_date', now()->toDateString());
@@ -264,6 +275,23 @@ class KpiReportController extends Controller
         }
 
         $reports = $reportsQuery->paginate(20);
+
+        // For SPV area, enrich reports with store names from the user's KPI tasks on that date.
+        if ($area === 'spv') {
+            $reports->getCollection()->transform(function ($report) {
+                $store = Task::where('creator_id', $report->user_id)
+                    ->where('is_kpi_task', true)
+                    ->whereDate('visit_date', $report->report_date)
+                    ->whereNotNull('store_id')
+                    ->with('store:id,name,branch_code')
+                    ->first()
+                    ?->store;
+                $report->store_name = $store?->name;
+                $report->store_code = $store?->branch_code;
+
+                return $report;
+            });
+        }
 
         return Inertia::render("{$area}/kpi/reports", [
             'reports' => $reports,

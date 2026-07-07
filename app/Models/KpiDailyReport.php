@@ -22,7 +22,7 @@ class KpiDailyReport extends Model
     ];
 
     protected $casts = [
-        'report_date' => 'date',
+        'report_date' => 'date:Y-m-d',
         'fields' => 'array',
         'report_data' => 'array',
         'attachments' => 'array',
