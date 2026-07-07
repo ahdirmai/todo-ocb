@@ -204,4 +204,32 @@ class KpiReportingService
 
         return $submittedAt->isAfter($deadline);
     }
+
+    /**
+     * Mark the user's KPI tasks for the date as verified ("done") when their
+     * definition has `auto_done_on_report = true`. Called once on the initial
+     * report submission — these tasks are considered complete simply by the act
+     * of submitting the daily report.
+     *
+     * @return int number of tasks marked
+     */
+    public function markAutoDoneTasks(User $user, string $date): int
+    {
+        $team = $user->teams()->where('is_spv_team', true)->first();
+
+        $query = Task::where('is_kpi_task', true)
+            ->where('creator_id', $user->id)
+            ->whereDate('created_at', $date)
+            ->where('is_verified', false)
+            ->whereHas('kpiDefinition', fn ($q) => $q->where('auto_done_on_report', true));
+
+        if ($team) {
+            $query->where('team_id', $team->id);
+        }
+
+        return $query->update([
+            'is_verified' => true,
+            'verified_at' => now(),
+        ]);
+    }
 }

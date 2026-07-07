@@ -25,6 +25,7 @@ interface TaskDefinition {
   sequence_order: number;
   is_active: boolean;
   can_upload_proof: boolean;
+  auto_done_on_report: boolean;
 }
 
 interface Position {
@@ -71,7 +72,7 @@ export default function KpiAdminDefinitions({ positions }: Props) {
     return map;
   }, [positions]);
 
-  const { data, setData, post, put, processing, reset } = useForm({
+  const { data, setData, post, put, processing, reset, errors } = useForm({
     position_id: '',
     category: '',
     task_name: '',
@@ -82,6 +83,7 @@ export default function KpiAdminDefinitions({ positions }: Props) {
     sequence_order: 1,
     is_active: true,
     can_upload_proof: false,
+    auto_done_on_report: false,
   });
 
   const openCreate = () => {
@@ -99,6 +101,7 @@ export default function KpiAdminDefinitions({ positions }: Props) {
       sequence_order: tasks.length + 1,
       is_active: true,
       can_upload_proof: false,
+      auto_done_on_report: false,
     });
     setOpen(true);
   };
@@ -120,6 +123,7 @@ export default function KpiAdminDefinitions({ positions }: Props) {
       sequence_order: task.sequence_order,
       is_active: task.is_active,
       can_upload_proof: task.can_upload_proof,
+      auto_done_on_report: task.auto_done_on_report,
     });
     setOpen(true);
   };
@@ -417,6 +421,25 @@ export default function KpiAdminDefinitions({ positions }: Props) {
                 </p>
               </Label>
             </div>
+
+            <div className="flex items-center gap-3 rounded-lg border border-input bg-background px-4 py-3">
+              <input
+                id="auto_done_on_report"
+                type="checkbox"
+                checked={data.auto_done_on_report}
+                onChange={(e) => setData('auto_done_on_report', e.target.checked)}
+                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+              />
+              <Label htmlFor="auto_done_on_report" className="mb-0 cursor-pointer text-sm font-normal">
+                <span className="font-medium">Auto-Done saat Kirim Laporan</span>
+                <p className="text-xs text-muted-foreground">
+                  Task otomatis selesai ketika laporan harian dikirim (total maks 10% bobot per posisi)
+                </p>
+              </Label>
+            </div>
+            {errors.auto_done_on_report && (
+              <p className="text-xs text-red-600">{errors.auto_done_on_report}</p>
+            )}
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div>

@@ -37,7 +37,15 @@ class KpiAdminController extends Controller
             'weight' => 'required|numeric|min:0|max:100',
             'sequence_order' => 'required|integer|min:1',
             'can_upload_proof' => 'boolean',
+            'auto_done_on_report' => 'boolean',
         ]);
+
+        if (($validated['auto_done_on_report'] ?? false)
+            && $this->autoDoneWeightExceeded($validated['position_id'], (float) $validated['weight'])) {
+            return back()->withErrors([
+                'auto_done_on_report' => 'Total bobot task auto-done untuk posisi ini melebihi 10% (maksimal 10%).',
+            ]);
+        }
 
         KpiTaskDefinition::create(array_merge($validated, ['is_active' => true]));
 
@@ -56,11 +64,36 @@ class KpiAdminController extends Controller
             'sequence_order' => 'required|integer|min:1',
             'is_active' => 'boolean',
             'can_upload_proof' => 'boolean',
+            'auto_done_on_report' => 'boolean',
         ]);
+
+        if (($validated['auto_done_on_report'] ?? false)
+            && $this->autoDoneWeightExceeded($definition->position_id, (float) $validated['weight'], $definition->id)) {
+            return back()->withErrors([
+                'auto_done_on_report' => 'Total bobot task auto-done untuk posisi ini melebihi 10% (maksimal 10%).',
+            ]);
+        }
 
         $definition->update($validated);
 
         return back()->with('success', 'Task definition berhasil diupdate');
+    }
+
+    /**
+     * True when adding `$incomingWeight` of auto-done weight would push the
+     * position's total auto-done weight above the 10% cap. Excludes the
+     * definition being updated (via `$ignoreId`) so its own weight isn't
+     * double-counted.
+     */
+    protected function autoDoneWeightExceeded(string $positionId, float $incomingWeight, ?string $ignoreId = null): bool
+    {
+        $existing = KpiTaskDefinition::where('position_id', $positionId)
+            ->where('is_active', true)
+            ->where('auto_done_on_report', true)
+            ->when($ignoreId, fn ($q) => $q->where('id', '!=', $ignoreId))
+            ->sum('weight');
+
+        return ((float) $existing + $incomingWeight) > 10.0;
     }
 
     public function destroyDefinition(KpiTaskDefinition $definition): RedirectResponse

@@ -28,6 +28,7 @@ class KpiTaskDefinitionFactory extends Factory
             'weight' => fake()->randomFloat(2, 5, 30),
             'sequence_order' => fake()->numberBetween(1, 100),
             'is_active' => true,
+            'auto_done_on_report' => false,
         ];
     }
 }

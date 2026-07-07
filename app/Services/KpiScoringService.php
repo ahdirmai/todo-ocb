@@ -69,19 +69,27 @@ class KpiScoringService
             $categoryBreakdown[$category]['total_weight'] += (float) $definition->weight;
             $categoryBreakdown[$category]['total_tasks']++;
 
-            $evidenceStatus = $this->verifyTaskEvidence($task);
-            $weightMultiplier = 0;
+            // Tasks flagged auto_done_on_report are completed by submitting the
+            // daily report — they carry no independent evidence, so once verified
+            // they always score full weight regardless of comments/attachments.
+            if ($definition->auto_done_on_report && $task->is_verified) {
+                $evidenceStatus = 'full';
+                $weightMultiplier = 1.0;
+            } else {
+                $evidenceStatus = $this->verifyTaskEvidence($task);
+                $weightMultiplier = 0;
 
-            if ($evidenceStatus === 'full') {
-                $weightMultiplier = 1.0; // 100% weight
-                if (! $task->is_verified) {
-                    $task->update([
-                        'is_verified' => true,
-                        'verified_at' => now(),
-                    ]);
+                if ($evidenceStatus === 'full') {
+                    $weightMultiplier = 1.0; // 100% weight
+                    if (! $task->is_verified) {
+                        $task->update([
+                            'is_verified' => true,
+                            'verified_at' => now(),
+                        ]);
+                    }
+                } elseif ($evidenceStatus === 'partial') {
+                    $weightMultiplier = 0.3; // 30% weight
                 }
-            } elseif ($evidenceStatus === 'partial') {
-                $weightMultiplier = 0.3; // 30% weight
             }
 
             if ($weightMultiplier > 0) {

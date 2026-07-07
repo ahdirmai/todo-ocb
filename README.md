@@ -51,6 +51,7 @@ Laravel-based task management system with advanced KPI tracking, position-based 
 - **In-App Management**: CRUD for KPI task templates per position at `/kpi/admin/definitions`
 - **Weight Validation**: Total weight per position must equal 100%
 - **Upload Proof Toggle**: `can_upload_proof` checkbox controls whether task modal shows gallery/file upload (camera always available)
+- **Auto-Done on Report**: `auto_done_on_report` checkbox marks a task as automatically verified/done when the user submits the daily report (for tasks without an independent evidence step). Auto-done tasks earn full weight without evidence. Guardrail: total auto-done weight per position is capped at 10%
 
 ### Access Control
 - **Role-Based Access**: Admin, Superadmin, and User roles

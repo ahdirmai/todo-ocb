@@ -7,6 +7,7 @@ use App\Models\Position;
 use App\Models\Task;
 use App\Models\User;
 use App\Services\KpiReportingService;
+use App\Services\KpiScoringService;
 use App\Support\Kpi\ValidAreasResolver;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
@@ -16,7 +17,10 @@ use Inertia\Response;
 
 class KpiReportController extends Controller
 {
-    public function __construct(protected KpiReportingService $reportingService) {}
+    public function __construct(
+        protected KpiReportingService $reportingService,
+        protected KpiScoringService $scoringService,
+    ) {}
 
     protected function getPositionArea(): string
     {
@@ -236,6 +240,22 @@ class KpiReportController extends Controller
             'is_late' => $isLate,
             'attachments' => $validated['attachments'] ?? null,
         ]));
+
+        // Tasks flagged auto_done_on_report are completed by the act of
+        // submitting the report. Mark them, then recompute scores so the newly
+        // verified weight is reflected. Only on initial submit — never on edit.
+        $marked = $this->reportingService->markAutoDoneTasks($user, $reportDate);
+        if ($marked > 0) {
+            $reportDateCarbon = Carbon::parse($reportDate);
+
+            try {
+                $this->scoringService->calculateDailyScore($user, $reportDateCarbon);
+                $this->scoringService->calculateWeeklyScore($user, $reportDateCarbon->copy()->startOfWeek(Carbon::MONDAY));
+                $this->scoringService->calculateMonthlyScore($user, $reportDateCarbon);
+            } catch (\Exception $e) {
+                report($e);
+            }
+        }
 
         $message = $isLate
             ? 'Laporan berhasil dikirim (TERLAMBAT - lewat 22:30 WITA)'

@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- **`auto_done_on_report` Flag on KPI Task Definitions**: Tasks flagged here are auto-completed (verified) when the user submits their daily report — for tasks that have no independent evidence step and are "done" by the act of reporting
+  - New migration: `add_auto_done_on_report_to_kpi_task_definitions_table` — boolean, default `false`, after `can_upload_proof`
+  - `KpiTaskDefinition` model — added to `$fillable` + `$casts`; factory defaults to `false`
+  - `KpiAdminController` — validated in `storeDefinition`/`updateDefinition`; new `autoDoneWeightExceeded()` caps the SUM of auto-done weight per position at **10%** (rejects with a field error)
+  - `KpiReportingService::markAutoDoneTasks()` — on the initial report `submit()` only (never on edit), flips matching same-day KPI tasks to `is_verified`; `KpiReportController::submit()` then recomputes daily/weekly/monthly scores
+  - `KpiScoringService::calculateDailyScore()` — auto-done verified tasks earn full weight without evidence (comment/attachment not required)
+  - `kpi/admin/definitions.tsx` — checkbox "Auto-Done saat Kirim Laporan" in create/edit form + inline cap error
+  - Tests: `KpiAutoDoneReportTest.php` (auto-verify on submit, no-op on edit, weight added to daily score) + `KpiAdminDefinitionsTest.php` (10% cap accept/reject, own-weight excluded on update)
+- **SPV Score Detail Pages**: SPV area gains its own `daily-detail`, `weekly-detail`, `monthly-detail` pages (mirroring HR/Operational) — fixes the Vite manifest 500 on `/spv/kpi/daily` and blank weekly/monthly views
+- **Front/Rear Camera Toggle**: `CameraCapture` adds a `SwitchCamera` button to flip `facingMode` between `environment` and `user`, restarting the stream
 - **Report Fields Admin UI**: Manage dynamic daily-report fields per position without editing seeders
   - `KpiAdminController` — added `reportFields`, `storeReportField`, `updateReportField`, `destroyReportField` + shared `validateReportField()` helper (per-position unique `field_key`, regex `^[a-z0-9_.]+$`, type whitelist, nested `field_options` rules)
   - Routes `kpi/admin/report-fields` (GET/POST/PUT/DELETE) inside the admin/superadmin group
@@ -15,6 +25,13 @@ All notable changes to this project will be documented in this file.
 - **SPV Daily Report Access**: SPV KPI dashboard now has a "Kirim Laporan Harian" button linking to `/spv/kpi/report/create` (was missing; route + fields already existed)
 
 ### Changed
+- **Daily Report — 23:00 WITA Hard Cutoff**: Report submissions are rejected after 23:00 WITA (checked before validation); the 22:30 WITA TERLAMBAT late-marker threshold is unchanged
+  - `KpiReportController::submit()` — cutoff guard + `create()` sets `canSubmit=false` past cutoff
+  - `kpi_daily_reports.report_date` cast changed to `date:Y-m-d` so it serialises as a plain date string (no UTC shift), fixing the WITA "is today" edit-button comparison
+- **Report Gate Requires Task Generation**: KPI-enabled positions (all report-enabled positions) must generate their daily tasks and reach 80% before the "Kirim Laporan Harian" button appears — the previous "no tasks = auto-pass" escape hatch is removed
+  - `KpiDashboardController::index()` + `KpiReportController::submit()` — gate closed when `has_kpi` position has no tasks for the day; non-KPI positions still submit freely
+  - `spv/kpi/dashboard.tsx` — hint distinguishes "generate tasks first" from "reach 80%"
+- **SPV Report History — Store Code**: SPV report list rows now show the store name and branch (OC) code from the user's KPI task on that date (`KpiReportController::index()` enriches `store_code`)
 - **Daily Report — Today Only**: Reports can only be submitted/edited for the current day; past days are read-only
   - `KpiReportController::create()` — `canSubmit` true only when the date is today AND no report exists; passes `isToday` prop
   - `KpiReportController::submit()` — rejects any `report_date` other than today

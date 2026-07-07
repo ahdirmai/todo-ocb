@@ -25,12 +25,14 @@ class KpiTaskDefinition extends Model
         'sequence_order',
         'is_active',
         'can_upload_proof',
+        'auto_done_on_report',
     ];
 
     protected $casts = [
         'weight' => 'decimal:2',
         'is_active' => 'boolean',
         'can_upload_proof' => 'boolean',
+        'auto_done_on_report' => 'boolean',
     ];
 
     public function position(): BelongsTo
