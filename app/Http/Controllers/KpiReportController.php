@@ -212,9 +212,16 @@ class KpiReportController extends Controller
         }
 
         // Report unlocks only after the day's KPI tasks reach 80% (by weight).
-        // Skip the gate when the user has no KPI tasks for the day (nothing to
-        // measure) — e.g. managers who report without generating daily tasks.
-        if ($this->reportingService->hasKpiTasksForDate($user, $reportDate)) {
+        // KPI-enabled positions must generate their daily tasks first: with no
+        // tasks there is nothing to reach 80% on, so the report stays locked.
+        // Positions without KPI tasks have nothing to measure and may submit.
+        if ((bool) $user->jobPosition?->has_kpi) {
+            if (! $this->reportingService->hasKpiTasksForDate($user, $reportDate)) {
+                return back()->withErrors([
+                    'report_date' => 'Laporan baru bisa dikirim setelah task hari ini di-generate dan mencapai 80%.',
+                ]);
+            }
+
             $progress = $this->reportingService->getWeightedTaskProgress($user, $reportDate);
             if ($progress < 80.0) {
                 return back()->withErrors([

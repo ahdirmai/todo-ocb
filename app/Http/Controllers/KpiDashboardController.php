@@ -284,11 +284,15 @@ class KpiDashboardController extends Controller
         // Only real area members submit reports, and only once the day's KPI
         // tasks are at least 80% complete (by weight) for today. Admin/superadmin
         // viewers see the dashboard read-only (they monitor, not submit).
-        // Report unlocks at >=80% weighted task completion. When there are no
-        // KPI tasks for the day, there's nothing to gate on, so allow submit.
+        // KPI-enabled positions MUST generate their daily tasks first: with no
+        // tasks the gate stays closed (nothing to reach 80% on). Positions
+        // without KPI tasks have nothing to measure, so they may submit freely.
         $reportThreshold = 80.0;
         $isReportMember = ! $isAdmin && (bool) $user->jobPosition?->hasReportTemplate();
-        $meetsProgressGate = ! $hasTasksForDate || $reportProgress >= $reportThreshold;
+        $positionHasKpi = (bool) $user->jobPosition?->has_kpi;
+        $meetsProgressGate = $positionHasKpi
+            ? ($hasTasksForDate && $reportProgress >= $reportThreshold)
+            : true;
         $canSubmitReport = $isReportMember
             && Carbon::parse($selectedDate)->isToday()
             && $meetsProgressGate;
