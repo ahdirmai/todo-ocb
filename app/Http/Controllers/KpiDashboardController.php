@@ -747,7 +747,7 @@ class KpiDashboardController extends Controller
         }
 
         // AI compliance check owns verification for KPI tasks with a definition.
-        if ($task->kpiDefinition) {
+        if ($task->kpiDefinition && config('services.openai.task_check_enabled', true)) {
             if ($task->ai_check_status === 'passed') {
                 return back()->withErrors(['error' => 'Task ini sudah lulus cek AI.']);
             }

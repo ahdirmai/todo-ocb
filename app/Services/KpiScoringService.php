@@ -21,12 +21,14 @@ class KpiScoringService
             throw new \Exception('User must have position');
         }
 
-        $isManager = (bool) $user->jobPosition?->is_manager;
+        $isAdmin = $user->hasAnyRole(['superadmin', 'admin']);
         $requiresSpv = (bool) $user->jobPosition?->requires_spv_team;
 
-        $team = $requiresSpv ? $user->teams()->where('is_spv_team', true)->first() : null;
+        $team = ($requiresSpv && ! $isAdmin)
+            ? $user->teams()->where('is_spv_team', true)->first()
+            : null;
 
-        if (! $team && $requiresSpv) {
+        if (! $team && $requiresSpv && ! $isAdmin) {
             throw new \Exception('User must be in SPV team');
         }
 
@@ -37,7 +39,7 @@ class KpiScoringService
 
         if ($team) {
             $tasksQuery->where('team_id', $team->id);
-        } else {
+        } elseif (! $isAdmin) {
             $tasksQuery->whereNull('team_id');
         }
 

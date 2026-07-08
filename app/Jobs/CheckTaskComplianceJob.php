@@ -30,6 +30,10 @@ class CheckTaskComplianceJob implements ShouldQueue
             return;
         }
 
+        if (! config('services.openai.task_check_enabled', true)) {
+            return;
+        }
+
         if ($task->ai_check_status !== 'pending' || $task->ai_check_attempts >= self::MAX_ATTEMPTS) {
             return;
         }

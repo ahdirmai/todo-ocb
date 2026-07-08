@@ -44,6 +44,7 @@ return [
         'base_url' => env('OPENAI_BASE_URL', 'https://api.openai.com/v1'),
         'reporting_model' => env('OPENAI_REPORTING_MODEL', 'gpt-5-mini'),
         'task_check_model' => env('OPENAI_TASK_CHECK_MODEL', 'gpt-5.4-nano'),
+        'task_check_enabled' => env('AI_TASK_CHECK_ENABLED', true),
     ],
 
     'anthropic' => [
