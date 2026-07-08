@@ -11,7 +11,7 @@ beforeEach(function (): void {
     Role::findOrCreate('superadmin', 'web');
 });
 
-function makeAdmin(): User
+function makeKpiAdmin(): User
 {
     $admin = User::factory()->create(['email_verified_at' => now()]);
     $admin->assignRole('superadmin');
@@ -38,7 +38,7 @@ function definitionPayload(Position $position, array $overrides = []): array
 }
 
 test('definition stores minimum_photos', function (): void {
-    $admin = makeAdmin();
+    $admin = makeKpiAdmin();
     $position = Position::factory()->create();
 
     actingAs($admin)
@@ -51,7 +51,7 @@ test('definition stores minimum_photos', function (): void {
 });
 
 test('definition stores require_video_upload flag', function (): void {
-    $admin = makeAdmin();
+    $admin = makeKpiAdmin();
     $position = Position::factory()->create();
 
     actingAs($admin)
@@ -82,7 +82,7 @@ test('definitions page lists all positions', function (): void {
 });
 
 test('auto-done definition accepted when total weight is within 10%', function (): void {
-    $admin = makeAdmin();
+    $admin = makeKpiAdmin();
     $position = Position::factory()->create();
 
     // Existing auto-done weight = 6%, new = 4% → total 10%, allowed.
@@ -104,7 +104,7 @@ test('auto-done definition accepted when total weight is within 10%', function (
 });
 
 test('auto-done definition rejected when total weight exceeds 10%', function (): void {
-    $admin = makeAdmin();
+    $admin = makeKpiAdmin();
     $position = Position::factory()->create();
 
     KpiTaskDefinition::factory()->create([
@@ -125,7 +125,7 @@ test('auto-done definition rejected when total weight exceeds 10%', function ():
 });
 
 test('non-auto-done definitions do not count toward the 10% cap', function (): void {
-    $admin = makeAdmin();
+    $admin = makeKpiAdmin();
     $position = Position::factory()->create();
 
     // Large non-auto-done weight must not block a new auto-done task.
@@ -144,7 +144,7 @@ test('non-auto-done definitions do not count toward the 10% cap', function (): v
 });
 
 test('updating auto-done definition ignores its own weight in the cap', function (): void {
-    $admin = makeAdmin();
+    $admin = makeKpiAdmin();
     $position = Position::factory()->create();
 
     $definition = KpiTaskDefinition::factory()->create([

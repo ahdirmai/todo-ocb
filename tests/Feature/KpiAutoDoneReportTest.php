@@ -51,7 +51,7 @@ function makeAutoDoneSpvUser(): User
     ]);
 }
 
-function makeKpiTask(User $user, bool $autoDone, bool $verified, float $weight, ?string $teamId = null): Task
+function makeAutoDoneKpiTask(User $user, bool $autoDone, bool $verified, float $weight, ?string $teamId = null): Task
 {
     $definition = KpiTaskDefinition::factory()->create([
         'position_id' => $user->position_id,
@@ -75,9 +75,9 @@ test('submitting the report auto-verifies flagged tasks', function (): void {
     $user = makeAutoDoneSpvUser();
 
     // Manual task (90%) already verified → gate is at 90%, above 80%.
-    makeKpiTask($user, autoDone: false, verified: true, weight: 90);
+    makeAutoDoneKpiTask($user, autoDone: false, verified: true, weight: 90);
     // Auto-done task (10%) not yet verified → should flip on submit.
-    $autoTask = makeKpiTask($user, autoDone: true, verified: false, weight: 10);
+    $autoTask = makeAutoDoneKpiTask($user, autoDone: true, verified: false, weight: 10);
 
     actingAs($user)
         ->post(route('spv.kpi.report.submit'), [
@@ -102,8 +102,8 @@ test('auto-done task weight is added to the daily score', function (): void {
     // Manual task passes the submit gate via its is_verified flag, but scores 0
     // because it has no evidence (comment/attachment). The auto-done task
     // contributes its full 10% weight without evidence.
-    makeKpiTask($user, autoDone: false, verified: true, weight: 90, teamId: $team->id);
-    makeKpiTask($user, autoDone: true, verified: false, weight: 10, teamId: $team->id);
+    makeAutoDoneKpiTask($user, autoDone: false, verified: true, weight: 90, teamId: $team->id);
+    makeAutoDoneKpiTask($user, autoDone: true, verified: false, weight: 10, teamId: $team->id);
 
     actingAs($user)
         ->post(route('spv.kpi.report.submit'), [
@@ -124,8 +124,8 @@ test('non-flagged tasks stay unverified after report submission', function (): v
     $this->travelTo(now()->setTime(10, 0));
     $user = makeAutoDoneSpvUser();
 
-    makeKpiTask($user, autoDone: false, verified: true, weight: 90);
-    $manualTask = makeKpiTask($user, autoDone: false, verified: false, weight: 10);
+    makeAutoDoneKpiTask($user, autoDone: false, verified: true, weight: 90);
+    $manualTask = makeAutoDoneKpiTask($user, autoDone: false, verified: false, weight: 10);
 
     actingAs($user)
         ->post(route('spv.kpi.report.submit'), [
@@ -141,7 +141,7 @@ test('editing the report does not auto-verify flagged tasks', function (): void 
     $this->travelTo(now()->setTime(10, 0));
     $user = makeAutoDoneSpvUser();
 
-    makeKpiTask($user, autoDone: false, verified: true, weight: 100);
+    makeAutoDoneKpiTask($user, autoDone: false, verified: true, weight: 100);
 
     // First submit creates the report (no auto-done task present yet).
     actingAs($user)
@@ -154,7 +154,7 @@ test('editing the report does not auto-verify flagged tasks', function (): void 
     $report = KpiDailyReport::where('user_id', $user->id)->firstOrFail();
 
     // Add an auto-done task AFTER submission, then edit the report.
-    $autoTask = makeKpiTask($user, autoDone: true, verified: false, weight: 10);
+    $autoTask = makeAutoDoneKpiTask($user, autoDone: true, verified: false, weight: 10);
 
     actingAs($user)
         ->put(route('spv.kpi.report.update', $report), [
