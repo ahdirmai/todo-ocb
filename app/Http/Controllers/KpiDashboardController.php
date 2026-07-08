@@ -116,7 +116,7 @@ class KpiDashboardController extends Controller
         $dateTasksQuery = Task::where('is_kpi_task', true)
             ->where('creator_id', $user->id)
             ->whereDate('created_at', $selectedDate)
-            ->with(['kpiDefinition', 'comments' => fn ($q) => $q->whereNotNull('user_id'), 'comments.user', 'comments.media', 'creator:id,name,email', 'team:id,name'])
+            ->with(['kpiDefinition', 'comments' => fn ($q) => $q->whereNotNull('user_id'), 'comments.user', 'comments.media', 'creator:id,name,email', 'team:id,name', 'store:id,name,branch_code'])
             ->orderBy('order_position');
 
         if (! $isManager && ! $isGudang && $team) {
@@ -163,6 +163,11 @@ class KpiDashboardController extends Controller
                 'team' => [
                     'name' => $task->team?->name,
                 ],
+                'store' => $task->store ? [
+                    'id' => $task->store->id,
+                    'name' => $task->store->name,
+                    'branch_code' => $task->store->branch_code,
+                ] : null,
                 'comments' => $task->comments->map(fn ($comment) => [
                     'id' => $comment->id,
                     'content' => $comment->content,
@@ -190,7 +195,7 @@ class KpiDashboardController extends Controller
                 ->whereNotNull('tasks.creator_id')
                 ->whereDate('tasks.visit_date', $selectedDate)
                 ->select('tasks.*')
-                ->with(['kpiDefinition', 'comments' => fn ($q) => $q->whereNotNull('user_id'), 'comments.user', 'comments.media', 'creator:id,name,email', 'team:id,name', 'assignees:id,name,email', 'tags:id,name,color'])
+                ->with(['kpiDefinition', 'comments' => fn ($q) => $q->whereNotNull('user_id'), 'comments.user', 'comments.media', 'creator:id,name,email', 'team:id,name', 'store:id,name,branch_code', 'assignees:id,name,email', 'tags:id,name,color'])
                 ->orderBy('order_position')
                 ->get()
                 ->map(function ($task) {
@@ -231,6 +236,11 @@ class KpiDashboardController extends Controller
                             'id' => $task->team?->id,
                             'name' => $task->team?->name,
                         ],
+                        'store' => $task->store ? [
+                            'id' => $task->store->id,
+                            'name' => $task->store->name,
+                            'branch_code' => $task->store->branch_code,
+                        ] : null,
                         'assignees' => $task->assignees->map(fn ($assignee) => [
                             'id' => $assignee->id,
                             'name' => $assignee->name,

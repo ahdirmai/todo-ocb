@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { CheckCircle2, Circle, FileText, TrendingUp, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { KpiTaskModal } from '@/components/kpi/kpi-task-modal';
 import { TaskDetailModal } from '@/components/kanban/task-detail-modal';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { useState, useMemo } from 'react';
 
 interface Media {
@@ -57,6 +58,11 @@ interface Task {
     id?: number;
     name: string;
   };
+  store?: {
+    id: number;
+    name: string;
+    branch_code?: string;
+  } | null;
   assignees?: Array<{
     id: number;
     name: string;
@@ -138,6 +144,7 @@ export default function HrKpiDashboard({
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [selectedKanbanTaskId, setSelectedKanbanTaskId] = useState<string | null>(null);
   const [kanbanModalOpen, setKanbanModalOpen] = useState(false);
+  const [selectedSpv, setSelectedSpv] = useState<string | null>(null);
 
   const { auth } = usePage().props as any;
   const isAdminRole = auth.roles?.includes('admin') || auth.roles?.includes('superadmin');
@@ -156,6 +163,22 @@ export default function HrKpiDashboard({
       return acc;
     },
     {} as Record<string, Task[]>
+  );
+
+  const groupedSpvKanban = useMemo(
+    () =>
+      spvKanbanTasks.reduce(
+        (acc, task) => {
+          const spv = task.creator?.name ?? 'Tanpa SPV';
+          if (!acc[spv]) {
+            acc[spv] = [];
+          }
+          acc[spv].push(task);
+          return acc;
+        },
+        {} as Record<string, Task[]>
+      ),
+    [spvKanbanTasks]
   );
 
   const formatDate = (dateStr: string) => {
@@ -366,78 +389,45 @@ export default function HrKpiDashboard({
               <CardTitle>Task SPV Kanban ({spvKanbanTasks.length})</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                {spvKanbanTasks.map((task) => (
-                  <div
-                    key={task.id}
-                    onClick={() => {
-                      setSelectedKanbanTaskId(task.id);
-                      setKanbanModalOpen(true);
-                    }}
-                    className="flex flex-col gap-2 p-4 rounded-lg border hover:bg-accent transition-colors cursor-pointer"
-                  >
-                    <div className="flex items-start gap-3">
-                      <div className="mt-0.5">
-                        {task.is_verified ? (
-                          <CheckCircle2 className="h-5 w-5 text-green-600" />
-                        ) : (
-                          <Circle className="h-5 w-5 text-gray-400" />
+              <div className="flex flex-col gap-3">
+                {Object.entries(groupedSpvKanban).map(([spv, tasks]) => {
+                  const stores = Array.from(
+                    new Map(
+                      tasks
+                        .filter((t) => t.store)
+                        .map((t) => [t.store!.id, t.store!])
+                    ).values()
+                  );
+
+                  const verifiedCount = tasks.filter((t) => t.is_verified).length;
+
+                  return (
+                    <button
+                      key={spv}
+                      type="button"
+                      onClick={() => setSelectedSpv(spv)}
+                      className="flex items-center justify-between gap-4 p-4 rounded-lg border text-left hover:bg-accent transition-colors cursor-pointer"
+                    >
+                      <div className="flex-1 min-w-0 space-y-1">
+                        <p className="font-semibold text-base leading-tight">{spv}</p>
+                        {tasks[0]?.team && (
+                          <p className="text-xs text-muted-foreground">Tim: {tasks[0].team.name}</p>
+                        )}
+                        {stores.length > 0 && (
+                          <p className="text-xs text-muted-foreground truncate">
+                            🎯 {stores.map((s) => s.branch_code ? `${s.name} (${s.branch_code})` : s.name).join(', ')}
+                          </p>
                         )}
                       </div>
-                      <div className="flex-1 space-y-2">
-                        <p className="font-medium text-sm leading-tight">{task.title}</p>
-                        {task.creator && (
-                          <p className="text-xs text-muted-foreground">
-                            SPV: {task.creator.name}
-                            {task.team && (
-                              <>
-                                <br />
-                                Tim: {task.team.name}
-                              </>
-                            )}
-                          </p>
-                        )}
-                        {task.visit_date && (
-                          <p className="text-xs text-muted-foreground">
-                            📅 {new Date(task.visit_date).toLocaleDateString('id-ID', {
-                              day: 'numeric',
-                              month: 'short',
-                              year: 'numeric'
-                            })}
-                          </p>
-                        )}
-                        {task.assignees && task.assignees.length > 0 && (
-                          <p className="text-xs text-muted-foreground">
-                            👥 {task.assignees.map((a: any) => a.name).join(', ')}
-                          </p>
-                        )}
-                        <p className="text-xs text-muted-foreground line-clamp-2">{task.description}</p>
-                        <div className="flex flex-wrap items-center gap-1.5 text-xs">
-                          {task.is_verified && (
-                            <Badge variant="outline" className="bg-green-50 text-green-700 text-xs">
-                              Terverifikasi
-                            </Badge>
-                          )}
-                          {task.is_done && !task.is_verified && (
-                            <Badge variant="outline" className="bg-yellow-50 text-yellow-700 text-xs">
-                              Selesai
-                            </Badge>
-                          )}
-                          {!task.is_done && (
-                            <Badge variant="outline" className="bg-gray-50 text-gray-700 text-xs">
-                              Belum Selesai
-                            </Badge>
-                          )}
-                          {task.comment_count > 0 && (
-                            <span className="text-muted-foreground">
-                              {task.comment_count} komentar {task.has_media && '📎'}
-                            </span>
-                          )}
-                        </div>
+                      <div className="flex items-center gap-3 shrink-0">
+                        <Badge variant="outline" className="text-xs">
+                          {verifiedCount}/{tasks.length} selesai
+                        </Badge>
+                        <span className="text-xs text-primary font-medium">Lihat task →</span>
                       </div>
-                    </div>
-                  </div>
-                ))}
+                    </button>
+                  );
+                })}
               </div>
             </CardContent>
           </Card>
@@ -536,6 +526,98 @@ export default function HrKpiDashboard({
         onClose={() => setSelectedTask(null)}
         readOnly={isAdminUser}
       />
+
+      <Dialog open={selectedSpv !== null} onOpenChange={(open) => !open && setSelectedSpv(null)}>
+        <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{selectedSpv}</DialogTitle>
+            {selectedSpv && groupedSpvKanban[selectedSpv]?.[0]?.team && (
+              <DialogDescription>
+                Tim: {groupedSpvKanban[selectedSpv][0].team!.name}
+                {(() => {
+                  const stores = Array.from(
+                    new Map(
+                      (groupedSpvKanban[selectedSpv] ?? [])
+                        .filter((t) => t.store)
+                        .map((t) => [t.store!.id, t.store!])
+                    ).values()
+                  );
+                  return stores.length > 0
+                    ? ` • 🎯 ${stores.map((s) => s.branch_code ? `${s.name} (${s.branch_code})` : s.name).join(', ')}`
+                    : '';
+                })()}
+              </DialogDescription>
+            )}
+          </DialogHeader>
+          <div className="flex flex-col gap-3">
+            {(selectedSpv ? groupedSpvKanban[selectedSpv] ?? [] : []).map((task) => (
+              <div
+                key={task.id}
+                onClick={() => {
+                  setSelectedKanbanTaskId(task.id);
+                  setKanbanModalOpen(true);
+                }}
+                className="flex flex-col gap-2 p-4 rounded-lg border hover:bg-accent transition-colors cursor-pointer"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="mt-0.5">
+                    {task.is_verified ? (
+                      <CheckCircle2 className="h-5 w-5 text-green-600" />
+                    ) : (
+                      <Circle className="h-5 w-5 text-gray-400" />
+                    )}
+                  </div>
+                  <div className="flex-1 space-y-2">
+                    <p className="font-medium text-sm leading-tight">{task.title}</p>
+                    {task.store && (
+                      <p className="text-xs text-muted-foreground">
+                        🎯 {task.store.branch_code ? `${task.store.name} (${task.store.branch_code})` : task.store.name}
+                      </p>
+                    )}
+                    {task.visit_date && (
+                      <p className="text-xs text-muted-foreground">
+                        📅 {new Date(task.visit_date).toLocaleDateString('id-ID', {
+                          day: 'numeric',
+                          month: 'short',
+                          year: 'numeric'
+                        })}
+                      </p>
+                    )}
+                    {task.assignees && task.assignees.length > 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        👥 {task.assignees.map((a: any) => a.name).join(', ')}
+                      </p>
+                    )}
+                    <p className="text-xs text-muted-foreground line-clamp-2">{task.description}</p>
+                    <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                      {task.is_verified && (
+                        <Badge variant="outline" className="bg-green-50 text-green-700 text-xs">
+                          Terverifikasi
+                        </Badge>
+                      )}
+                      {task.is_done && !task.is_verified && (
+                        <Badge variant="outline" className="bg-yellow-50 text-yellow-700 text-xs">
+                          Selesai
+                        </Badge>
+                      )}
+                      {!task.is_done && (
+                        <Badge variant="outline" className="bg-gray-50 text-gray-700 text-xs">
+                          Belum Selesai
+                        </Badge>
+                      )}
+                      {task.comment_count > 0 && (
+                        <span className="text-muted-foreground">
+                          {task.comment_count} komentar {task.has_media && '📎'}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <TaskDetailModal
          taskId={spvKanbanTasks.find(t => t.id === selectedKanbanTaskId) ?.id ?? null}

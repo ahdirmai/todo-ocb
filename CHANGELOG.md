@@ -57,6 +57,10 @@ All notable changes to this project will be documented in this file.
 - **SPV Daily Report Access**: SPV KPI dashboard now has a "Kirim Laporan Harian" button linking to `/spv/kpi/report/create` (was missing; route + fields already existed)
 
 ### Changed
+- **KPI Dashboard — Tujuan Kunjungan (Store) & SPV Kanban per SPV**: SPV daily tasks kini menampilkan tujuan kunjungan (kode + nama retail), dan panel "Task SPV Kanban" di dashboard HR/Operasional dikelompokkan per SPV agar tidak membanjiri layar
+  - `KpiDashboardController` — eager-load + serialisasi relasi `store` (`id`, `name`, `branch_code`) pada `dateTasks` (index) dan `spvKanbanTasks`
+  - `spv/kpi/dashboard.tsx` — banner "Tujuan Kunjungan" menonjol di kartu Daily Task (kode - nama retail, distinct dari task hari itu)
+  - `hr/kpi/dashboard.tsx` + `operational/kpi/dashboard.tsx` — SPV Kanban jadi daftar kartu ringkas 1-per-baris (nama SPV, tim, tujuan, badge `verified/total selesai`); klik kartu membuka modal berisi task SPV tersebut, klik task membuka detail (`TaskDetailModal`)
 - **Daily Report — 23:00 WITA Hard Cutoff**: Report submissions are rejected after 23:00 WITA (checked before validation); the 22:30 WITA TERLAMBAT late-marker threshold is unchanged
   - `KpiReportController::submit()` — cutoff guard + `create()` sets `canSubmit=false` past cutoff
   - `kpi_daily_reports.report_date` cast changed to `date:Y-m-d` so it serialises as a plain date string (no UTC shift), fixing the WITA "is today" edit-button comparison

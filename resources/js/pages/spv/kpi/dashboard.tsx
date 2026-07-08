@@ -56,6 +56,11 @@ interface Task {
   comment_count: number;
   has_media: boolean;
   comments: Comment[];
+  store?: {
+    id: number;
+    name: string;
+    branch_code?: string;
+  } | null;
 }
 
 interface DailyScore {
@@ -139,6 +144,14 @@ export default function SpvKpiDashboard({
       return acc;
     },
     {} as Record<string, Task[]>
+  );
+
+  const tujuanStores = Array.from(
+    new Map(
+      dateTasks
+        .filter((t) => t.store)
+        .map((t) => [t.store!.id, t.store!])
+    ).values()
   );
 
   const formatDate = (dateStr: string) => {
@@ -366,6 +379,18 @@ export default function SpvKpiDashboard({
         <Card>
           <CardHeader>
             <CardTitle>Daily Task ({dateTasks.length})</CardTitle>
+            {tujuanStores.length > 0 && (
+              <div className="mt-3 rounded-lg border border-primary/30 bg-primary/5 p-4">
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">🎯 Tujuan Kunjungan</p>
+                <div className="mt-1.5 flex flex-wrap gap-2">
+                  {tujuanStores.map((s) => (
+                    <span key={s.id} className="text-lg font-bold text-primary">
+                      {s.branch_code ? `${s.branch_code} - ${s.name}` : s.name}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
           </CardHeader>
           <CardContent>
             <div className="space-y-6">
