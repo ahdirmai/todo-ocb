@@ -57,6 +57,9 @@ All notable changes to this project will be documented in this file.
 - **SPV Daily Report Access**: SPV KPI dashboard now has a "Kirim Laporan Harian" button linking to `/spv/kpi/report/create` (was missing; route + fields already existed)
 
 ### Changed
+- **KPI Dashboard — Pisah Task KPI SPV vs Task Kanban Teams**: Panel SPV di dashboard HR/Operasional kini dipecah dua berdasarkan asal task — task hasil generate KPI (punya `kpi_task_definition_id`) terpisah dari task yang dibuat manual dari halaman Teams (definition null)
+  - `KpiDashboardController` — serialisasi flag `is_kanban_task` (`kpi_task_definition_id === null`) pada `spvKanbanTasks`
+  - `hr/kpi/dashboard.tsx` + `operational/kpi/dashboard.tsx` — dua Card: "Task KPI SPV" (definition ada) dan "Task Kanban Teams" (definition null); komponen kartu `SpvGroupCard` dipakai bersama, state modal `selectedGroup` terpadu untuk kedua panel
 - **KPI Dashboard — Tujuan Kunjungan (Store) & SPV Kanban per SPV**: SPV daily tasks kini menampilkan tujuan kunjungan (kode + nama retail), dan panel "Task SPV Kanban" di dashboard HR/Operasional dikelompokkan per SPV agar tidak membanjiri layar
   - `KpiDashboardController` — eager-load + serialisasi relasi `store` (`id`, `name`, `branch_code`) pada `dateTasks` (index) dan `spvKanbanTasks`
   - `spv/kpi/dashboard.tsx` — banner "Tujuan Kunjungan" menonjol di kartu Daily Task (kode - nama retail, distinct dari task hari itu)

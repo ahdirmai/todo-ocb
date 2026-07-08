@@ -221,6 +221,7 @@ class KpiDashboardController extends Controller
                         'is_done' => $task->is_verified,
                         'is_verified' => $task->is_verified,
                         'is_kpi_task' => $task->is_kpi_task,
+                        'is_kanban_task' => $task->kpi_task_definition_id === null,
                         'column_id' => $task->column_id,
                         'kanban_id' => $task->kanban_id,
                         'order_position' => $task->order_position,

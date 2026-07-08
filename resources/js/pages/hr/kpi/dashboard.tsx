@@ -42,6 +42,7 @@ interface Task {
   is_done: boolean;
   is_verified: boolean;
   is_kpi_task?: boolean;
+  is_kanban_task?: boolean;
   column_id?: string;
   kanban_id?: string;
   order_position?: number;
@@ -125,6 +126,43 @@ interface Props {
   isManager: boolean;
 }
 
+function SpvGroupCard({ spv, tasks, onOpen }: { spv: string; tasks: Task[]; onOpen: () => void }) {
+  const stores = Array.from(
+    new Map(
+      tasks
+        .filter((t) => t.store)
+        .map((t) => [t.store!.id, t.store!])
+    ).values()
+  );
+  const verifiedCount = tasks.filter((t) => t.is_verified).length;
+
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      className="flex items-center justify-between gap-4 p-4 rounded-lg border text-left hover:bg-accent transition-colors cursor-pointer"
+    >
+      <div className="flex-1 min-w-0 space-y-1">
+        <p className="font-semibold text-base leading-tight">{spv}</p>
+        {tasks[0]?.team && (
+          <p className="text-xs text-muted-foreground">Tim: {tasks[0].team.name}</p>
+        )}
+        {stores.length > 0 && (
+          <p className="text-xs text-muted-foreground truncate">
+            🎯 {stores.map((s) => s.branch_code ? `${s.name} (${s.branch_code})` : s.name).join(', ')}
+          </p>
+        )}
+      </div>
+      <div className="flex items-center gap-3 shrink-0">
+        <Badge variant="outline" className="text-xs">
+          {verifiedCount}/{tasks.length} selesai
+        </Badge>
+        <span className="text-xs text-primary font-medium">Lihat task →</span>
+      </div>
+    </button>
+  );
+}
+
 export default function HrKpiDashboard({
   selectedDate,
   dateScore,
@@ -144,7 +182,7 @@ export default function HrKpiDashboard({
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [selectedKanbanTaskId, setSelectedKanbanTaskId] = useState<string | null>(null);
   const [kanbanModalOpen, setKanbanModalOpen] = useState(false);
-  const [selectedSpv, setSelectedSpv] = useState<string | null>(null);
+  const [selectedGroup, setSelectedGroup] = useState<{ title: string; tasks: Task[] } | null>(null);
 
   const { auth } = usePage().props as any;
   const isAdminRole = auth.roles?.includes('admin') || auth.roles?.includes('superadmin');
@@ -165,19 +203,26 @@ export default function HrKpiDashboard({
     {} as Record<string, Task[]>
   );
 
+  const groupBySpv = (tasks: Task[]) =>
+    tasks.reduce(
+      (acc, task) => {
+        const spv = task.creator?.name ?? 'Tanpa SPV';
+        if (!acc[spv]) {
+          acc[spv] = [];
+        }
+        acc[spv].push(task);
+        return acc;
+      },
+      {} as Record<string, Task[]>
+    );
+
   const groupedSpvKanban = useMemo(
-    () =>
-      spvKanbanTasks.reduce(
-        (acc, task) => {
-          const spv = task.creator?.name ?? 'Tanpa SPV';
-          if (!acc[spv]) {
-            acc[spv] = [];
-          }
-          acc[spv].push(task);
-          return acc;
-        },
-        {} as Record<string, Task[]>
-      ),
+    () => groupBySpv(spvKanbanTasks.filter((t) => !t.is_kanban_task)),
+    [spvKanbanTasks]
+  );
+
+  const groupedTeamKanban = useMemo(
+    () => groupBySpv(spvKanbanTasks.filter((t) => t.is_kanban_task)),
     [spvKanbanTasks]
   );
 
@@ -382,52 +427,33 @@ export default function HrKpiDashboard({
           </Card>
         )}
 
-        {/* SPV Kanban Tasks (Manager Only) */}
-        {spvKanbanTasks.length > 0 && (
+        {/* SPV Kanban Tasks — KPI-generated (Manager Only) */}
+        {Object.keys(groupedSpvKanban).length > 0 && (
           <Card>
             <CardHeader>
-              <CardTitle>Task SPV Kanban ({spvKanbanTasks.length})</CardTitle>
+              <CardTitle>Task KPI SPV ({spvKanbanTasks.filter((t) => !t.is_kanban_task).length})</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex flex-col gap-3">
-                {Object.entries(groupedSpvKanban).map(([spv, tasks]) => {
-                  const stores = Array.from(
-                    new Map(
-                      tasks
-                        .filter((t) => t.store)
-                        .map((t) => [t.store!.id, t.store!])
-                    ).values()
-                  );
+                {Object.entries(groupedSpvKanban).map(([spv, tasks]) => (
+                  <SpvGroupCard key={spv} spv={spv} tasks={tasks} onOpen={() => setSelectedGroup({ title: spv, tasks })} />
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
-                  const verifiedCount = tasks.filter((t) => t.is_verified).length;
-
-                  return (
-                    <button
-                      key={spv}
-                      type="button"
-                      onClick={() => setSelectedSpv(spv)}
-                      className="flex items-center justify-between gap-4 p-4 rounded-lg border text-left hover:bg-accent transition-colors cursor-pointer"
-                    >
-                      <div className="flex-1 min-w-0 space-y-1">
-                        <p className="font-semibold text-base leading-tight">{spv}</p>
-                        {tasks[0]?.team && (
-                          <p className="text-xs text-muted-foreground">Tim: {tasks[0].team.name}</p>
-                        )}
-                        {stores.length > 0 && (
-                          <p className="text-xs text-muted-foreground truncate">
-                            🎯 {stores.map((s) => s.branch_code ? `${s.name} (${s.branch_code})` : s.name).join(', ')}
-                          </p>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-3 shrink-0">
-                        <Badge variant="outline" className="text-xs">
-                          {verifiedCount}/{tasks.length} selesai
-                        </Badge>
-                        <span className="text-xs text-primary font-medium">Lihat task →</span>
-                      </div>
-                    </button>
-                  );
-                })}
+        {/* Team Kanban Tasks — created from Teams page (definition null) */}
+        {Object.keys(groupedTeamKanban).length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Task Kanban Teams ({spvKanbanTasks.filter((t) => t.is_kanban_task).length})</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col gap-3">
+                {Object.entries(groupedTeamKanban).map(([spv, tasks]) => (
+                  <SpvGroupCard key={spv} spv={spv} tasks={tasks} onOpen={() => setSelectedGroup({ title: spv, tasks })} />
+                ))}
               </div>
             </CardContent>
           </Card>
@@ -527,17 +553,17 @@ export default function HrKpiDashboard({
         readOnly={isAdminUser}
       />
 
-      <Dialog open={selectedSpv !== null} onOpenChange={(open) => !open && setSelectedSpv(null)}>
+      <Dialog open={selectedGroup !== null} onOpenChange={(open) => !open && setSelectedGroup(null)}>
         <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{selectedSpv}</DialogTitle>
-            {selectedSpv && groupedSpvKanban[selectedSpv]?.[0]?.team && (
+            <DialogTitle>{selectedGroup?.title}</DialogTitle>
+            {selectedGroup?.tasks[0]?.team && (
               <DialogDescription>
-                Tim: {groupedSpvKanban[selectedSpv][0].team!.name}
+                Tim: {selectedGroup.tasks[0].team!.name}
                 {(() => {
                   const stores = Array.from(
                     new Map(
-                      (groupedSpvKanban[selectedSpv] ?? [])
+                      selectedGroup.tasks
                         .filter((t) => t.store)
                         .map((t) => [t.store!.id, t.store!])
                     ).values()
@@ -550,7 +576,7 @@ export default function HrKpiDashboard({
             )}
           </DialogHeader>
           <div className="flex flex-col gap-3">
-            {(selectedSpv ? groupedSpvKanban[selectedSpv] ?? [] : []).map((task) => (
+            {(selectedGroup?.tasks ?? []).map((task) => (
               <div
                 key={task.id}
                 onClick={() => {
