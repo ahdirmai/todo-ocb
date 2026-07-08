@@ -44,7 +44,7 @@ class CommentController extends Controller
         try {
             DB::transaction(function () use ($task, $request, $validated): void {
                 $comment = $task->comments()->create([
-                    'user_id' => $request->user()?->id,
+                    'user_id' => $request->user()?->id ?? $task->creator_id,
                     'content' => $validated['content'],
                     'parent_id' => $validated['parent_id'] ?? null,
                     'document_sop_step_id' => $validated['document_sop_step_id'] ?? null,

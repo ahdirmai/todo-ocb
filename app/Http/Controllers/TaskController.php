@@ -119,6 +119,7 @@ class TaskController extends Controller
         $task->load(['tags', 'media', 'assignees', 'creator']);
 
         $commentsQuery = $task->comments()
+            ->whereNotNull('user_id')
             ->with([
                 'user',
                 'media',
@@ -132,6 +133,7 @@ class TaskController extends Controller
         // Eager-load replies for loaded comments
         $commentIds = $paginatedComments->pluck('id')->all();
         $replies = Comment::whereIn('parent_id', $commentIds)
+            ->whereNotNull('user_id')
             ->with([
                 'user',
                 'media',

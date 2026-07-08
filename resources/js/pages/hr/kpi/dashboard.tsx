@@ -134,7 +134,6 @@ export default function HrKpiDashboard({
   isReportMember,
   reportProgress,
   reportThreshold,
-  isManager,
 }: Props) {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [selectedKanbanTaskId, setSelectedKanbanTaskId] = useState<string | null>(null);
@@ -149,10 +148,11 @@ export default function HrKpiDashboard({
 
   const groupedTasks = dateTasks.reduce(
     (acc, task) => {
-      if (!acc[task.category]) {
-        acc[task.category] = [];
+      const owner = task.creator?.name ?? 'Tanpa Pemilik';
+      if (!acc[owner]) {
+        acc[owner] = [];
       }
-      acc[task.category].push(task);
+      acc[owner].push(task);
       return acc;
     },
     {} as Record<string, Task[]>
@@ -450,9 +450,15 @@ export default function HrKpiDashboard({
           </CardHeader>
           <CardContent>
             <div className="space-y-6">
-              {Object.entries(groupedTasks).map(([category, tasks]) => (
-                <div key={category} className="space-y-3">
-                  <h3 className="font-semibold text-lg border-b pb-2">{category}</h3>
+              {Object.entries(groupedTasks).map(([owner, tasks]) => (
+                <div key={owner} className="space-y-3">
+                  <h3 className="font-semibold text-lg border-b pb-2">
+                    {owner}
+                    {tasks[0]?.team && (
+                      <span className="text-muted-foreground font-normal"> • {tasks[0].team.name}</span>
+                    )}
+                    <span className="text-muted-foreground font-normal text-sm"> ({tasks.length})</span>
+                  </h3>
                   <div className="space-y-2">
                     {tasks.map((task) => (
                       <div
@@ -471,9 +477,9 @@ export default function HrKpiDashboard({
                           <div className="flex items-start justify-between gap-2 md:gap-4">
                             <div className="flex-1">
                               <p className="font-medium">{task.task_name}</p>
-                              {isManager && task.creator && (
+                              {task.category && (
                                 <p className="text-xs text-muted-foreground mt-0.5">
-                                  SPV: {task.creator.name} {task.team && `• ${task.team.name}`}
+                                  {task.category}
                                 </p>
                               )}
                             </div>

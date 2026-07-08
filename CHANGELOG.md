@@ -113,6 +113,12 @@ All notable changes to this project will be documented in this file.
   - Fix utama di `resources/js/components/camera-capture.tsx`: stream dipindah ke `streamRef` (`useRef`), callback `stopCamera` jadi stabil, dan `useEffect` deps cukup `[open]` saja (tidak lagi bergantung pada `startCamera`/`stopCamera`)
   - Stop/start sekarang membersihkan `streamRef.current` dan `videoRef.current.srcObject` agar browser benar-benar melepas akses kamera saat modal ditutup
   - Tambahan guard `startingRef` di `startCamera` untuk mencegah `getUserMedia` dipanggil dua kali paralel (mis. klik "Coba Lagi" berulang)
+- **Komentar & Task Tanpa Pemilik (User Terhapus)**: Saat user dihapus, FK `ON DELETE SET NULL` pada `comments.user_id` dan `tasks.creator_id` membuat komentar/task yatim (null owner) yang memicu `Attempt to read property "name" on null` di KPI dashboard
+  - Root cause: 387 komentar dan sejumlah task KPI kehilangan pemilik setelah user penulisnya dihapus; renderer mengakses `->user->name` / `->creator->name` tanpa guard null
+  - Store komentar (`CommentController::store`) kini fallback `user_id` ke `task->creator_id` bila requester tak teridentifikasi
+  - Query display meng-exclude data yatim: komentar `whereNotNull('user_id')` (eager-load di `KpiDashboardController`, query di `TaskController` untuk komentar + reply) dan task `whereNotNull('creator_id')` (`spvKanbanTasks`, `todayTasks`) — `comment_count`/`has_media` ikut konsisten karena diturunkan dari koleksi terfilter
+  - Backfill sekali jalan: 1 komentar dipulihkan dari `task.creator_id`; 386 sisanya tak terpulihkan (creator task juga terhapus)
+- **KPI Dashboard — Grouping Task per Pemilik**: `resources/js/pages/hr/kpi/dashboard.tsx` mengelompokkan "Task Tanggal Ini" berdasarkan `creator.name` (sebelumnya per kategori); kategori dipindah ke label per-task
 
 ### Added
 - **In-App Feedback System**: Two-tier feedback collection — quick feedback + survey per cycle

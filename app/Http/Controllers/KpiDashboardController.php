@@ -116,7 +116,7 @@ class KpiDashboardController extends Controller
         $dateTasksQuery = Task::where('is_kpi_task', true)
             ->where('creator_id', $user->id)
             ->whereDate('created_at', $selectedDate)
-            ->with(['kpiDefinition', 'comments.user', 'comments.media', 'creator:id,name,email', 'team:id,name'])
+            ->with(['kpiDefinition', 'comments' => fn ($q) => $q->whereNotNull('user_id'), 'comments.user', 'comments.media', 'creator:id,name,email', 'team:id,name'])
             ->orderBy('order_position');
 
         if (! $isManager && ! $isGudang && $team) {
@@ -187,9 +187,10 @@ class KpiDashboardController extends Controller
         if ($isManager || $isAdmin) {
             $spvKanbanTasks = Task::join('teams', 'tasks.team_id', '=', 'teams.id')
                 ->where('teams.is_spv_team', true)
+                ->whereNotNull('tasks.creator_id')
                 ->whereDate('tasks.visit_date', $selectedDate)
                 ->select('tasks.*')
-                ->with(['kpiDefinition', 'comments.user', 'comments.media', 'creator:id,name,email', 'team:id,name', 'assignees:id,name,email', 'tags:id,name,color'])
+                ->with(['kpiDefinition', 'comments' => fn ($q) => $q->whereNotNull('user_id'), 'comments.user', 'comments.media', 'creator:id,name,email', 'team:id,name', 'assignees:id,name,email', 'tags:id,name,color'])
                 ->orderBy('order_position')
                 ->get()
                 ->map(function ($task) {
@@ -245,8 +246,8 @@ class KpiDashboardController extends Controller
                             'content' => $comment->content,
                             'created_at' => $comment->created_at->toDateTimeString(),
                             'user' => [
-                                'name' => $comment->user->name,
-                                'email' => $comment->user->email,
+                                'name' => $comment->user?->name ?? 'Unknown',
+                                'email' => $comment->user?->email ?? '',
                             ],
                             'media' => $comment->getMedia('documents')->map(fn ($media) => [
                                 'id' => $media->id,
@@ -409,7 +410,7 @@ class KpiDashboardController extends Controller
             $dateTasks = Task::where('is_kpi_task', true)
                 ->where('creator_id', $targetUser->id)
                 ->whereDate('created_at', $selectedDate)
-                ->with(['kpiDefinition', 'comments.user', 'comments.media', 'creator:id,name,email', 'team:id,name'])
+                ->with(['kpiDefinition', 'comments' => fn ($q) => $q->whereNotNull('user_id'), 'comments.user', 'comments.media', 'creator:id,name,email', 'team:id,name'])
                 ->orderBy('order_position')
                 ->get()
                 ->map(fn ($task) => [
@@ -540,10 +541,12 @@ class KpiDashboardController extends Controller
                 'assignees:id,name,email',
                 'store:id,name,branch_code',
                 'column:id,name',
+                'comments' => fn ($q) => $q->whereNotNull('user_id'),
                 'comments.user',
                 'comments.media',
             ])
             ->where('team_id', $team->id)
+            ->whereNotNull('creator_id')
             ->whereDate('visit_date', $selectedDate)
             ->orderBy('order_position')
             ->get();
