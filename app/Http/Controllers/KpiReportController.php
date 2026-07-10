@@ -47,6 +47,15 @@ class KpiReportController extends Controller
     }
 
     /**
+     * When enabled (via KPI_ALLOW_BACKDATED_REPORT), reports may be submitted
+     * and edited for past dates, not just the current day.
+     */
+    protected function allowBackdatedReport(): bool
+    {
+        return (bool) config('services.kpi.allow_backdated_report', false);
+    }
+
+    /**
      * Resolve a KPI route for an area. Legacy areas (hr/gudang/operational)
      * keep their explicit `{area}.kpi.*` route names; any other valid area
      * falls back to the generic `kpi.area.*` group with the {area} param.
@@ -85,9 +94,14 @@ class KpiReportController extends Controller
 
         // Only today's report can be submitted, and only before the 23:00 WITA
         // cutoff. Past dates are read-only: show the stored report if one exists,
-        // otherwise leave it empty.
-        $pastCutoff = now()->format('H:i') > '23:00';
-        $canSubmit = ! $existingReport && $selectedDate->isToday() && ! $pastCutoff;
+        // otherwise leave it empty. When backdated reporting is enabled, past
+        // dates are submittable too (cutoff only applies to today).
+        $allowBackdated = $this->allowBackdatedReport();
+        $pastCutoff = ! $allowBackdated && now()->format('H:i') > '23:00';
+        $dateAllowed = $allowBackdated
+            ? ! $selectedDate->isFuture()
+            : $selectedDate->isToday();
+        $canSubmit = ! $existingReport && $dateAllowed && ! $pastCutoff;
 
         $area = $this->getPositionArea();
 
@@ -114,8 +128,9 @@ class KpiReportController extends Controller
             abort(403, 'Anda tidak memiliki akses untuk mengedit laporan');
         }
 
-        // Only today's report is editable. Past reports are read-only.
-        if (! $report->report_date->isToday()) {
+        // Only today's report is editable. Past reports are read-only unless
+        // backdated reporting is enabled.
+        if (! $this->allowBackdatedReport() && ! $report->report_date->isToday()) {
             abort(403, 'Laporan hari sebelumnya tidak dapat diubah (read-only).');
         }
 
@@ -148,8 +163,9 @@ class KpiReportController extends Controller
             abort(403, 'Anda tidak memiliki akses untuk mengedit laporan');
         }
 
-        // Only today's report is editable. Past reports are read-only.
-        if (! $report->report_date->isToday()) {
+        // Only today's report is editable. Past reports are read-only unless
+        // backdated reporting is enabled.
+        if (! $this->allowBackdatedReport() && ! $report->report_date->isToday()) {
             abort(403, 'Laporan hari sebelumnya tidak dapat diubah (read-only).');
         }
 
@@ -181,9 +197,11 @@ class KpiReportController extends Controller
         }
 
         $submittedAt = now();
+        $allowBackdated = $this->allowBackdatedReport();
 
-        // Hard cutoff: reports cannot be submitted after 23:00 WITA.
-        if ($submittedAt->format('H:i') > '23:00') {
+        // Hard cutoff: reports cannot be submitted after 23:00 WITA. Skipped
+        // when backdated reporting is enabled.
+        if (! $allowBackdated && $submittedAt->format('H:i') > '23:00') {
             return back()->withErrors([
                 'report_date' => 'Batas pengiriman laporan pukul 23:00 WITA telah lewat.',
             ]);
@@ -197,11 +215,18 @@ class KpiReportController extends Controller
 
         $reportDate = $request->input('report_date', now()->toDateString());
 
-        // Reports may only be submitted for the current day. Past/future dates
-        // are rejected — past reports are read-only, never created after the fact.
-        if ($reportDate !== now()->toDateString()) {
+        // Reports may only be submitted for the current day. When backdated
+        // reporting is enabled, past dates are allowed too (future dates are
+        // always rejected).
+        $isForbiddenDate = $allowBackdated
+            ? $reportDate > now()->toDateString()
+            : $reportDate !== now()->toDateString();
+
+        if ($isForbiddenDate) {
             return back()->withErrors([
-                'report_date' => 'Laporan hanya dapat dikirim untuk hari ini.',
+                'report_date' => $allowBackdated
+                    ? 'Laporan tidak dapat dikirim untuk tanggal yang akan datang.'
+                    : 'Laporan hanya dapat dikirim untuk hari ini.',
             ]);
         }
 
@@ -323,6 +348,7 @@ class KpiReportController extends Controller
         return Inertia::render("{$area}/kpi/reports", [
             'reports' => $reports,
             'canCreate' => ! $isAdmin && $this->canSubmitReports($user),
+            'allowBackdated' => $this->allowBackdatedReport(),
             'reportFields' => $reportFields,
         ]);
     }

@@ -150,7 +150,7 @@ function CommentFileButton({
         <>
             <input
                 type="file"
-                accept="image/*"
+                accept="image/*,video/*"
                 multiple
                 ref={inputRef}
                 onChange={(e) => {

@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- **Backdated Daily Report (opt-in via `KPI_ALLOW_BACKDATED_REPORT`, default `false`)**: When enabled, users can submit and edit daily reports for past dates, not just the current day
+  - `config/services.php` — new `kpi.allow_backdated_report` flag (env `KPI_ALLOW_BACKDATED_REPORT`)
+  - `KpiReportController` — helper `allowBackdatedReport()` gates the today-only checks in `create()`, `edit()`, `update()`, and `submit()`, plus the 23:00 WITA cutoff; past dates become submittable/editable while future dates are always rejected. The 80% KPI-task gate still applies per report date
+  - `KpiDashboardController::index()` — dashboard "Kirim Laporan" button honors the flag (submittable for any non-future date when enabled)
+  - `dynamic-reports-list.tsx` — the report history "Edit" button appears for past-date reports when the flag is on
+  - Tests: backdated submit allowed, future date rejected, past-date create page submittable, past-date edit allowed
 - **AI Compliance Check for KPI Tasks**: When a user submits evidence (comment + photo), the system automatically runs an AI compliance check via OpenAI (`gpt-5.4-nano`) that scores how well the evidence matches the task's work_method and verification_method
   - New columns on `tasks`: `ai_check_status` (null/pending/passed/failed/exhausted), `ai_check_attempts` (0–3), `ai_compliance_score` (70–100 total), `ai_check_feedback`, `ai_checked_at`
   - **Scoring model**: baseline 70 points for having comment + photo, AI adds 0–30 for content relevance. Total 70–100. Passed at total ≥81 (content ≥11)
@@ -115,6 +121,9 @@ All notable changes to this project will be documented in this file.
   - Removed unused `useRef` declarations and related cleanup code
 
 ### Fixed
+- **Upload Galeri — Video Tidak Terdeteksi di File Picker**: Tombol "Upload dari Galeri" hanya mem-`accept="image/*"` sehingga file video ter-grey-out / tak bisa dipilih dari galeri
+  - `kpi-task-modal.tsx` — input file kini selalu `accept="image/*,video/*"` (sebelumnya video hanya diizinkan saat `require_video_upload`); label jadi "Upload dari Galeri (Foto/Video)"
+  - `task-detail-modal.tsx` — input file kanban dari `image/*` jadi `image/*,video/*`
 - **Camera Capture — Kamera Stuck setelah Modal Dibuka**: `CameraCapture` macet tak menampilkan preview karena `useEffect` di-trigger berulang tanpa henti
   - Root cause: callback `stopCamera` punya dependency `[stream]`; setiap kali state `stream` berubah, `stopCamera` jadi identity baru → `useEffect` re-fire → `startCamera` dipanggil lagi → infinite loop pemanggilan `navigator.mediaDevices.getUserMedia` yang membuat kamera tampak hang
   - Fix utama di `resources/js/components/camera-capture.tsx`: stream dipindah ke `streamRef` (`useRef`), callback `stopCamera` jadi stabil, dan `useEffect` deps cukup `[open]` saja (tidak lagi bergantung pada `startCamera`/`stopCamera`)

@@ -483,7 +483,7 @@ export function KpiTaskModal({ task, area, onClose, readOnly = false }: KpiTaskM
                   <>
                     <input
                       type="file"
-                      accept={requiresVideo ? 'image/*,video/*' : 'image/*'}
+                      accept="image/*,video/*"
                       ref={fileInputRef}
                       onChange={handleFileChange}
                       className="hidden"
@@ -495,7 +495,7 @@ export function KpiTaskModal({ task, area, onClose, readOnly = false }: KpiTaskM
                       className="inline-flex h-7 items-center gap-1 rounded-md px-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
                     >
                       <Upload className="h-3.5 w-3.5" />
-                      {requiresVideo ? 'Upload dari Galeri (Foto/Video)' : 'Upload dari Galeri'}
+                      Upload dari Galeri (Foto/Video)
                     </button>
                   </>
                 )}

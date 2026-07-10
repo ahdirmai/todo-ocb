@@ -410,3 +410,101 @@ test('admin can view reports with reportFields', function (): void {
             ->has('reportFields')
         );
 });
+
+test('can submit report for a past date when backdated reporting is enabled', function (): void {
+    config()->set('services.kpi.allow_backdated_report', true);
+
+    $user = makeReportUser('Manager Gudang');
+    seedTemplateFields('Manager Gudang');
+
+    // Verified KPI task created yesterday so the 80% gate passes for that date.
+    $definition = KpiTaskDefinition::factory()->create([
+        'position_id' => $user->position_id,
+        'weight' => 100,
+    ]);
+    Task::factory()->create([
+        'creator_id' => $user->id,
+        'kpi_task_definition_id' => $definition->id,
+        'is_kpi_task' => true,
+        'is_verified' => true,
+        'created_at' => now()->subDay(),
+    ]);
+
+    actingAs($user)
+        ->post('/gudang/kpi/report/submit', [
+            'report_date' => now()->subDay()->toDateString(),
+            'fields' => [
+                'recap' => 'Backdated recap',
+                'action_plan' => 'Backdated plan',
+            ],
+        ])
+        ->assertRedirect()
+        ->assertSessionHasNoErrors();
+
+    expect(KpiDailyReport::where('user_id', $user->id)
+        ->where('report_date', now()->subDay()->toDateString())
+        ->count())->toBe(1);
+});
+
+test('cannot submit report for a future date even when backdated reporting is enabled', function (): void {
+    config()->set('services.kpi.allow_backdated_report', true);
+
+    $user = makeReportUser('Manager Gudang');
+    seedTemplateFields('Manager Gudang');
+
+    actingAs($user)
+        ->post('/gudang/kpi/report/submit', [
+            'report_date' => now()->addDay()->toDateString(),
+            'fields' => [
+                'recap' => 'Future recap',
+                'action_plan' => 'Future plan',
+            ],
+        ])
+        ->assertRedirect()
+        ->assertSessionHasErrors('report_date');
+
+    expect(KpiDailyReport::where('user_id', $user->id)->count())->toBe(0);
+});
+
+test('past date create page is submittable when backdated reporting is enabled', function (): void {
+    config()->set('services.kpi.allow_backdated_report', true);
+
+    $user = makeReportUser('Manager Gudang');
+    seedTemplateFields('Manager Gudang');
+
+    actingAs($user)
+        ->get('/gudang/kpi/report/create?date='.now()->subDay()->toDateString())
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('gudang/kpi/report-form')
+            ->where('canSubmit', true)
+            ->where('isToday', false)
+        );
+});
+
+test('can edit a past-date report when backdated reporting is enabled', function (): void {
+    config()->set('services.kpi.allow_backdated_report', true);
+
+    $user = makeReportUser('Manager Gudang');
+    seedTemplateFields('Manager Gudang');
+
+    $report = KpiDailyReport::create([
+        'user_id' => $user->id,
+        'report_date' => now()->subDay()->toDateString(),
+        'fields' => ['recap' => 'yesterday', 'action_plan' => 'yesterday'],
+        'submitted_at' => now()->subDay(),
+    ]);
+
+    actingAs($user)
+        ->get("/gudang/kpi/report/{$report->id}/edit")
+        ->assertOk();
+
+    actingAs($user)
+        ->put("/gudang/kpi/report/{$report->id}", [
+            'fields' => ['recap' => 'edited', 'action_plan' => 'edited'],
+        ])
+        ->assertRedirect()
+        ->assertSessionHasNoErrors();
+
+    expect($report->fresh()->fields['recap'])->toBe('edited');
+});

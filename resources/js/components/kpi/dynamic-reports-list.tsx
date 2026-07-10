@@ -36,6 +36,7 @@ export interface ReportsPageProps {
     total: number;
   };
   canCreate: boolean;
+  allowBackdated?: boolean;
   reportFields: ReportField[];
 }
 
@@ -43,7 +44,7 @@ interface Props extends ReportsPageProps {
   area: 'hr' | 'operational' | 'gudang' | 'spv';
 }
 
-export default function DynamicReportsList({ reports, canCreate, reportFields, area }: Props) {
+export default function DynamicReportsList({ reports, canCreate, allowBackdated = false, reportFields, area }: Props) {
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
 
   const areaLabel = {
@@ -119,7 +120,7 @@ export default function DynamicReportsList({ reports, canCreate, reportFields, a
                       </p>
                     </div>
                     <div className="flex gap-2">
-                      {canCreate && report.report_date.slice(0, 10) === new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Makassar' }) && (
+                      {canCreate && (allowBackdated || report.report_date.slice(0, 10) === new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Makassar' })) && (
                         <Link href={`/${area}/kpi/report/${report.id}/edit`}>
                           <Button variant="outline" size="sm">
                             <Pencil className="mr-2 h-4 w-4" />

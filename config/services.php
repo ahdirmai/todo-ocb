@@ -66,4 +66,8 @@ return [
         'model' => env('NINE_ROUTE_MODEL', 'sumopod/gpt-5.1'),
     ],
 
+    'kpi' => [
+        'allow_backdated_report' => env('KPI_ALLOW_BACKDATED_REPORT', false),
+    ],
+
 ];

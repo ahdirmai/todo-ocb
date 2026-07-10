@@ -320,8 +320,12 @@ class KpiDashboardController extends Controller
         $meetsProgressGate = $positionHasKpi
             ? ($hasTasksForDate && $reportProgress >= $reportThreshold)
             : true;
+        $allowBackdatedReport = (bool) config('services.kpi.allow_backdated_report', false);
+        $reportDateAllowed = $allowBackdatedReport
+            ? ! Carbon::parse($selectedDate)->isFuture()
+            : Carbon::parse($selectedDate)->isToday();
         $canSubmitReport = $isReportMember
-            && Carbon::parse($selectedDate)->isToday()
+            && $reportDateAllowed
             && $meetsProgressGate;
 
         // SPV users need their assigned stores for the store-selection modal

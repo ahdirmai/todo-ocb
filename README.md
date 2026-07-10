@@ -41,6 +41,7 @@ Laravel-based task management system with advanced KPI tracking, position-based 
 - **Visit Destination (Tujuan Kunjungan)**: SPV daily tasks display the visit destination store (branch code + name); the SPV dashboard shows a prominent "Tujuan Kunjungan" banner on the Daily Task card
 - **Manager SPV Kanban — Grouped per SPV**: The HR and Operational dashboards group the SPV panel into compact one-per-row cards per SPV (name, team, destination, `verified/total` badge); clicking a card opens a modal listing that SPV's tasks, and clicking a task opens the full detail modal
 - **KPI vs Teams Task Split**: The manager SPV panel is split into two cards by task origin — "Task KPI SPV" (generated from KPI definitions) and "Task Kanban Teams" (created manually from the Teams page, `kpi_task_definition_id` null)
+- **Backdated Daily Report**: Opt-in via `KPI_ALLOW_BACKDATED_REPORT` (default `false`). When enabled, users may submit and edit daily reports for past dates (future dates always rejected; the 80% KPI-task gate still applies per date)
 - **CEO Monitoring Area**: Executive dashboard for superadmin — daily scores, per-user drill-down, SPV task monitoring with clickable task detail modal (comments + files with thumbnails), critical alerts
 - **Dashboard Analytics**: Real-time score cards, trends, and category breakdowns
 - **Agent API**: Public endpoint at `GET /api/reports/daily-manager` for fetching daily manager reports (submitted + pending) for H-1, with per-position field templates and KPI task details
