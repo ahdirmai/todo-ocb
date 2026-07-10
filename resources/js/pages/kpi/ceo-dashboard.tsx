@@ -373,7 +373,7 @@ export default function KpiCeoDashboard({
                                 <div className="flex items-center justify-between p-3 bg-orange-50 rounded-lg">
                                     <div>
                                         <p className="font-semibold text-orange-800 text-sm">Laporan Terlambat</p>
-                                        <p className="text-sm text-orange-600">Dikirim setelah 22:30 WITA</p>
+                                        <p className="text-sm text-orange-600">Dikirim setelah 23:30 WITA</p>
                                     </div>
                                     <Badge className="bg-orange-600">{lateReports.length}</Badge>
                                 </div>

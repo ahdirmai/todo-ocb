@@ -92,12 +92,12 @@ class KpiReportController extends Controller
             ->where('report_date', $selectedDate->toDateString())
             ->first();
 
-        // Only today's report can be submitted, and only before the 23:00 WITA
+        // Only today's report can be submitted, and only before the 23:30 WITA
         // cutoff. Past dates are read-only: show the stored report if one exists,
         // otherwise leave it empty. When backdated reporting is enabled, past
         // dates are submittable too (cutoff only applies to today).
         $allowBackdated = $this->allowBackdatedReport();
-        $pastCutoff = ! $allowBackdated && now()->format('H:i') > '23:00';
+        $pastCutoff = ! $allowBackdated && now()->format('H:i') > '23:30';
         $dateAllowed = $allowBackdated
             ? ! $selectedDate->isFuture()
             : $selectedDate->isToday();
@@ -174,7 +174,7 @@ class KpiReportController extends Controller
         $validated = $request->validate($rules);
 
         $submittedAt = now();
-        $isLate = $submittedAt->format('H:i') > '22:30';
+        $isLate = $submittedAt->format('H:i') > '23:30';
 
         $report->update([
             'fields' => $validated['fields'] ?? [],
@@ -199,11 +199,11 @@ class KpiReportController extends Controller
         $submittedAt = now();
         $allowBackdated = $this->allowBackdatedReport();
 
-        // Hard cutoff: reports cannot be submitted after 23:00 WITA. Skipped
+        // Hard cutoff: reports cannot be submitted after 23:30 WITA. Skipped
         // when backdated reporting is enabled.
-        if (! $allowBackdated && $submittedAt->format('H:i') > '23:00') {
+        if (! $allowBackdated && $submittedAt->format('H:i') > '23:30') {
             return back()->withErrors([
-                'report_date' => 'Batas pengiriman laporan pukul 23:00 WITA telah lewat.',
+                'report_date' => 'Batas pengiriman laporan pukul 23:30 WITA telah lewat.',
             ]);
         }
 
@@ -211,7 +211,7 @@ class KpiReportController extends Controller
         $rules = $this->reportingService->buildValidationRules($templateFields);
         $validated = $request->validate($rules);
 
-        $isLate = $submittedAt->format('H:i') > '22:30';
+        $isLate = $submittedAt->format('H:i') > '23:30';
 
         $reportDate = $request->input('report_date', now()->toDateString());
 
@@ -283,7 +283,7 @@ class KpiReportController extends Controller
         }
 
         $message = $isLate
-            ? 'Laporan berhasil dikirim (TERLAMBAT - lewat 22:30 WITA)'
+            ? 'Laporan berhasil dikirim (TERLAMBAT - lewat 23:30 WITA)'
             : 'Laporan berhasil dikirim ke CEO';
 
         $area = $this->getPositionArea();

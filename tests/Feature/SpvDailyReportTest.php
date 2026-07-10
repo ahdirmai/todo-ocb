@@ -188,8 +188,8 @@ test('dashboard hides report button when kpi tasks not generated', function (): 
         );
 });
 
-test('report submitted after 23:00 WITA cutoff is rejected', function (): void {
-    $this->travelTo(now()->setTime(23, 1));
+test('report submitted after 23:30 WITA cutoff is rejected', function (): void {
+    $this->travelTo(now()->setTime(23, 31));
     $user = makeIsolatedSpvUser();
     satisfyReportGate($user); // isolate cutoff: gate is satisfied
 
@@ -203,8 +203,8 @@ test('report submitted after 23:00 WITA cutoff is rejected', function (): void {
     expect(KpiDailyReport::where('user_id', $user->id)->exists())->toBeFalse();
 });
 
-test('report submitted exactly at 23:00 WITA is still accepted', function (): void {
-    $this->travelTo(now()->setTime(23, 0));
+test('report submitted exactly at 23:30 WITA is still accepted', function (): void {
+    $this->travelTo(now()->setTime(23, 30));
     $user = makeIsolatedSpvUser();
     satisfyReportGate($user);
 

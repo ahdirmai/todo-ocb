@@ -122,7 +122,7 @@ export default function KpiCeoAlerts({ gradeDAlerts, lateReports, missingReports
                         </CardHeader>
                         <CardContent>
                             <div className="text-3xl font-bold text-orange-600">{lateReports.length}</div>
-                            <p className="text-xs text-orange-600 mt-1">Setelah 22:30 WITA</p>
+                            <p className="text-xs text-orange-600 mt-1">Setelah 23:30 WITA</p>
                         </CardContent>
                     </Card>
 
@@ -134,7 +134,7 @@ export default function KpiCeoAlerts({ gradeDAlerts, lateReports, missingReports
                         </CardHeader>
                         <CardContent>
                             <div className="text-3xl font-bold text-yellow-600">{missingReports.length}</div>
-                            <p className="text-xs text-yellow-600 mt-1">Deadline 22:30 WITA</p>
+                            <p className="text-xs text-yellow-600 mt-1">Deadline 23:30 WITA</p>
                         </CardContent>
                     </Card>
                 </div>
@@ -212,7 +212,7 @@ export default function KpiCeoAlerts({ gradeDAlerts, lateReports, missingReports
                                             <p className="text-sm text-muted-foreground">{report.user.email}</p>
                                         </div>
                                         <div className="text-right">
-                                            <Badge className="bg-orange-600">Lewat 22:30 WITA</Badge>
+                                            <Badge className="bg-orange-600">Lewat 23:30 WITA</Badge>
                                             <p className="text-xs text-muted-foreground mt-1">
                                                 {new Date(report.submitted_at).toLocaleTimeString('id-ID', {
                                                     hour: '2-digit',
@@ -256,7 +256,7 @@ export default function KpiCeoAlerts({ gradeDAlerts, lateReports, missingReports
                             </div>
                             <div className="mt-4 p-4 bg-yellow-100 border border-yellow-300 rounded-lg">
                                 <p className="text-sm text-yellow-800">
-                                    Reminder: Laporan harus dikirim sebelum 22:30 WITA setiap hari
+                                    Reminder: Laporan harus dikirim sebelum 23:30 WITA setiap hari
                                 </p>
                             </div>
                         </CardContent>

@@ -120,6 +120,12 @@ All notable changes to this project will be documented in this file.
   - All 7 file inputs replaced with `CameraCapture` components
   - Removed unused `useRef` declarations and related cleanup code
 
+### Changed
+- **Deadline Laporan Harian — 23:30 WITA**: Batas kirim laporan dinaikkan dari 23:00 (hard cutoff) dan penanda TERLAMBAT dari 22:30 menjadi 23:30 WITA untuk keduanya
+  - `KpiReportController` — hard cutoff `create()`/`submit()` dan penanda `is_late` di `submit()`/`update()` kini pakai `23:30`
+  - FE label deadline: `dynamic-report-form.tsx`, `ceo-alerts.tsx`, `ceo-dashboard.tsx`, `gudang/kpi/dashboard.tsx`
+  - Tests cutoff (`SpvDailyReportTest`) disesuaikan ke boundary 23:30
+
 ### Fixed
 - **Upload Galeri — Video Tidak Terdeteksi di File Picker**: Tombol "Upload dari Galeri" hanya mem-`accept="image/*"` sehingga file video ter-grey-out / tak bisa dipilih dari galeri
   - `kpi-task-modal.tsx` — input file kini selalu `accept="image/*,video/*"` (sebelumnya video hanya diizinkan saat `require_video_upload`); label jadi "Upload dari Galeri (Foto/Video)"

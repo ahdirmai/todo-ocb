@@ -100,7 +100,7 @@ const POSITION_PROFILES: Record<string, { title: string; description: string; fo
   'Manager Gudang': {
     title: 'Manager Gudang (Pengawas)',
     description: 'Pengawasan 5 divisi gudang (BJB, BJM, Gesekan, ACC, Kurir) + tugas operasional pribadi.',
-    focus: 'Deadline kritis: rekap harian & lapor ke CEO maks. 22.30 WITA',
+    focus: 'Deadline kritis: rekap harian & lapor ke CEO maks. 23.30 WITA',
   },
   'Gudang BJB': {
     title: 'Divisi A — Gudang BJB (Banjarbaru)',

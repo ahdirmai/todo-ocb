@@ -285,7 +285,7 @@ export default function DynamicReportForm({
               {isEditing ? `Edit Laporan CEO` : `Laporan Harian CEO`}
             </h1>
             <p className="text-muted-foreground">
-              Deadline: 22:30 WITA — Waktu Saat Ini: {currentTime} WITA
+              Deadline: 23:30 WITA — Waktu Saat Ini: {currentTime} WITA
             </p>
           </div>
           {!isEditing && (
@@ -311,7 +311,7 @@ export default function DynamicReportForm({
           <Alert variant="destructive">
             <Clock className="h-4 w-4" />
             <AlertDescription>
-              Mendekati deadline! Kirim laporan sebelum 22:30 WITA untuk menghindari status terlambat.
+              Mendekati deadline! Kirim laporan sebelum 23:30 WITA untuk menghindari status terlambat.
             </AlertDescription>
           </Alert>
         )}
