@@ -435,8 +435,8 @@ export function KpiTaskModal({ task, area, onClose, readOnly = false }: KpiTaskM
             </div>
           )}
 
-          {/* Upload Evidence Section */}
-          {!task.is_verified && !readOnly && !aiLocked && (
+          {/* Upload Evidence Section — always visible for editing, even after verification */}
+          {!readOnly && !aiLocked && (
             <div className="border-t pt-6">
               <h3 className="font-semibold mb-4">
                 {task.comments.length > 0 ? 'Upload Bukti Tambahan' : 'Upload Bukti Penyelesaian'}

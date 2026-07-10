@@ -121,6 +121,8 @@ All notable changes to this project will be documented in this file.
   - Removed unused `useRef` declarations and related cleanup code
 
 ### Changed
+- **KPI Task Modal — Comment Form Tetap Muncul Setelah Verifikasi**: Form komentar/bukti di modal task kini tetap tampil meskipun task sudah terverifikasi, sehingga user bisa menambah komentar/bukti kapan saja (sebelumnya form hilang saat `is_verified=true`)
+  - `kpi-task-modal.tsx` — upload section gate diubah dari `!task.is_verified && !readOnly && !aiLocked` menjadi `!readOnly && !aiLocked`
 - **SPV Dashboard — Nav Laporan Harian & Riwayat**: Tab "Laporan Harian" (`report/create`) dan "Riwayat" (`reports`) kini muncul di navbar KPI area SPV — sebelumnya kedua tab `onlyForManagers` + `supportedAreas` tanpa `spv` sehingga SPV tak punya akses ke halaman laporannya walau route + page sudah ada (`kpi-layout.tsx`)
 - **Hapus Task Definition — Soft-Deactivate saat Ada Task**: Definition yang sudah punya task ter-generate kini dinonaktifkan (`is_active=false`) alih-alih ditolak keras; task/komentar/skor lama tetap utuh, definition nonaktif hilang dari daftar admin dan dilewati saat generate
   - `KpiAdminController::destroyDefinition` — soft-deactivate bila `tasks()->exists()`, hard delete bila tak ada task
