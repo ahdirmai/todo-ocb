@@ -121,6 +121,11 @@ All notable changes to this project will be documented in this file.
   - Removed unused `useRef` declarations and related cleanup code
 
 ### Changed
+- **SPV Dashboard — Nav Laporan Harian & Riwayat**: Tab "Laporan Harian" (`report/create`) dan "Riwayat" (`reports`) kini muncul di navbar KPI area SPV — sebelumnya kedua tab `onlyForManagers` + `supportedAreas` tanpa `spv` sehingga SPV tak punya akses ke halaman laporannya walau route + page sudah ada (`kpi-layout.tsx`)
+- **Hapus Task Definition — Soft-Deactivate saat Ada Task**: Definition yang sudah punya task ter-generate kini dinonaktifkan (`is_active=false`) alih-alih ditolak keras; task/komentar/skor lama tetap utuh, definition nonaktif hilang dari daftar admin dan dilewati saat generate
+  - `KpiAdminController::destroyDefinition` — soft-deactivate bila `tasks()->exists()`, hard delete bila tak ada task
+  - `KpiAdminController::definitions` — list difilter `is_active=true`
+  - `definitions.tsx` — tambah `onError` alert agar pesan gagal-hapus tampil (sebelumnya senyap)
 - **Deadline Laporan Harian — 23:30 WITA**: Batas kirim laporan dinaikkan dari 23:00 (hard cutoff) dan penanda TERLAMBAT dari 22:30 menjadi 23:30 WITA untuk keduanya
   - `KpiReportController` — hard cutoff `create()`/`submit()` dan penanda `is_late` di `submit()`/`update()` kini pakai `23:30`
   - FE label deadline: `dynamic-report-form.tsx`, `ceo-alerts.tsx`, `ceo-dashboard.tsx`, `gudang/kpi/dashboard.tsx`

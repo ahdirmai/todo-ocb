@@ -69,12 +69,26 @@ export default function KpiLayout({ children, area }: KpiLayoutProps) {
       supportedAreas: ['hr', 'operational', 'gudang'],
     },
     {
+      label: 'Laporan Harian',
+      icon: FileText,
+      href: `${kpiUrl}/report/create`,
+      active: url.startsWith(`${kpiUrl}/report/create`),
+      supportedAreas: ['spv'],
+    },
+    {
       label: 'Riwayat',
       icon: ClipboardList,
       href: `${kpiUrl}/reports`,
       active: url === `${kpiUrl}/reports`,
       onlyForManagers: true,
       supportedAreas: ['hr', 'operational', 'gudang'],
+    },
+    {
+      label: 'Riwayat',
+      icon: ClipboardList,
+      href: `${kpiUrl}/reports`,
+      active: url === `${kpiUrl}/reports`,
+      supportedAreas: ['spv'],
     },
   ];
 

@@ -16,7 +16,7 @@ class KpiAdminController extends Controller
 {
     public function definitions(): Response
     {
-        $positions = Position::with(['kpiDefinitions' => fn ($q) => $q->orderBy('sequence_order')])
+        $positions = Position::with(['kpiDefinitions' => fn ($q) => $q->where('is_active', true)->orderBy('sequence_order')])
             ->orderBy('name')
             ->get();
 
@@ -102,10 +102,13 @@ class KpiAdminController extends Controller
 
     public function destroyDefinition(KpiTaskDefinition $definition): RedirectResponse
     {
-        $tasksCount = $definition->tasks()->count();
+        // Definitions with generated tasks are soft-deactivated instead of hard
+        // deleted so existing tasks, comments, and scores stay intact. Inactive
+        // definitions are excluded from task generation and the admin list.
+        if ($definition->tasks()->exists()) {
+            $definition->update(['is_active' => false]);
 
-        if ($tasksCount > 0) {
-            return back()->withErrors(['error' => "Tidak dapat menghapus. {$tasksCount} tasks sudah dibuat dari definition ini."]);
+            return back()->with('success', 'Task definition dinonaktifkan (masih ada task lama yang memakainya).');
         }
 
         $definition->delete();

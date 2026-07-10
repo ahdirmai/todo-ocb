@@ -172,6 +172,9 @@ export default function KpiAdminDefinitions({ positions }: Props) {
     }
     router.delete(KpiAdminDefinitionsActions.destroy.url({ definition: task.id }), {
       preserveScroll: true,
+      onError: (errors) => {
+        alert(errors.error ?? 'Gagal menghapus task definition.');
+      },
     });
   };
 
