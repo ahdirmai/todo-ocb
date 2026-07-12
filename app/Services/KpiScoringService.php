@@ -282,18 +282,27 @@ class KpiScoringService
 
     public function verifyTaskEvidence(Task $task): string
     {
-        $commentCount = $task->comments()->count();
-        $hasMedia = $task->comments()->whereHas('media')->exists();
+        if ($task->comments()->count() === 0) {
+            return 'none'; // No comment = 0% weight
+        }
 
-        if ($commentCount > 0 && $hasMedia) {
+        // A media attachment is only required when the definition demands photos
+        // or a video. Tasks that require neither reach full weight on a comment
+        // alone. Tasks without a definition keep the legacy media requirement.
+        $definition = $task->kpiDefinition;
+        $requiresMedia = $definition
+            ? ((int) ($definition->minimum_photos ?? 0) > 0 || $definition->require_video_upload)
+            : true;
+
+        if (! $requiresMedia) {
+            return 'full'; // Comment alone is sufficient = 100% weight
+        }
+
+        if ($task->comments()->whereHas('media')->exists()) {
             return 'full'; // Comment + attachment = 100% weight
         }
 
-        if ($commentCount > 0) {
-            return 'partial'; // Only comment = 30% weight
-        }
-
-        return 'none'; // No comment = 0% weight
+        return 'partial'; // Comment without required media = 30% weight
     }
 
     /**
