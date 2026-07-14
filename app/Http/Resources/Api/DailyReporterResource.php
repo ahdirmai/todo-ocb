@@ -28,6 +28,11 @@ class DailyReporterResource extends JsonResource
                     ? ['name' => $position->name, 'area_slug' => $position->area_slug]
                     : null,
             ] : null,
+            'store' => $this->store ? [
+                'id' => $this->store->id,
+                'name' => $this->store->name,
+                'branch_code' => $this->store->branch_code,
+            ] : null,
             'fields' => $this->fields ?? [],
             'report_fields' => $this->report_fields ?? [],
             'submitted_at' => $this->submitted_at?->toDateTimeString(),

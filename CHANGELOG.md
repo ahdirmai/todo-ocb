@@ -24,6 +24,7 @@ All notable changes to this project will be documented in this file.
   - `DailyReporterController::index` — scopes reporters via `whereHas('jobPosition.reportFields')` (data-driven) instead of the manager-only scope used by `daily-manager`
   - Returns `reports` (submitted, with field template only — no KPI task details) and `pending` (reporters who have not submitted for the date)
   - Dedicated `DailyReporterResource` (report fields only); reuses `AgentDailyReportRequest`
+  - **SPV Monitored Store**: each `reports` and `pending` row now carries a `store` object (`id`, `name`, `branch_code`) — the store the reporter monitored that day, resolved from their KPI task where `visit_date = report_date` and `store_id` is set; `null` for reporters without a store visit (non-SPV positions). Batch-loaded once (`DailyReporterController::storesForDate`) to avoid an N+1 per row
   - Tests: `tests/Feature/Api/V1/DailyReporterApiTest.php` (includes non-manager reporters, date filter, excludes positions without a template, task inclusion)
 - **`require_video_upload` Flag on KPI Task Definitions**: Tasks flagged here cannot be verified/submitted until a video attachment exists among their comment media
   - New migration: `add_require_video_upload_to_kpi_task_definitions_table` — boolean, default `false`
@@ -134,6 +135,9 @@ All notable changes to this project will be documented in this file.
   - Tests cutoff (`SpvDailyReportTest`) disesuaikan ke boundary 23:30
 
 ### Fixed
+- **Verifikasi Task KPI Tanpa Syarat Foto — Terblokir**: Task dengan definition `minimum_photos = 0` dan tanpa `require_video_upload` tidak bisa terverifikasi walau sudah dikomentari, karena bukti hanya dianggap `full` bila ada lampiran media
+  - Root cause: `KpiScoringService::verifyTaskEvidence()` selalu mensyaratkan media untuk status `full`; komentar-saja mengembalikan `partial` sehingga gate `verifyTask()` (butuh `full`) menolak dan `calculateDailyScore()` tak pernah auto-verify
+  - Fix: `verifyTaskEvidence()` kini sadar-kebutuhan — task yang definisinya tak butuh foto/video mencapai `full` cukup dengan komentar; task yang butuh media tetap wajib lampiran; task tanpa definition mempertahankan syarat media lama
 - **Upload Galeri — Video Tidak Terdeteksi di File Picker**: Tombol "Upload dari Galeri" hanya mem-`accept="image/*"` sehingga file video ter-grey-out / tak bisa dipilih dari galeri
   - `kpi-task-modal.tsx` — input file kini selalu `accept="image/*,video/*"` (sebelumnya video hanya diizinkan saat `require_video_upload`); label jadi "Upload dari Galeri (Foto/Video)"
   - `task-detail-modal.tsx` — input file kanban dari `image/*` jadi `image/*,video/*`

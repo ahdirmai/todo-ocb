@@ -46,7 +46,7 @@ Laravel-based task management system with advanced KPI tracking, position-based 
 - **CEO Monitoring Area**: Executive dashboard for superadmin — daily scores, per-user drill-down, SPV task monitoring with clickable task detail modal (comments + files with thumbnails), critical alerts
 - **Dashboard Analytics**: Real-time score cards, trends, and category breakdowns
 - **Agent API**: Public endpoint at `GET /api/reports/daily-manager` for fetching daily manager reports (submitted + pending) for H-1, with per-position field templates and KPI task details
-- **Daily Reporters API**: Public endpoint at `GET /api/reports/daily-reporters?date=YYYY-MM-DD` returns the daily report feed for every position required to report (any position with a report-field template, not just managers). Returns `reports` (submitted report fields only — no KPI task details) and `pending` (not yet submitted); `date` defaults to yesterday
+- **Daily Reporters API**: Public endpoint at `GET /api/reports/daily-reporters?date=YYYY-MM-DD` returns the daily report feed for every position required to report (any position with a report-field template, not just managers). Returns `reports` (submitted report fields only — no KPI task details) and `pending` (not yet submitted); `date` defaults to yesterday. Each row includes a `store` object (`id`, `name`, `branch_code`) — the store an SPV monitored that day (from their KPI task visit), `null` when there is no store visit
 
 ### Feedback System
 - **Quick Feedback**: Floating button (always visible) for reporting bugs, feature requests, and suggestions
