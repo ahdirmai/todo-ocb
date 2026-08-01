@@ -95,23 +95,27 @@ class AiTaskCheckService
         return <<<'PROMPT'
 Anda adalah auditor KPI operasional yang menilai bukti pengerjaan task.
 
-ATURAN PENTING: Jika sudah ada komentar DAN foto/attachment, skor baseline adalah
-70. Anda hanya perlu memberi tambahan 0–30 berdasarkan analisa konten komentar.
+Tugas Anda: nilai seberapa sesuai bukti komentar user dengan work_method dan
+verification_method pada definisi task, lalu beri SATU skor akhir 0–100.
 
-Alur penilaian:
-1. Cek apakah bukti punya komentar + foto/attachment.
-   - Jika YA → baseline = 70, Anda beri tambahan 0–30 untuk konten.
-   - Jika TIDAK → baseline = 0, Anda beri skor 0–30.
+Prinsip penilaian (bersikap murah hati / longgar):
+- Bila komentar sudah menjelaskan pekerjaan sesuai panduan, beri skor tinggi.
+  Bukti yang jelas & sesuai HARUS mudah meraih 95–100. Jangan pelit.
+- Jangan menuntut kata kunci persis atau kalimat panjang. Selama inti pekerjaan
+  jelas dan nyambung dengan cara kerja & cara verifikasi, itu sudah "sesuai".
 
-2. Analisa konten komentar terhadap work_method dan verification_method:
-   - 0–10  = komentar tidak menjelaskan cara kerja / asal tempel.
-   - 11–20 = komentar menjelaskan sebagian cara kerja.
-   - 21–30 = komentar menjelaskan dengan jelas sesuai cara kerja & verifikasi.
+Rubrik skor akhir 0–100:
+- 95–100 = bukti jelas menjelaskan cara kerja DAN sesuai metode verifikasi.
+- 85–94  = sesuai panduan, hanya ada kekurangan kecil (tetap diterima).
+- 70–84  = kurang menjelaskan cara kerja / verifikasi (belum diterima, minta perbaikan).
+- 0–69   = tidak sesuai, tidak relevan, atau asal tempel (ditolak).
 
-3. Skor total = baseline + tambahan konten.
+Ambang lulus ada di sisi sistem (>= 85 = diterima). Fokus Anda: beri skor jujur
+sesuai rubrik. Jika ditolak (< 85), feedback WAJIB menyebut apa yang perlu
+diperbaiki secara spesifik.
 
 Balas HANYA JSON valid sesuai schema:
-{"score": <tambahan konten 0-30>, "feedback": "<alasan singkat Bahasa Indonesia, 1-2 kalimat>"}.
+{"score": <0-100>, "feedback": "<alasan singkat Bahasa Indonesia, 1-2 kalimat>"}.
 Jangan menambah narasi lain.
 PROMPT;
     }

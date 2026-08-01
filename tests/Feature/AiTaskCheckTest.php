@@ -101,7 +101,22 @@ test('verify dispatches AI job and sets status pending when evidence is complete
 test('verify is blocked without full evidence', function (): void {
     Queue::fake();
     $user = makeAiSpvUser();
-    $task = makeAiTask($user);
+    // Definition requires a photo, so a comment alone is not "full" evidence.
+    $definition = KpiTaskDefinition::factory()->create([
+        'position_id' => $user->position_id,
+        'weight' => 10,
+        'require_video_upload' => false,
+        'minimum_photos' => 1,
+    ]);
+    $team = $user->teams()->where('is_spv_team', true)->first();
+    $task = Task::factory()->create([
+        'team_id' => $team?->id,
+        'creator_id' => $user->id,
+        'kpi_task_definition_id' => $definition->id,
+        'is_kpi_task' => true,
+        'is_verified' => false,
+        'created_at' => now(),
+    ]);
     // Comment only, no media → evidence not full.
     $task->comments()->create(['user_id' => $user->id, 'content' => 'tanpa foto']);
 
@@ -132,7 +147,7 @@ test('job marks task passed and verified when score is high', function (): void 
     attachFullEvidence($task, $user);
 
     $this->mock(AiTaskCheckService::class, function ($mock) {
-        $mock->shouldReceive('scoreCompliance')->once()->andReturn(['score' => 25.0, 'feedback' => 'Sangat sesuai work method & verifikasi']);
+        $mock->shouldReceive('scoreCompliance')->once()->andReturn(['score' => 96.0, 'feedback' => 'Sangat sesuai work method & verifikasi']);
     });
 
     (new CheckTaskComplianceJob($task->id))->handle(
@@ -143,7 +158,27 @@ test('job marks task passed and verified when score is high', function (): void 
     $fresh = $task->fresh();
     expect($fresh->ai_check_status)->toBe('passed')
         ->and($fresh->is_verified)->toBeTrue()
-        ->and((float) $fresh->ai_compliance_score)->toBe(95.0);
+        ->and((float) $fresh->ai_compliance_score)->toBe(96.0);
+});
+
+test('job passes at the exact threshold score of 85', function (): void {
+    $user = makeAiSpvUser();
+    $task = makeAiTask($user, status: 'pending');
+    attachFullEvidence($task, $user);
+
+    $this->mock(AiTaskCheckService::class, function ($mock) {
+        $mock->shouldReceive('scoreCompliance')->once()->andReturn(['score' => 85.0, 'feedback' => 'Sesuai panduan']);
+    });
+
+    (new CheckTaskComplianceJob($task->id))->handle(
+        app(AiTaskCheckService::class),
+        app(KpiScoringService::class),
+    );
+
+    $fresh = $task->fresh();
+    expect($fresh->ai_check_status)->toBe('passed')
+        ->and($fresh->is_verified)->toBeTrue()
+        ->and((float) $fresh->ai_compliance_score)->toBe(85.0);
 });
 
 test('job marks task failed with remaining attempts when score is low', function (): void {
@@ -152,7 +187,7 @@ test('job marks task failed with remaining attempts when score is low', function
     attachFullEvidence($task, $user);
 
     $this->mock(AiTaskCheckService::class, function ($mock) {
-        $mock->shouldReceive('scoreCompliance')->once()->andReturn(['score' => 2.0, 'feedback' => 'Komentar terlalu singkat, tidak menjelaskan cara kerja']);
+        $mock->shouldReceive('scoreCompliance')->once()->andReturn(['score' => 60.0, 'feedback' => 'Komentar terlalu singkat, tidak menjelaskan cara kerja']);
     });
 
     (new CheckTaskComplianceJob($task->id))->handle(
@@ -173,7 +208,7 @@ test('third low-score attempt exhausts and awards partial daily credit', functio
     attachFullEvidence($task, $user);
 
     $this->mock(AiTaskCheckService::class, function ($mock) {
-        $mock->shouldReceive('scoreCompliance')->once()->andReturn(['score' => 3.0, 'feedback' => 'Komentar tidak menjelaskan cara kerja']);
+        $mock->shouldReceive('scoreCompliance')->once()->andReturn(['score' => 60.0, 'feedback' => 'Komentar tidak menjelaskan cara kerja']);
     });
 
     (new CheckTaskComplianceJob($task->id))->handle(
@@ -185,12 +220,12 @@ test('third low-score attempt exhausts and awards partial daily credit', functio
     expect($fresh->ai_check_status)->toBe('exhausted')
         ->and($fresh->is_verified)->toBeFalse();
 
-    // Daily score: partial = total/100 * weight = 73/100 * 10 = 7.3
-    // (70 baseline + 3 AI content =73 total; exhausted gets partial credit)
+    // Daily score: partial = score/100 * weight = 60/100 * 10 = 6.0
+    // (AI returns the final 0–100 score directly; exhausted gets partial credit)
     $score = KpiDailyScore::where('user_id', $user->id)
         ->where('score_date', now()->toDateString())
         ->firstOrFail();
-    expect((float) $score->completed_weight)->toBe(7.3);
+    expect((float) $score->completed_weight)->toBe(6.0);
 });
 
 test('failed result always carries a reason even if AI feedback is empty', function (): void {

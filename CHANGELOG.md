@@ -64,6 +64,12 @@ All notable changes to this project will be documented in this file.
 - **SPV Daily Report Access**: SPV KPI dashboard now has a "Kirim Laporan Harian" button linking to `/spv/kpi/report/create` (was missing; route + fields already existed)
 
 ### Changed
+- **AI Compliance Scoring — Direct 0–100 Model (accept/reject gate, lenient scoring)**: The AI compliance check now returns a single final score 0–100 directly instead of the previous "baseline 70 + AI content 0–30" split. This makes the per-task submit a clean accept/reject gate that is easy to score 100 when the evidence genuinely matches the guidance
+  - `AiTaskCheckService::systemPrompt()` — rewritten to score the final 0–100 with a lenient rubric (95–100 clear & compliant, 85–94 compliant with minor gaps, 70–84 weak, 0–69 not compliant); AI is instructed to be generous so compliant evidence easily reaches 95–100
+  - `CheckTaskComplianceJob` — drops the 70 baseline and 0–30 clamp; uses the AI score directly with `PASS_THRESHOLD = 85`: `≥85` → `passed` (verified, full weight), `<85` → `failed` (resubmit), 3 attempts exhausted → `exhausted` (partial credit = `score/100 × weight`)
+  - `KpiScoringService` unchanged — the `exhausted` branch (`ai_compliance_score/100`) is now naturally proportional across the full 0–100 range
+  - `phpunit.xml` — forces `AI_TASK_CHECK_ENABLED=true` so the AI path is deterministic under test (the local `.env` may set it `false`, which previously left several KPI feature tests failing)
+  - Tests: `AiTaskCheckTest.php` updated for the direct-score model (+ borderline `85 → passed` case); frontend banner needs no change (already reads the score generically)
 - **KPI Dashboard — Pisah Task KPI SPV vs Task Kanban Teams**: Panel SPV di dashboard HR/Operasional kini dipecah dua berdasarkan asal task — task hasil generate KPI (punya `kpi_task_definition_id`) terpisah dari task yang dibuat manual dari halaman Teams (definition null)
   - `KpiDashboardController` — serialisasi flag `is_kanban_task` (`kpi_task_definition_id === null`) pada `spvKanbanTasks`
   - `hr/kpi/dashboard.tsx` + `operational/kpi/dashboard.tsx` — dua Card: "Task KPI SPV" (definition ada) dan "Task Kanban Teams" (definition null); komponen kartu `SpvGroupCard` dipakai bersama, state modal `selectedGroup` terpadu untuk kedua panel

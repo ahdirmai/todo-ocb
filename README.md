@@ -28,7 +28,7 @@ Laravel-based task management system with advanced KPI tracking, position-based 
 ### KPI Evaluation System
 - **Position-Based Tracking**: Separate KPI definitions for Manager HR, Manager Operasional, Gudang, and SPV Unit 1
 - **Weighted Scoring**: Tasks weighted by importance (total 100% per position)
-- **AI Compliance Check**: When evidence is submitted, an AI (OpenAI `gpt-5.4-nano`) scores how well the comment matches the task's work_method and verification_method. Baseline 70 points for having comment + photo, AI adds 0–30 for content relevance. Total 70–100. Passed ≥81. Max 3 attempts; exhausted = partial credit
+- **AI Compliance Check (accept/reject gate)**: When evidence is submitted, an AI (OpenAI, model via `OPENAI_TASK_CHECK_MODEL`) scores how well the comment matches the task's work_method and verification_method and returns a single 0–100 score. Lenient rubric — evidence that genuinely follows the guidance easily reaches 95–100. Passed at **≥85** (`PASS_THRESHOLD`, tunable). Max 3 attempts; exhausted = partial credit (`score/100 × weight`). Requires `AI_TASK_CHECK_ENABLED=true`
 - **Evidence Verification**: Three-tier scoring (100% full evidence, 30% partial, 0% none); AI compliance overrides for tasks with a definition
 - **Camera + Gallery Upload**: Camera capture always available for task evidence; gallery/file upload toggled per task definition via `can_upload_proof` flag
 - **SPV Store-Based Task Generation**: SPV users select an assigned store before generating 34 KPI tasks per store with visit date tracking
@@ -69,7 +69,7 @@ Laravel-based task management system with advanced KPI tracking, position-based 
 
 ## Tech Stack
 
-- **Backend**: Laravel 11, PHP 8.5
+- **Backend**: Laravel 13, PHP 8.4
 - **Frontend**: React 19, TypeScript, Inertia.js v3
 - **Styling**: Tailwind CSS 4
 - **Database**: MySQL/PostgreSQL

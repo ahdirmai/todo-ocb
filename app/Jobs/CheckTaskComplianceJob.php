@@ -20,6 +20,8 @@ class CheckTaskComplianceJob implements ShouldQueue
 
     private const MAX_ATTEMPTS = 3;
 
+    private const PASS_THRESHOLD = 85.0;
+
     public function __construct(public readonly string $taskId) {}
 
     public function handle(AiTaskCheckService $ai, KpiScoringService $scoring): void
@@ -54,27 +56,22 @@ class CheckTaskComplianceJob implements ShouldQueue
             return;
         }
 
-        // AI returns a content-analysis score of 0–30. The final compliance
-        // score adds a 70-point baseline (evidence = comment + photo already
-        // verified as "full") so the effective range is 70–100.
-        $aiContentScore = max(0.0, min(30.0, (float) $result['score']));
-        $totalScore = 70.0 + $aiContentScore;
+        // AI returns a final compliance score of 0–100 directly. Evidence
+        // structure (comment + photo) is already verified as "full" before the
+        // job runs; the AI scores how well the content matches the task's
+        // work_method & verification_method, and is instructed to be lenient so
+        // genuinely compliant evidence easily reaches 95–100.
+        $totalScore = max(0.0, min(100.0, (float) $result['score']));
         $attempts = $task->ai_check_attempts + 1;
 
-        // content >= 11 → total >= 81 → passed
-        // content <6   → total <76  → failed (even max retry won't help)
-        // else          → retry
+        // score >= 85 → accepted (verified, full weight)
+        // score <  85 → rejected; user fixes and resubmits until attempts run out
+        // attempts exhausted without passing → partial credit (score/100 × weight)
         $status = match (true) {
-            $aiContentScore >= 11.0 => 'passed',
-            $aiContentScore < 6.0 && $attempts >= self::MAX_ATTEMPTS => 'exhausted',
+            $totalScore >= self::PASS_THRESHOLD => 'passed',
             $attempts >= self::MAX_ATTEMPTS => 'exhausted',
             default => 'failed',
         };
-
-        // When content <6 but not yet exhausted, still fail so user resubmits.
-        if ($aiContentScore < 6.0 && $status !== 'exhausted') {
-            $status = 'failed';
-        }
 
         // Failed / exhausted results must always carry a reason. If the AI
         // returned an empty feedback, provide a sensible fallback so the user
