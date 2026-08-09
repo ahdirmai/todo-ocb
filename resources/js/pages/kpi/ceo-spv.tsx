@@ -8,9 +8,9 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Textarea } from '@/components/ui/textarea';
 import { CameraCapture } from '@/components/camera-capture';
 import {
-    Camera,
     ChevronLeft,
     ChevronRight,
+    ChevronDown,
     Building2,
     Users,
     CheckCircle2,
@@ -21,7 +21,7 @@ import {
     Loader2,
     Send,
 } from 'lucide-react';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { toast } from 'sonner';
 
 interface TaskMedia {
@@ -380,8 +380,37 @@ function TaskDetailModal({ task, onClose }: { task: Task; onClose: () => void })
     );
 }
 
+const COLLAPSED_STORAGE_KEY = 'ceo-spv-collapsed-members';
+
 export default function CeoSpv({ date, spvTeam, members, totalTasksToday, completedTasksToday }: Props) {
     const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+    const [collapsed, setCollapsed] = useState<Set<number>>(() => {
+        if (typeof window === 'undefined') return new Set();
+        try {
+            const raw = window.localStorage.getItem(COLLAPSED_STORAGE_KEY);
+            return raw ? new Set<number>(JSON.parse(raw)) : new Set();
+        } catch {
+            return new Set();
+        }
+    });
+
+    useEffect(() => {
+        try {
+            window.localStorage.setItem(COLLAPSED_STORAGE_KEY, JSON.stringify([...collapsed]));
+        } catch {
+            /* ignore */
+        }
+    }, [collapsed]);
+
+    const toggleMember = (id: number) =>
+        setCollapsed((prev) => {
+            const next = new Set(prev);
+            next.has(id) ? next.delete(id) : next.add(id);
+            return next;
+        });
+
+    const collapseAll = () => setCollapsed(new Set(members.map((m) => m.id)));
+    const expandAll = () => setCollapsed(new Set());
 
     const allTasks = members.flatMap((m) => m.tasks);
     const selectedTask = allTasks.find((t) => t.id === selectedTaskId) ?? null;
@@ -423,6 +452,16 @@ export default function CeoSpv({ date, spvTeam, members, totalTasksToday, comple
                             {spvTeam ? spvTeam.name : 'Tidak ada tim SPV yang dikonfigurasi'}
                         </p>
                     </div>
+                    {members.length > 0 && (
+                        <div className="flex items-center gap-2 shrink-0">
+                            <Button variant="outline" size="sm" onClick={collapseAll} className="text-xs">
+                                Sembunyikan Semua
+                            </Button>
+                            <Button variant="outline" size="sm" onClick={expandAll} className="text-xs">
+                                Tampilkan Semua
+                            </Button>
+                        </div>
+                    )}
                 </div>
 
                 {/* Date Navigation */}
@@ -551,6 +590,81 @@ export default function CeoSpv({ date, spvTeam, members, totalTasksToday, comple
                             </Card>
                         )}
 
+                        {/* Rekap Harian */}
+                        {members.length > 0 && (
+                            <Card>
+                                <CardHeader className="pb-2">
+                                    <CardTitle>Rekap Harian</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="overflow-x-auto rounded-lg border">
+                                        <table className="w-full text-sm">
+                                            <thead className="bg-slate-50 text-slate-500 dark:bg-zinc-800/50">
+                                                <tr>
+                                                    <th className="px-4 py-3 text-left font-medium">Anggota</th>
+                                                    <th className="px-4 py-3 text-left font-medium">Posisi</th>
+                                                    <th className="px-4 py-3 text-center font-medium">Total</th>
+                                                    <th className="px-4 py-3 text-center font-medium">Terverifikasi</th>
+                                                    <th className="px-4 py-3 text-center font-medium">Belum</th>
+                                                    <th className="px-4 py-3 text-left font-medium">Completion</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-slate-100 dark:divide-zinc-800">
+                                                {members.map((member) => {
+                                                    const rate =
+                                                        member.total_tasks > 0
+                                                            ? Math.round((member.completed_tasks / member.total_tasks) * 100)
+                                                            : 0;
+                                                    const pending = member.total_tasks - member.completed_tasks;
+                                                    return (
+                                                        <tr key={member.id} className="transition-colors hover:bg-slate-50 dark:hover:bg-zinc-800/30">
+                                                            <td className="px-4 py-3 font-medium text-slate-900 dark:text-slate-100">{member.name}</td>
+                                                            <td className="px-4 py-3 text-muted-foreground">{member.job_position?.name ?? '-'}</td>
+                                                            <td className="px-4 py-3 text-center">{member.total_tasks}</td>
+                                                            <td className="px-4 py-3 text-center font-semibold text-green-600">{member.completed_tasks}</td>
+                                                            <td className="px-4 py-3 text-center text-muted-foreground">{pending}</td>
+                                                            <td className="px-4 py-3">
+                                                                <div className="flex items-center gap-2">
+                                                                    <div className="w-24">
+                                                                        <CompletionBar value={rate} />
+                                                                    </div>
+                                                                    <span
+                                                                        className={`text-xs font-semibold tabular-nums ${rate >= 80 ? 'text-green-600' : rate >= 50 ? 'text-yellow-600' : 'text-red-600'}`}
+                                                                    >
+                                                                        {rate}%
+                                                                    </span>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                            </tbody>
+                                            <tfoot className="border-t bg-slate-50/60 dark:bg-zinc-800/40">
+                                                <tr className="font-semibold">
+                                                    <td className="px-4 py-3" colSpan={2}>Total</td>
+                                                    <td className="px-4 py-3 text-center">{totalTasksToday}</td>
+                                                    <td className="px-4 py-3 text-center text-green-600">{completedTasksToday}</td>
+                                                    <td className="px-4 py-3 text-center text-muted-foreground">{totalTasksToday - completedTasksToday}</td>
+                                                    <td className="px-4 py-3">
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="w-24">
+                                                                <CompletionBar value={overallRate} />
+                                                            </div>
+                                                            <span
+                                                                className={`text-xs font-semibold tabular-nums ${overallRate >= 80 ? 'text-green-600' : overallRate >= 50 ? 'text-yellow-600' : 'text-red-600'}`}
+                                                            >
+                                                                {overallRate}%
+                                                            </span>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            </tfoot>
+                                        </table>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        )}
+
                         {/* Members + Tasks */}
                         <div className="space-y-4">
                             {members.map((member) => {
@@ -558,16 +672,27 @@ export default function CeoSpv({ date, spvTeam, members, totalTasksToday, comple
                                     member.total_tasks > 0
                                         ? Math.round((member.completed_tasks / member.total_tasks) * 100)
                                         : 0;
+                                const isCollapsed = collapsed.has(member.id);
 
                                 return (
                                     <Card key={member.id}>
                                         <CardHeader className="pb-3">
-                                            <div className="flex items-start justify-between gap-3">
-                                                <div>
-                                                    <CardTitle className="text-base">{member.name}</CardTitle>
-                                                    <p className="text-xs text-muted-foreground mt-0.5">
-                                                        {member.job_position?.name ?? '-'} • {member.email}
-                                                    </p>
+                                            <button
+                                                type="button"
+                                                onClick={() => toggleMember(member.id)}
+                                                aria-expanded={!isCollapsed}
+                                                className="w-full flex items-start justify-between gap-3 text-left cursor-pointer"
+                                            >
+                                                <div className="flex items-start gap-2 min-w-0">
+                                                    <ChevronDown
+                                                        className={`h-4 w-4 mt-1 shrink-0 text-muted-foreground transition-transform ${isCollapsed ? '-rotate-90' : ''}`}
+                                                    />
+                                                    <div className="min-w-0">
+                                                        <CardTitle className="text-base truncate">{member.name}</CardTitle>
+                                                        <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                                                            {member.job_position?.name ?? '-'} • {member.email}
+                                                        </p>
+                                                    </div>
                                                 </div>
                                                 <div className="flex items-center gap-2 shrink-0">
                                                     <span className="text-sm font-semibold">
@@ -586,11 +711,11 @@ export default function CeoSpv({ date, spvTeam, members, totalTasksToday, comple
                                                         {rate}%
                                                     </Badge>
                                                 </div>
-                                            </div>
+                                            </button>
                                             {member.total_tasks > 0 && <CompletionBar value={rate} />}
                                         </CardHeader>
 
-                                        {member.tasks.length === 0 ? (
+                                        {isCollapsed ? null : member.tasks.length === 0 ? (
                                             <CardContent>
                                                 <p className="text-sm text-muted-foreground text-center py-2">
                                                     Tidak ada task untuk tanggal ini

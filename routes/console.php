@@ -14,9 +14,15 @@ Schedule::command(DispatchRecurringAnnouncements::class)
     ->withoutOverlapping();
 
 // KPI Scheduled Jobs (WITA timezone = Asia/Makassar)
-Schedule::command('app:kpi-generate-daily-tasks')
-    ->dailyAt('00:01')
-    ->timezone('Asia/Makassar');
+//
+// Daily task generation is intentionally NOT scheduled. Tasks are generated
+// manually per user, gated on same-day attendance (see
+// KpiDashboardController::generateTasks). A bulk 00:01 generation would run
+// before anyone has checked in and would bypass the attendance gate, so it is
+// disabled. The command still exists for manual/debug use.
+// Schedule::command('app:kpi-generate-daily-tasks')
+//     ->dailyAt('00:01')
+//     ->timezone('Asia/Makassar');
 
 Schedule::command('app:kpi-calculate-daily-scores')
     ->dailyAt('23:00')

@@ -64,6 +64,22 @@ return [
             ]) : [],
         ],
 
+        'absen' => [
+            'driver' => 'mysql',
+            'host' => env('DB_ABSEN_HOST', env('DB_HOST', '127.0.0.1')),
+            'port' => env('DB_ABSEN_PORT', env('DB_PORT', '3306')),
+            'database' => env('DB_ABSEN_DATABASE', 'absen_management'),
+            'username' => env('DB_ABSEN_USERNAME', env('DB_USERNAME', 'root')),
+            'password' => env('DB_ABSEN_PASSWORD', env('DB_PASSWORD', '')),
+            'unix_socket' => env('DB_SOCKET', ''),
+            'charset' => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => true,
+            'engine' => null,
+        ],
+
         'mariadb' => [
             'driver' => 'mariadb',
             'url' => env('DB_URL'),

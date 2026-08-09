@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Services\AiTaskCheckService;
 use App\Services\KpiScoringService;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 
@@ -161,13 +162,13 @@ test('job marks task passed and verified when score is high', function (): void 
         ->and((float) $fresh->ai_compliance_score)->toBe(96.0);
 });
 
-test('job passes at the exact threshold score of 85', function (): void {
+test('job passes at the exact threshold score of 75', function (): void {
     $user = makeAiSpvUser();
     $task = makeAiTask($user, status: 'pending');
     attachFullEvidence($task, $user);
 
     $this->mock(AiTaskCheckService::class, function ($mock) {
-        $mock->shouldReceive('scoreCompliance')->once()->andReturn(['score' => 85.0, 'feedback' => 'Sesuai panduan']);
+        $mock->shouldReceive('scoreCompliance')->once()->andReturn(['score' => 75.0, 'feedback' => 'Sesuai panduan']);
     });
 
     (new CheckTaskComplianceJob($task->id))->handle(
@@ -178,7 +179,7 @@ test('job passes at the exact threshold score of 85', function (): void {
     $fresh = $task->fresh();
     expect($fresh->ai_check_status)->toBe('passed')
         ->and($fresh->is_verified)->toBeTrue()
-        ->and((float) $fresh->ai_compliance_score)->toBe(85.0);
+        ->and((float) $fresh->ai_compliance_score)->toBe(75.0);
 });
 
 test('job marks task failed with remaining attempts when score is low', function (): void {
@@ -246,6 +247,71 @@ test('failed result always carries a reason even if AI feedback is empty', funct
     expect($fresh->ai_check_status)->toBe('failed')
         ->and($fresh->ai_check_feedback)->not->toBe('')
         ->and($fresh->ai_check_feedback)->not->toBeNull();
+});
+
+test('9route provider calls chat/completions and parses score', function (): void {
+    config([
+        'services.openai.task_check_provider' => '9route',
+        'services.9route.api_key' => 'sk-test',
+        'services.9route.base_url' => 'http://localhost:20128/v1',
+        'services.9route.task_check_model' => 'claude-haikyu',
+    ]);
+
+    Http::fake([
+        'localhost:20128/v1/chat/completions' => Http::response([
+            'choices' => [
+                ['message' => ['content' => '{"score": 92, "feedback": "Sesuai work method"}']],
+            ],
+        ], 200),
+    ]);
+
+    $definition = KpiTaskDefinition::factory()->make(['task_name' => 'Sapu lantai']);
+    $result = app(AiTaskCheckService::class)->scoreCompliance($definition, 'Sudah disapu, foto terlampir');
+
+    expect($result['score'])->toBe(92.0)
+        ->and($result['feedback'])->toBe('Sesuai work method');
+
+    Http::assertSent(fn ($request) => str_contains($request->url(), '/chat/completions')
+        && $request['model'] === 'claude-haikyu'
+        && $request['stream'] === false);
+});
+
+test('9route provider strips markdown json fence before decoding', function (): void {
+    config([
+        'services.openai.task_check_provider' => '9route',
+        'services.9route.api_key' => 'sk-test',
+    ]);
+
+    Http::fake([
+        '*/chat/completions' => Http::response([
+            'choices' => [
+                ['message' => ['content' => "```json\n{\"score\": 40, \"feedback\": \"Kurang jelas\"}\n```"]],
+            ],
+        ], 200),
+    ]);
+
+    $definition = KpiTaskDefinition::factory()->make();
+    $result = app(AiTaskCheckService::class)->scoreCompliance($definition, 'bukti minim');
+
+    expect($result['score'])->toBe(40.0)
+        ->and($result['feedback'])->toBe('Kurang jelas');
+});
+
+test('9route provider clamps score to 0-100 range', function (): void {
+    config([
+        'services.openai.task_check_provider' => '9route',
+        'services.9route.api_key' => 'sk-test',
+    ]);
+
+    Http::fake([
+        '*/chat/completions' => Http::response([
+            'choices' => [['message' => ['content' => '{"score": 140, "feedback": "ok"}']]],
+        ], 200),
+    ]);
+
+    $result = app(AiTaskCheckService::class)->scoreCompliance(KpiTaskDefinition::factory()->make(), 'x');
+
+    expect($result['score'])->toBe(100.0);
 });
 
 test('job failure does not burn an attempt', function (): void {

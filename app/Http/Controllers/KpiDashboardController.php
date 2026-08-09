@@ -10,6 +10,7 @@ use App\Models\Position;
 use App\Models\Store;
 use App\Models\Task;
 use App\Models\User;
+use App\Services\AttendanceService;
 use App\Services\KpiScoringService;
 use App\Services\KpiTaskGenerationService;
 use App\Support\Kpi\ValidAreasResolver;
@@ -23,7 +24,8 @@ class KpiDashboardController extends Controller
 {
     public function __construct(
         protected KpiScoringService $scoringService,
-        protected KpiTaskGenerationService $taskGenerationService
+        protected KpiTaskGenerationService $taskGenerationService,
+        protected AttendanceService $attendanceService
     ) {}
 
     protected function getPositionArea(): string
@@ -870,6 +872,13 @@ class KpiDashboardController extends Controller
                 : 'Task untuk tanggal ini sudah dibuat';
 
             return back()->withErrors(['error' => $errorMsg]);
+        }
+
+        // Attendance gate: only members who have a valid check-in for the day
+        // may generate KPI tasks. This ties the KPI score to actual presence —
+        // no attendance means no tasks, and therefore no score, for the day.
+        if (! $this->attendanceService->hasCheckedInOn($user, $targetDate)) {
+            return back()->withErrors(['error' => 'Anda belum absen hari ini. Silakan absen terlebih dahulu sebelum generate task KPI.']);
         }
 
         // Generate tasks (team can be null for managers)

@@ -45,6 +45,7 @@ return [
         'reporting_model' => env('OPENAI_REPORTING_MODEL', 'gpt-5-mini'),
         'task_check_model' => env('OPENAI_TASK_CHECK_MODEL', 'gpt-5.4-nano'),
         'task_check_enabled' => env('AI_TASK_CHECK_ENABLED', true),
+        'task_check_provider' => env('AI_TASK_CHECK_PROVIDER', 'openai'),
     ],
 
     'anthropic' => [
@@ -64,6 +65,7 @@ return [
         'api_key' => env('NINE_ROUTE_API_KEY', 'sk-9route'),
         'base_url' => env('NINE_ROUTE_BASE_URL', 'http://localhost:20128/v1'),
         'model' => env('NINE_ROUTE_MODEL', 'sumopod/gpt-5.1'),
+        'task_check_model' => env('NINE_ROUTE_TASK_CHECK_MODEL', 'claude-haikyu'),
     ],
 
     'kpi' => [

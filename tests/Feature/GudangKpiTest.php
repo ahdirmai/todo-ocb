@@ -7,9 +7,21 @@ use App\Models\Position;
 use App\Models\PositionPermission;
 use App\Models\Task;
 use App\Models\User;
+use App\Services\AttendanceService;
 use Spatie\Permission\Models\Role;
 
 use function Pest\Laravel\actingAs;
+
+/**
+ * Stub the attendance gate to report the user as checked in, so KPI task
+ * generation tests stay independent of the external attendance database.
+ */
+function fakeCheckedIn(): void
+{
+    test()->mock(AttendanceService::class)
+        ->shouldReceive('hasCheckedInOn')
+        ->andReturn(true);
+}
 
 function makeGudangUser(string $positionName = 'Gudang BJB'): User
 {
@@ -59,6 +71,7 @@ test('gudang position can access gudang kpi dashboard', function (): void {
 
 test('gudang position can generate daily kpi tasks without spv team', function (): void {
     $user = makeGudangUser('Gudang Gesekan');
+    fakeCheckedIn();
 
     KpiTaskDefinition::factory()->count(2)->create([
         'position_id' => $user->position_id,
@@ -79,11 +92,20 @@ test('gudang position can generate daily kpi tasks without spv team', function (
 
 test('gudang position scoring works after verifying task with evidence', function (): void {
     $user = makeGudangUser('Gudang ACC');
+    fakeCheckedIn();
+
+    // AI compliance check owns verification for tasks with a definition. Turn it
+    // off so this test exercises the structural verify → score path directly.
+    config(['services.openai.task_check_enabled' => false]);
 
     $definition = KpiTaskDefinition::factory()->create([
         'position_id' => $user->position_id,
         'is_active' => true,
         'weight' => 40,
+        // No media requirement, so a comment alone is "full" evidence and the
+        // task can be verified without an attachment.
+        'minimum_photos' => 0,
+        'require_video_upload' => false,
     ]);
 
     actingAs($user)
@@ -110,8 +132,8 @@ test('gudang position scoring works after verifying task with evidence', functio
         ->first();
 
     expect($score)->not->toBeNull()
-        // comment without attachment = partial evidence = 30% of weight
-        ->and((float) $score->total_score)->toBe(12.0);
+        // Comment satisfies a no-media definition = full evidence = 100% weight.
+        ->and((float) $score->total_score)->toBe(40.0);
 });
 
 test('superadmin sees gudang monitoring mode with user list', function (): void {
@@ -196,6 +218,7 @@ test('manager gudang access own kpi dashboard', function (): void {
 
 test('manager gudang can generate and score own tasks', function (): void {
     $user = makeGudangUser('Manager Gudang');
+    fakeCheckedIn();
 
     KpiTaskDefinition::factory()->count(3)->create([
         'position_id' => $user->position_id,

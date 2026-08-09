@@ -20,7 +20,7 @@ class CheckTaskComplianceJob implements ShouldQueue
 
     private const MAX_ATTEMPTS = 3;
 
-    private const PASS_THRESHOLD = 85.0;
+    private const PASS_THRESHOLD = 75.0;
 
     public function __construct(public readonly string $taskId) {}
 
@@ -64,8 +64,8 @@ class CheckTaskComplianceJob implements ShouldQueue
         $totalScore = max(0.0, min(100.0, (float) $result['score']));
         $attempts = $task->ai_check_attempts + 1;
 
-        // score >= 85 → accepted (verified, full weight)
-        // score <  85 → rejected; user fixes and resubmits until attempts run out
+        // score >= 75 → accepted (verified, full weight)
+        // score <  75 → rejected; user fixes and resubmits until attempts run out
         // attempts exhausted without passing → partial credit (score/100 × weight)
         $status = match (true) {
             $totalScore >= self::PASS_THRESHOLD => 'passed',

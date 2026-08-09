@@ -13,6 +13,7 @@ use App\Services\KpiReportingService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -430,7 +431,17 @@ class KpiCeoController extends Controller
                     ];
                 });
 
-            foreach ($spvTeam->users->where('id', '!=', $authUserId) as $member) {
+            $spvMembers = $spvTeam->users
+                ->where('id', '!=', $authUserId)
+                ->filter(fn ($u) => Str::startsWith((string) $u->position, 'SPV'));
+
+            $spvMemberIds = $spvMembers->pluck('id')->all();
+
+            $tasks = $tasks->filter(
+                fn ($t) => collect($t['assignees'])->pluck('id')->intersect($spvMemberIds)->isNotEmpty()
+            )->values();
+
+            foreach ($spvMembers as $member) {
                 $memberTasks = $tasks->filter(
                     fn ($t) => collect($t['assignees'])->contains('id', $member->id)
                 )->values();
