@@ -1,0 +1,1132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OCB KPI Management — Technical Documentation</title>
+<style>
+:root{--fg:#1f2933;--muted:#616e7c;--accent:#2563eb;--accent-soft:#eff4ff;
+--border:#e4e7eb;--code-bg:#f5f7fa;--table-head:#f0f4f8;}
+*{box-sizing:border-box;}
+html{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+color:var(--fg);line-height:1.65;max-width:900px;margin:0 auto;padding:48px 40px 80px;
+font-size:15px;background:#fff;}
+h1,h2,h3,h4{line-height:1.25;font-weight:700;margin-top:1.8em;margin-bottom:.6em;}
+h1{font-size:2.1em;border-bottom:3px solid var(--accent);padding-bottom:.3em;margin-top:.2em;}
+h2{font-size:1.5em;border-bottom:1px solid var(--border);padding-bottom:.25em;color:#111;}
+h3{font-size:1.2em;color:#243b53;}
+h4{font-size:1.02em;color:#334e68;}
+a{color:var(--accent);text-decoration:none;}
+a:hover{text-decoration:underline;}
+p,ul,ol{margin:.6em 0;}
+code{font-family:"SF Mono",SFMono-Regular,Consolas,"Liberation Mono",Menlo,monospace;
+font-size:.86em;background:var(--code-bg);padding:.15em .4em;border-radius:4px;}
+pre{background:var(--code-bg);border:1px solid var(--border);border-radius:8px;padding:14px 16px;
+overflow:auto;font-size:.82em;line-height:1.5;}
+pre code{background:none;padding:0;}
+blockquote{border-left:4px solid var(--accent);background:var(--accent-soft);margin:1em 0;
+padding:.6em 1em;border-radius:0 6px 6px 0;color:#243b53;}
+blockquote p{margin:.3em 0;}
+table{border-collapse:collapse;width:100%;margin:1.1em 0;font-size:.9em;}
+th,td{border:1px solid var(--border);padding:8px 12px;text-align:left;vertical-align:top;}
+th{background:var(--table-head);font-weight:600;}
+tr:nth-child(even) td{background:#fafbfc;}
+hr{border:none;border-top:1px solid var(--border);margin:2.2em 0;}
+.mermaid{background:#fff;border:1px solid var(--border);border-radius:8px;padding:16px;
+margin:1.2em 0;text-align:center;}
+.doc-cover{border-bottom:3px solid var(--accent);margin-bottom:1.5em;padding-bottom:1em;}
+.doc-cover .badge{display:inline-block;background:var(--accent);color:#fff;font-size:.72em;
+font-weight:600;letter-spacing:.05em;padding:3px 10px;border-radius:20px;text-transform:uppercase;}
+.toc{background:#fafbfc;border:1px solid var(--border);border-radius:8px;padding:8px 26px;margin:1.5em 0;}
+.toc ul{margin:.3em 0;}
+@media print{
+ body{max-width:none;padding:0 12mm;font-size:11.5px;}
+ h1{font-size:1.8em;}h2{font-size:1.35em;page-break-after:avoid;}
+ h3,h4{page-break-after:avoid;}
+ pre,table,blockquote,.mermaid{page-break-inside:avoid;}
+ a{color:var(--fg);}
+ tr:nth-child(even) td{background:#fafbfc !important;}
+}
+</style>
+<style>pre { line-height: 125%; }
+td.linenos .normal { color: inherit; background-color: transparent; padding-left: 5px; padding-right: 5px; }
+span.linenos { color: inherit; background-color: transparent; padding-left: 5px; padding-right: 5px; }
+td.linenos .special { color: #000000; background-color: #ffffc0; padding-left: 5px; padding-right: 5px; }
+span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 5px; padding-right: 5px; }
+.codehilite .hll { background-color: #ffffcc }
+.codehilite { background: #f8f8f8; }
+.codehilite .c { color: #3D7B7B; font-style: italic } /* Comment */
+.codehilite .err { border: 1px solid #F00 } /* Error */
+.codehilite .k { color: #008000; font-weight: bold } /* Keyword */
+.codehilite .o { color: #666 } /* Operator */
+.codehilite .ch { color: #3D7B7B; font-style: italic } /* Comment.Hashbang */
+.codehilite .cm { color: #3D7B7B; font-style: italic } /* Comment.Multiline */
+.codehilite .cp { color: #9C6500 } /* Comment.Preproc */
+.codehilite .cpf { color: #3D7B7B; font-style: italic } /* Comment.PreprocFile */
+.codehilite .c1 { color: #3D7B7B; font-style: italic } /* Comment.Single */
+.codehilite .cs { color: #3D7B7B; font-style: italic } /* Comment.Special */
+.codehilite .gd { color: #A00000 } /* Generic.Deleted */
+.codehilite .ge { font-style: italic } /* Generic.Emph */
+.codehilite .ges { font-weight: bold; font-style: italic } /* Generic.EmphStrong */
+.codehilite .gr { color: #E40000 } /* Generic.Error */
+.codehilite .gh { color: #000080; font-weight: bold } /* Generic.Heading */
+.codehilite .gi { color: #008400 } /* Generic.Inserted */
+.codehilite .go { color: #717171 } /* Generic.Output */
+.codehilite .gp { color: #000080; font-weight: bold } /* Generic.Prompt */
+.codehilite .gs { font-weight: bold } /* Generic.Strong */
+.codehilite .gu { color: #800080; font-weight: bold } /* Generic.Subheading */
+.codehilite .gt { color: #04D } /* Generic.Traceback */
+.codehilite .kc { color: #008000; font-weight: bold } /* Keyword.Constant */
+.codehilite .kd { color: #008000; font-weight: bold } /* Keyword.Declaration */
+.codehilite .kn { color: #008000; font-weight: bold } /* Keyword.Namespace */
+.codehilite .kp { color: #008000 } /* Keyword.Pseudo */
+.codehilite .kr { color: #008000; font-weight: bold } /* Keyword.Reserved */
+.codehilite .kt { color: #B00040 } /* Keyword.Type */
+.codehilite .m { color: #666 } /* Literal.Number */
+.codehilite .s { color: #BA2121 } /* Literal.String */
+.codehilite .na { color: #687822 } /* Name.Attribute */
+.codehilite .nb { color: #008000 } /* Name.Builtin */
+.codehilite .nc { color: #00F; font-weight: bold } /* Name.Class */
+.codehilite .no { color: #800 } /* Name.Constant */
+.codehilite .nd { color: #A2F } /* Name.Decorator */
+.codehilite .ni { color: #717171; font-weight: bold } /* Name.Entity */
+.codehilite .ne { color: #CB3F38; font-weight: bold } /* Name.Exception */
+.codehilite .nf { color: #00F } /* Name.Function */
+.codehilite .nl { color: #767600 } /* Name.Label */
+.codehilite .nn { color: #00F; font-weight: bold } /* Name.Namespace */
+.codehilite .nt { color: #008000; font-weight: bold } /* Name.Tag */
+.codehilite .nv { color: #19177C } /* Name.Variable */
+.codehilite .ow { color: #A2F; font-weight: bold } /* Operator.Word */
+.codehilite .w { color: #BBB } /* Text.Whitespace */
+.codehilite .mb { color: #666 } /* Literal.Number.Bin */
+.codehilite .mf { color: #666 } /* Literal.Number.Float */
+.codehilite .mh { color: #666 } /* Literal.Number.Hex */
+.codehilite .mi { color: #666 } /* Literal.Number.Integer */
+.codehilite .mo { color: #666 } /* Literal.Number.Oct */
+.codehilite .sa { color: #BA2121 } /* Literal.String.Affix */
+.codehilite .sb { color: #BA2121 } /* Literal.String.Backtick */
+.codehilite .sc { color: #BA2121 } /* Literal.String.Char */
+.codehilite .dl { color: #BA2121 } /* Literal.String.Delimiter */
+.codehilite .sd { color: #BA2121; font-style: italic } /* Literal.String.Doc */
+.codehilite .s2 { color: #BA2121 } /* Literal.String.Double */
+.codehilite .se { color: #AA5D1F; font-weight: bold } /* Literal.String.Escape */
+.codehilite .sh { color: #BA2121 } /* Literal.String.Heredoc */
+.codehilite .si { color: #A45A77; font-weight: bold } /* Literal.String.Interpol */
+.codehilite .sx { color: #008000 } /* Literal.String.Other */
+.codehilite .sr { color: #A45A77 } /* Literal.String.Regex */
+.codehilite .s1 { color: #BA2121 } /* Literal.String.Single */
+.codehilite .ss { color: #19177C } /* Literal.String.Symbol */
+.codehilite .bp { color: #008000 } /* Name.Builtin.Pseudo */
+.codehilite .fm { color: #00F } /* Name.Function.Magic */
+.codehilite .vc { color: #19177C } /* Name.Variable.Class */
+.codehilite .vg { color: #19177C } /* Name.Variable.Global */
+.codehilite .vi { color: #19177C } /* Name.Variable.Instance */
+.codehilite .vm { color: #19177C } /* Name.Variable.Magic */
+.codehilite .il { color: #666 } /* Literal.Number.Integer.Long */</style>
+</head>
+<body>
+<h1 id="ocb-kpi-management-technical-documentation">OCB KPI Management — Technical Documentation</h1>
+<p><strong>Application:</strong> OCB KPI Management (<code>todo-app-v2</code>)
+<strong>Type:</strong> Laravel + Inertia (React) monolithic SPA
+<strong>Audience:</strong> Developers, DevOps, technical maintainers
+<strong>Last generated:</strong> 2026-08-09</p>
+<hr />
+<h2 id="table-of-contents">Table of Contents</h2>
+<ol>
+<li><a href="#1-overview">Overview</a></li>
+<li><a href="#2-tech-stack">Tech Stack</a></li>
+<li><a href="#3-system-requirements">System Requirements</a></li>
+<li><a href="#4-setup--installation">Setup &amp; Installation</a></li>
+<li><a href="#5-environment-configuration">Environment Configuration</a></li>
+<li><a href="#6-development-workflow">Development Workflow</a></li>
+<li><a href="#7-testing">Testing</a></li>
+<li><a href="#8-architecture">Architecture</a></li>
+<li><a href="#9-data-model--erd">Data Model &amp; ERD</a></li>
+<li><a href="#10-domain-modules">Domain Modules</a></li>
+<li><a href="#11-kpi-scoring-engine">KPI Scoring Engine</a></li>
+<li><a href="#12-scheduled-jobs--queue">Scheduled Jobs &amp; Queue</a></li>
+<li><a href="#13-access-control-rbac--positions">Access Control (RBAC + Positions)</a></li>
+<li><a href="#14-api-reference">API Reference</a></li>
+<li><a href="#15-ai-integrations">AI Integrations</a></li>
+<li><a href="#16-deployment">Deployment</a></li>
+<li><a href="#17-troubleshooting">Troubleshooting</a></li>
+</ol>
+<hr />
+<h2 id="1-overview">1. Overview</h2>
+<p>OCB KPI Management is a task-management and KPI-evaluation platform for a multi-branch retail/operations organization. It combines:</p>
+<ul>
+<li><strong>Team collaboration</strong> — Kanban boards, tasks, comments, documents, announcements, chat.</li>
+<li><strong>KPI evaluation</strong> — weighted daily task definitions per position, evidence upload, AI compliance scoring, and daily → weekly → monthly score aggregation with grading.</li>
+<li><strong>Position-based access</strong> — a data-driven RBAC layer where each user's <em>position</em> determines which functional area (HR, Operational, Gudang, SPV, …) they can reach.</li>
+<li><strong>Reporting</strong> — daily reports per position (dynamic field templates), AI-generated monthly task recaps, and a CEO monitoring suite.</li>
+</ul>
+<p>The whole app is a server-driven SPA: Laravel renders React pages through Inertia, so there is no separate frontend server in production.</p>
+<p>All KPI time logic runs in <strong>Asia/Makassar (WITA, UTC+8)</strong>.</p>
+<hr />
+<h2 id="2-tech-stack">2. Tech Stack</h2>
+<table>
+<thead>
+<tr>
+<th>Layer</th>
+<th>Technology</th>
+<th>Version</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Language (backend)</td>
+<td>PHP</td>
+<td>8.4</td>
+</tr>
+<tr>
+<td>Framework</td>
+<td>Laravel</td>
+<td>13.x</td>
+</tr>
+<tr>
+<td>Frontend</td>
+<td>React</td>
+<td>19</td>
+</tr>
+<tr>
+<td>SPA bridge</td>
+<td>Inertia.js (<code>inertiajs/inertia-laravel</code> + <code>@inertiajs/react</code>)</td>
+<td>v3</td>
+</tr>
+<tr>
+<td>Styling</td>
+<td>Tailwind CSS</td>
+<td>4</td>
+</tr>
+<tr>
+<td>Build tool</td>
+<td>Vite</td>
+<td>7 (+ <code>@laravel/vite-plugin-wayfinder</code>)</td>
+</tr>
+<tr>
+<td>Typed routes</td>
+<td>Laravel Wayfinder</td>
+<td>v0</td>
+</tr>
+<tr>
+<td>Auth backend</td>
+<td>Laravel Fortify (2FA capable)</td>
+<td>v1</td>
+</tr>
+<tr>
+<td>API tokens</td>
+<td>Laravel Sanctum</td>
+<td>v4</td>
+</tr>
+<tr>
+<td>Realtime</td>
+<td>Laravel Echo</td>
+<td>v2</td>
+</tr>
+<tr>
+<td>Roles/permissions</td>
+<td>spatie/laravel-permission</td>
+<td>—</td>
+</tr>
+<tr>
+<td>Media / uploads</td>
+<td>spatie/laravel-medialibrary</td>
+<td>—</td>
+</tr>
+<tr>
+<td>Observability</td>
+<td>Laravel Nightwatch</td>
+<td>v1</td>
+</tr>
+<tr>
+<td>Testing</td>
+<td>Pest</td>
+<td>v4 (PHPUnit 12)</td>
+</tr>
+<tr>
+<td>Formatting</td>
+<td>Laravel Pint (PHP), Prettier + ESLint (TS)</td>
+<td>—</td>
+</tr>
+<tr>
+<td>Local env</td>
+<td>Laravel Herd</td>
+<td>—</td>
+</tr>
+<tr>
+<td>Database</td>
+<td>MySQL (prod) / SQLite (default local &amp; tests)</td>
+<td>—</td>
+</tr>
+<tr>
+<td>Attendance DB</td>
+<td>External MySQL <code>absen_management</code> (read-only <code>absen</code> connection)</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<p>Models registered in the app: <code>Team</code>, <code>Task</code>, <code>Comment</code>, plus the full KPI/position/document domain (see <a href="#9-data-model--erd">§9</a>).</p>
+<hr />
+<h2 id="3-system-requirements">3. System Requirements</h2>
+<ul>
+<li>PHP <strong>8.4</strong> with typical Laravel extensions (<code>pdo</code>, <code>mbstring</code>, <code>openssl</code>, <code>gd</code>/<code>imagick</code> for media conversions).</li>
+<li>Composer 2.</li>
+<li>Node.js 20+ and npm.</li>
+<li>A database: MySQL 8 in production, SQLite works out of the box for local/testing.</li>
+<li><strong>Attendance database</strong> (<code>absen_management</code>) — a second, read-only MySQL schema on the same server, powering the KPI attendance gate. Provided by the external attendance system.</li>
+<li>Optional: Redis (queue/cache), an S3-compatible bucket (media at scale).</li>
+<li>Optional AI keys: OpenAI / Anthropic / Gemini, or a self-hosted <strong>9Route</strong> gateway, for SOP parsing, task compliance checks, and monthly report generation.</li>
+</ul>
+<hr />
+<h2 id="4-setup-installation">4. Setup &amp; Installation</h2>
+<h3 id="quick-start-composer-script">Quick start (Composer script)</h3>
+<div class="codehilite"><pre><span></span><code>composer<span class="w"> </span>run<span class="w"> </span>setup
+</code></pre></div>
+
+<p><code>setup</code> runs: <code>composer install</code> → copy <code>.env</code> → <code>key:generate</code> → <code>migrate --force</code> → <code>npm install</code> → <code>npm run build</code>.</p>
+<h3 id="manual-steps">Manual steps</h3>
+<div class="codehilite"><pre><span></span><code><span class="c1"># 1. Clone</span>
+git<span class="w"> </span>clone<span class="w"> </span>&lt;repository-url&gt;
+<span class="nb">cd</span><span class="w"> </span>todo-app-v2
+
+<span class="c1"># 2. Backend deps</span>
+composer<span class="w"> </span>install
+
+<span class="c1"># 3. Frontend deps</span>
+npm<span class="w"> </span>install
+
+<span class="c1"># 4. Environment</span>
+cp<span class="w"> </span>.env.example<span class="w"> </span>.env
+php<span class="w"> </span>artisan<span class="w"> </span>key:generate
+
+<span class="c1"># 5. Database (SQLite default — file is created automatically)</span>
+php<span class="w"> </span>artisan<span class="w"> </span>migrate
+
+<span class="c1"># 6. Seed baseline data</span>
+php<span class="w"> </span>artisan<span class="w"> </span>db:seed
+
+<span class="c1"># 7. Build assets</span>
+npm<span class="w"> </span>run<span class="w"> </span>build
+</code></pre></div>
+
+<h3 id="seeders">Seeders</h3>
+<p><code>php artisan db:seed</code> runs <code>DatabaseSeeder</code>, which orchestrates the domain seeders. Notable individual seeders:</p>
+<table>
+<thead>
+<tr>
+<th>Seeder</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>RolePermissionSeeder</code></td>
+<td>Creates <code>superadmin</code>, <code>admin</code>, <code>user</code> roles + permissions</td>
+</tr>
+<tr>
+<td><code>SuperAdminSeeder</code></td>
+<td>Creates <code>superadmin@example.com</code> with the superadmin role</td>
+</tr>
+<tr>
+<td><code>PositionGroupSeeder</code></td>
+<td>Seeds the position hierarchy (Direktur → Manager → SPV → Staff → Tim)</td>
+</tr>
+<tr>
+<td><code>KpiTaskDefinitionSeeder</code></td>
+<td>Manager HR + Manager Operasional KPI task templates</td>
+</tr>
+<tr>
+<td><code>KpiGudangKurirSeeder</code></td>
+<td>Gudang/Kurir KPI definitions</td>
+</tr>
+<tr>
+<td><code>KpiSpvUnit1Seeder</code></td>
+<td>SPV Unit 1 KPI definitions</td>
+</tr>
+<tr>
+<td><code>PositionReportFieldSeeder</code></td>
+<td>Daily-report field templates per position</td>
+</tr>
+<tr>
+<td><code>StoreSeeder</code></td>
+<td>Store/branch locations (OC codes)</td>
+</tr>
+</tbody>
+</table>
+<p>Run one seeder explicitly:</p>
+<div class="codehilite"><pre><span></span><code>php<span class="w"> </span>artisan<span class="w"> </span>db:seed<span class="w"> </span>--class<span class="o">=</span>KpiTaskDefinitionSeeder
+</code></pre></div>
+
+<h3 id="default-login">Default login</h3>
+<p>After seeding: <code>superadmin@example.com</code> (set/verify the password via the seeder or a manual reset).</p>
+<hr />
+<h2 id="5-environment-configuration">5. Environment Configuration</h2>
+<p>Key <code>.env</code> values beyond the Laravel defaults:</p>
+<div class="codehilite"><pre><span></span><code>APP_NAME=&quot;OCB KPI Management&quot;
+
+# Primary database — SQLite by default; switch to mysql for production
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=kpi_ocb
+DB_USERNAME=root
+DB_PASSWORD=
+
+# Attendance database (absen_management) — READ-ONLY second connection.
+# Host/port/user/pass fall back to the primary DB envs if omitted (same MySQL
+# server). Only the database name usually differs.
+DB_ABSEN_DATABASE=absen_management
+# DB_ABSEN_HOST=127.0.0.1
+# DB_ABSEN_PORT=3306
+# DB_ABSEN_USERNAME=root
+# DB_ABSEN_PASSWORD=
+
+# Queue / cache / session all default to the database driver
+QUEUE_CONNECTION=database
+CACHE_STORE=database
+SESSION_DRIVER=database
+
+# Observability
+NIGHTWATCH_ENABLED=true
+NIGHTWATCH_TOKEN=
+
+# --- AI providers (optional) ---
+# Task-compliance provider is selectable: openai | anthropic | gemini | 9route
+AI_TASK_CHECK_ENABLED=true
+AI_TASK_CHECK_PROVIDER=openai
+
+OPENAI_API_KEY=
+OPENAI_BASE_URL=https://api.openai.com/v1
+OPENAI_REPORTING_MODEL=gpt-5-mini
+OPENAI_TASK_CHECK_MODEL=gpt-5.4-nano
+
+ANTHROPIC_API_KEY=
+ANTHROPIC_BASE_URL=https://api.anthropic.com/v1
+ANTHROPIC_REPORTING_MODEL=claude-haiku-4-5-20251001
+
+GEMINI_API_KEY=
+GEMINI_REPORTING_MODEL=gemini-2.5-flash
+
+# 9Route — local OpenAI-compatible AI gateway (self-hosted)
+NINE_ROUTE_API_KEY=sk-9route
+NINE_ROUTE_BASE_URL=http://localhost:20128/v1
+NINE_ROUTE_MODEL=sumopod/gpt-5.1
+NINE_ROUTE_TASK_CHECK_MODEL=claude-haikyu
+
+# --- KPI behaviour flags ---
+# Allow daily reports to be submitted/edited for PAST dates (default: today only)
+KPI_ALLOW_BACKDATED_REPORT=false
+</code></pre></div>
+
+<p>Flag reference:</p>
+<ul>
+<li><strong><code>AI_TASK_CHECK_ENABLED</code></strong> — toggles the AI compliance check on task evidence. When off, evidence scoring falls back to the deterministic three-tier rule.</li>
+<li><strong><code>AI_TASK_CHECK_PROVIDER</code></strong> — which AI backend scores task evidence: <code>openai</code> (default), <code>anthropic</code>, <code>gemini</code>, or <code>9route</code> (local gateway). SOP parsing auto-selects the first provider with a configured key.</li>
+<li><strong><code>DB_ABSEN_*</code></strong> — read-only connection to the external attendance schema (<code>absen_management</code>). Powers the KPI <strong>attendance gate</strong> (see <a href="#11-kpi-scoring-engine">§11</a>). Host/user/pass default to the primary DB envs; usually only <code>DB_ABSEN_DATABASE</code> is set.</li>
+<li><strong><code>KPI_ALLOW_BACKDATED_REPORT</code></strong> — when <code>true</code>, users may submit/edit daily reports for past dates (future dates always rejected; the 80% KPI-task completion gate still applies per date).</li>
+</ul>
+<hr />
+<h2 id="6-development-workflow">6. Development Workflow</h2>
+<h3 id="run-everything-at-once">Run everything at once</h3>
+<div class="codehilite"><pre><span></span><code>composer<span class="w"> </span>run<span class="w"> </span>dev
+</code></pre></div>
+
+<p>This starts four concurrent processes (named <code>server</code>, <code>queue</code>, <code>logs</code>, <code>vite</code>):</p>
+<ul>
+<li><code>php artisan serve</code> — app server</li>
+<li><code>php artisan queue:listen</code> — queue worker</li>
+<li><code>php artisan pail</code> — live log tail</li>
+<li><code>npm run dev</code> — Vite HMR</li>
+</ul>
+<blockquote>
+<p>With <strong>Laravel Herd</strong> the site is always served at <code>http://todo-app-v2.test</code> — you only need <code>npm run dev</code> for asset HMR, not <code>php artisan serve</code>.</p>
+</blockquote>
+<h3 id="individual-commands">Individual commands</h3>
+<div class="codehilite"><pre><span></span><code>npm<span class="w"> </span>run<span class="w"> </span>dev<span class="w">            </span><span class="c1"># Vite dev server (HMR)</span>
+npm<span class="w"> </span>run<span class="w"> </span>build<span class="w">          </span><span class="c1"># Production asset build</span>
+npm<span class="w"> </span>run<span class="w"> </span>build:ssr<span class="w">      </span><span class="c1"># Build with SSR bundle</span>
+vendor/bin/pint<span class="w">        </span><span class="c1"># Format PHP (run --dirty before committing)</span>
+npm<span class="w"> </span>run<span class="w"> </span>lint<span class="w">           </span><span class="c1"># ESLint --fix</span>
+npm<span class="w"> </span>run<span class="w"> </span>format<span class="w">         </span><span class="c1"># Prettier write</span>
+npm<span class="w"> </span>run<span class="w"> </span>types:check<span class="w">    </span><span class="c1"># tsc --noEmit</span>
+</code></pre></div>
+
+<h3 id="wayfinder-typed-routes">Wayfinder (typed routes)</h3>
+<p>Frontend calls backend routes through generated TypeScript functions imported from <code>@/actions/*</code> (controllers) and <code>@/routes/*</code> (named routes). Regenerate after changing routes/controllers:</p>
+<div class="codehilite"><pre><span></span><code>php<span class="w"> </span>artisan<span class="w"> </span>wayfinder:generate
+</code></pre></div>
+
+<p>The Vite plugin also regenerates on dev. <strong>Never hardcode URLs in the React layer</strong> — import the Wayfinder function and call <code>.url()</code>, <code>.get()</code>, <code>.post()</code>, or <code>.form()</code>.</p>
+<h3 id="code-style-gate">Code style gate</h3>
+<div class="codehilite"><pre><span></span><code>composer<span class="w"> </span>run<span class="w"> </span>ci:check<span class="w">   </span><span class="c1"># lint:check + format:check + types:check + tests</span>
+</code></pre></div>
+
+<p>Always run <code>vendor/bin/pint --dirty</code> after editing PHP.</p>
+<hr />
+<h2 id="7-testing">7. Testing</h2>
+<p>The project uses <strong>Pest 4</strong> on top of PHPUnit 12. Tests default to SQLite with <code>RefreshDatabase</code>.</p>
+<h3 id="commands">Commands</h3>
+<div class="codehilite"><pre><span></span><code>php<span class="w"> </span>artisan<span class="w"> </span><span class="nb">test</span><span class="w">                       </span><span class="c1"># full suite (config:clear + lint:check + tests via composer)</span>
+php<span class="w"> </span>artisan<span class="w"> </span><span class="nb">test</span><span class="w"> </span>--compact<span class="w">             </span><span class="c1"># compact output</span>
+php<span class="w"> </span>artisan<span class="w"> </span><span class="nb">test</span><span class="w"> </span>--filter<span class="o">=</span>GudangKpi<span class="w">    </span><span class="c1"># single test/group</span>
+php<span class="w"> </span>artisan<span class="w"> </span><span class="nb">test</span><span class="w"> </span>tests/Feature/Api<span class="w">      </span><span class="c1"># a directory</span>
+</code></pre></div>
+
+<blockquote>
+<p>Per project convention, <code>composer run test</code> also runs <code>config:clear</code> and <code>lint:check</code> first.</p>
+</blockquote>
+<h3 id="layout">Layout</h3>
+<div class="codehilite"><pre><span></span><code>tests/
+├── Pest.php                 # bindings, global helpers
+├── TestCase.php
+├── Unit/                    # pure logic (SopAiParser, SopAuditStepParser, …)
+└── Feature/                 # HTTP + integration
+    ├── Auth/                # Fortify flows (login, 2FA, password reset, verification)
+    ├── Settings/            # profile + security
+    ├── Feedback/            # feedback + survey + admin
+    ├── Api/V1/              # mobile + agent API contracts
+    ├── Models/              # model-level behaviour
+    └── Http/Controllers/    # controller-level behaviour
+</code></pre></div>
+
+<h3 id="coverage-highlights">Coverage highlights</h3>
+<p>Feature tests cover the KPI engine (<code>GudangKpiTest</code>, <code>KpiMinimumPhotosTest</code>, <code>KpiVideoRequirementTest</code>, <code>KpiAutoDoneReportTest</code>, <code>KpiCeoDashboardTest</code>), dynamic report templates, SOP management/parsing, monthly task reporting, the SPV flag flows, and the mobile/agent APIs (<code>MobileAuthApiTest</code>, <code>MobileTaskApiTest</code>, <code>AgentDailyReportApiTest</code>, <code>DailyReporterApiTest</code>).</p>
+<h3 id="conventions">Conventions</h3>
+<ul>
+<li>Every change must be tested — add or update a test, then run the affected file/filter.</li>
+<li>Use factories (with custom states) for model setup; use <code>fake()</code>/<code>$this-&gt;faker</code> per existing file style.</li>
+<li>Create tests with <code>php artisan make:test --pest {Name}</code> (add <code>--unit</code> for unit tests).</li>
+<li>Do not delete tests without approval.</li>
+</ul>
+<hr />
+<h2 id="8-architecture">8. Architecture</h2>
+<h3 id="high-level-request-flow">High-level request flow</h3>
+<div class="codehilite"><pre><span></span><code>Browser (React 19 SPA)
+   │  Inertia visit / XHR
+   ▼
+Laravel Router  ──►  Middleware stack
+   │                   • auth, verified
+   │                   • role:… (spatie)
+   │                   • position:… / {area} (CheckPositionAccess, ValidateKpiArea)
+   ▼
+Controller  ──►  Service layer (KpiScoringService, …)  ──►  Eloquent Models ──► DB
+   │
+   ▼
+Inertia::render(&#39;page&#39;, props)  ──►  React page (resources/js/pages/**)
+</code></pre></div>
+
+<h3 id="directory-map-backend">Directory map (backend)</h3>
+<div class="codehilite"><pre><span></span><code>app/
+├── Console/Commands/     # KPI schedulers, recurring announcements, reminders
+├── Concerns/             # shared validation-rule traits
+├── Enums/                # GroupingType (hq/team/project)
+├── Events/               # TeamMessageSent (broadcast)
+├── Exports/              # FeedbackExport (xlsx)
+├── Http/
+│   ├── Controllers/      # web + Api/V1 controllers
+│   ├── Middleware/       # CheckPositionAccess, ValidateKpiArea, HandleInertiaRequests, …
+│   └── Requests/         # FormRequest validation
+├── Jobs/                 # CheckTaskComplianceJob, ParseTeamSopJob, GenerateMonthlyTaskReportJob, …
+├── Models/               # domain models
+├── Observers/            # Task, Team, Comment observers (activity logging, side effects)
+├── Policies/             # Task, Team, Announcement, Document authorization
+├── Providers/            # AppServiceProvider, FortifyServiceProvider
+├── Services/             # business logic (scoring, reporting, AI, SOP parsing)
+└── Support/Kpi/          # ValidAreasResolver (dynamic area cache)
+</code></pre></div>
+
+<h3 id="directory-map-frontend">Directory map (frontend)</h3>
+<div class="codehilite"><pre><span></span><code>resources/js/
+├── app.tsx               # Inertia app bootstrap
+├── echo.ts               # Laravel Echo setup
+├── pages/                # one file per Inertia page (dashboard, teams, kpi/**, hr/**, …)
+│   └── teams/partials/   # tab components (overview, tugas, sop, dokumen, chat, …)
+├── layouts/              # shared layouts
+├── components/           # reusable UI (incl. camera-capture.tsx)
+├── hooks/                # React hooks
+├── actions/ + routes/    # Wayfinder-generated typed route helpers
+├── lib/                  # helpers (date math, formatting)
+└── types/                # shared TS types
+</code></pre></div>
+
+<h3 id="key-architectural-patterns">Key architectural patterns</h3>
+<ul>
+<li><strong>Service layer</strong> — controllers stay thin; scoring, reporting, SOP parsing, and AI calls live in <code>app/Services</code>.</li>
+<li><strong>Observers</strong> — <code>TaskObserver</code>, <code>TeamObserver</code>, <code>CommentObserver</code> handle side effects (activity logging, system-log comments) so controllers don't.</li>
+<li><strong>Data-driven config</strong> — "who reports" and "which areas exist" are derived from the database (<code>position_report_fields</code>, <code>positions.area_slug</code> + <code>has_kpi</code>) via <code>Position::hasReportTemplate()</code> and <code>ValidAreasResolver</code>, not hardcoded lists.</li>
+<li><strong>UUID primary keys</strong> — most domain tables (<code>teams</code>, <code>tasks</code>, <code>comments</code>, <code>kpi_*</code>, <code>documents</code>, <code>positions</code>) use <code>char(36)</code> UUIDs (<code>HasUuids</code>). <code>users</code>, <code>stores</code>, and Laravel/Spatie infra tables keep auto-increment <code>bigint</code>.</li>
+<li><strong>Polymorphic media</strong> — uploads (avatars, task evidence, comment media, team-message attachments) go through Spatie Media Library's <code>media</code> table.</li>
+</ul>
+<hr />
+<h2 id="9-data-model-erd">9. Data Model &amp; ERD</h2>
+<h3 id="91-entity-relationship-diagram-mermaid">9.1 Entity Relationship Diagram (Mermaid)</h3>
+<pre class="mermaid">
+erDiagram
+    USERS ||--o{ TASK_USER : "assigned"
+    TASKS ||--o{ TASK_USER : "assignees"
+    USERS ||--o{ TEAM_USER : "membership"
+    TEAMS ||--o{ TEAM_USER : "members"
+    POSITIONS ||--o{ USERS : "holds"
+    POSITIONS ||--o{ KPI_TASK_DEFINITIONS : "defines"
+    POSITIONS ||--o{ POSITION_REPORT_FIELDS : "report template"
+    POSITIONS ||--o{ POSITION_PERMISSIONS : "route access"
+
+    TEAMS ||--o{ KANBANS : "has"
+    KANBANS ||--o{ KANBAN_COLUMNS : "has"
+    KANBAN_COLUMNS ||--o{ TASKS : "contains"
+    TEAMS ||--o{ TASKS : "owns"
+    TEAMS ||--o{ TEAM_MESSAGES : "chat"
+    TEAMS ||--o{ ANNOUNCEMENTS : "posts"
+    TEAMS ||--o{ DOCUMENTS : "stores"
+
+    KPI_TASK_DEFINITIONS ||--o{ TASKS : "instantiated as"
+    STORES ||--o{ TASKS : "visit target"
+    USERS ||--o{ STORES : "spv of"
+
+    TASKS ||--o{ COMMENTS : "has"
+    TASKS ||--o{ TASK_LABELS : "labels"
+    TASKS ||--o{ TASK_TAG : "tags"
+    TAGS ||--o{ TASK_TAG : "tagged"
+    ANNOUNCEMENTS ||--o{ COMMENTS : "has"
+    DOCUMENTS ||--o{ COMMENTS : "has"
+    COMMENTS ||--o{ COMMENTS : "replies"
+    DOCUMENTS ||--o{ DOCUMENT_SOP_STEPS : "SOP steps"
+    DOCUMENTS ||--o{ DOCUMENTS : "folder tree"
+    DOCUMENT_SOP_STEPS ||--o{ COMMENTS : "linked evidence"
+    KANBAN_COLUMNS ||--o{ DOCUMENT_SOP_STEPS : "expected column"
+
+    USERS ||--o{ KPI_DAILY_REPORTS : "submits"
+    TEAMS ||--o{ KPI_DAILY_REPORTS : "context"
+    USERS ||--o{ KPI_DAILY_SCORES : "scored"
+    USERS ||--o{ KPI_WEEKLY_SCORES : "scored"
+    USERS ||--o{ KPI_MONTHLY_SCORES : "scored"
+    POSITIONS ||--o{ KPI_DAILY_SCORES : "context"
+
+    FEEDBACK_CYCLES ||--o{ FEEDBACK : "collects"
+    USERS ||--o{ FEEDBACK : "gives"
+    TEAMS ||--o{ ACTIVITY_LOGS : "audit"
+    TEAMS ||--o{ MONTHLY_TASK_REPORTS : "aggregated"
+</pre>
+<blockquote>
+<p>The Mermaid block renders as a diagram in the HTML/PDF outputs and on GitHub. A plain-text summary follows for environments without Mermaid.</p>
+</blockquote>
+<h3 id="92-core-entities-text-summary">9.2 Core entities (text summary)</h3>
+<table>
+<thead>
+<tr>
+<th>Entity</th>
+<th>Key</th>
+<th>Purpose</th>
+<th>Notable relations</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>users</strong></td>
+<td>bigint</td>
+<td>People (auth, 2FA, avatar)</td>
+<td><code>belongsTo position</code>; <code>belongsToMany teams</code>, <code>tasks</code></td>
+</tr>
+<tr>
+<td><strong>positions</strong></td>
+<td>uuid</td>
+<td>Job positions; drive KPI + area access</td>
+<td><code>hasMany users, kpiDefinitions, reportFields, permissions</code></td>
+</tr>
+<tr>
+<td><strong>teams</strong></td>
+<td>uuid</td>
+<td>Collaboration units</td>
+<td><code>hasMany kanbans, tasks, messages, announcements, documents</code></td>
+</tr>
+<tr>
+<td><strong>kanbans</strong></td>
+<td>uuid</td>
+<td>Boards within a team</td>
+<td><code>hasMany columns</code></td>
+</tr>
+<tr>
+<td><strong>kanban_columns</strong></td>
+<td>uuid</td>
+<td>Board columns (<code>is_done</code>, <code>is_default</code>)</td>
+<td><code>hasMany tasks</code></td>
+</tr>
+<tr>
+<td><strong>tasks</strong></td>
+<td>uuid</td>
+<td>Work items / KPI task instances</td>
+<td><code>belongsTo team, column, store, creator, kpiDefinition</code>; <code>hasMany comments, labels</code>; <code>belongsToMany assignees, tags</code></td>
+</tr>
+<tr>
+<td><strong>comments</strong></td>
+<td>uuid</td>
+<td>Threaded comments + evidence + system logs</td>
+<td><code>belongsTo task/announcement/document, user, parent, sopStep</code>; <code>hasMany replies</code>; has media</td>
+</tr>
+<tr>
+<td><strong>stores</strong></td>
+<td>bigint</td>
+<td>Branch/store locations (OC codes)</td>
+<td><code>belongsTo spv (user)</code></td>
+</tr>
+<tr>
+<td><strong>tags / task_labels</strong></td>
+<td>uuid</td>
+<td>Task categorization</td>
+<td>many-to-many / one-to-many with tasks</td>
+</tr>
+</tbody>
+</table>
+<h3 id="93-kpi-entities">9.3 KPI entities</h3>
+<table>
+<thead>
+<tr>
+<th>Entity</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>kpi_task_definitions</strong></td>
+<td>Weighted task template per position: <code>weight</code>, <code>category</code>, <code>work_method</code>, <code>verification_method</code>, flags (<code>can_upload_proof</code>, <code>auto_done_on_report</code>, <code>require_video_upload</code>, <code>minimum_photos</code>).</td>
+</tr>
+<tr>
+<td><strong>kpi_daily_reports</strong></td>
+<td>A user's daily report: dynamic <code>fields</code> (JSON), <code>attachments</code>, <code>is_late</code>, <code>submitted_at</code>.</td>
+</tr>
+<tr>
+<td><strong>kpi_daily_scores</strong></td>
+<td>Computed per user/day: <code>total_score</code>, <code>completed_weight</code>, <code>grade</code>, <code>category_breakdown</code>, <code>task_details</code>.</td>
+</tr>
+<tr>
+<td><strong>kpi_weekly_scores</strong></td>
+<td>7-day average roll-up with grade.</td>
+</tr>
+<tr>
+<td><strong>kpi_monthly_scores</strong></td>
+<td>4-week average + consistency bonus, <code>has_grade_d</code>, <code>final_score</code>, <code>grade</code>.</td>
+</tr>
+<tr>
+<td><strong>position_report_fields</strong></td>
+<td>Daily-report field template (key, label, type, options, group, order, required).</td>
+</tr>
+<tr>
+<td><strong>kpi_aset_pantau</strong></td>
+<td>Externally-fetched monitoring metrics per subject/period feeding KPI.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="94-document-sop-entities">9.4 Document / SOP entities</h3>
+<ul>
+<li><strong>documents</strong> — folder tree (<code>parent_id</code>), file or page (<code>type</code>), optional SOP with async parse status fields (<code>sop_parse_status</code>, platform, timestamps).</li>
+<li><strong>document_sop_steps</strong> — parsed SOP steps: <code>sequence_order</code>, <code>action</code>, <code>keywords</code> (JSON), <code>required_evidence</code>, <code>weight</code>, scoring thresholds (<code>score_kurang/cukup/sangat_baik</code>), <code>expected_column</code>, <code>kanban_column_id</code>.</li>
+</ul>
+<h3 id="95-support-infra-tables">9.5 Support / infra tables</h3>
+<p><code>activity_logs</code> (polymorphic audit, team-scoped) · <code>announcements</code> (recurring reminder engine) · <code>team_messages</code> (chat, broadcast) · <code>feedback</code> + <code>feedback_cycles</code> · <code>monthly_task_reports</code> (AI recap payloads) · <code>media</code> (Spatie) · <code>roles</code>/<code>permissions</code>/<code>model_has_*</code> (Spatie) · <code>personal_access_tokens</code> (Sanctum) · <code>jobs</code>/<code>failed_jobs</code>/<code>job_batches</code> · <code>cache</code>/<code>sessions</code>.</p>
+<p><strong>External (read-only, <code>absen</code> connection):</strong> <code>absen_management.absensi</code> — one row per attendance tap (<code>Absensi</code> model, <code>user_id</code>, <code>absen_time</code>, <code>is_valid</code>). Linked to app users via <code>users.absen_user_id</code>. Never written by this app.</p>
+<hr />
+<h2 id="10-domain-modules">10. Domain Modules</h2>
+<h3 id="teams-collaboration">Teams &amp; collaboration</h3>
+<p>A team owns kanbans, tasks, documents, announcements, chat, and an activity log. The team page (<code>teams/show</code>) is tabbed: overview, tugas (tasks/kanban), SOP, dokumen, chat, pengumuman, activity, and (for SPV teams) svp-stores. Route: <code>teams/{team:slug}/{tab?}/{item?}</code>.</p>
+<h3 id="tasks-kanban">Tasks &amp; Kanban</h3>
+<p>Tasks live in kanban columns and can be reordered via drag-and-drop (<code>kanbans.tasks.reorder</code>). Tasks carry assignees, tags, labels, comments (with media evidence), and optionally link to a <code>kpi_task_definition</code> (<code>is_kpi_task</code>). Store-visit tasks carry <code>store_id</code> and <code>visit_date</code>.</p>
+<h3 id="documents-sop">Documents &amp; SOP</h3>
+<p>Documents form a folder tree. A document flagged <code>is_sop</code> can be parsed by AI (<code>ParseTeamSopJob</code> → <code>SopAiParser</code>) into <code>document_sop_steps</code>, each mappable to an expected kanban column and scored against evidence via <code>TaskColumnScoringService</code> / <code>SopAuditStepParser</code>.</p>
+<h3 id="announcements-recurring-reminders">Announcements (recurring reminders)</h3>
+<p>Announcements can be one-off or recurring. A template row generates occurrences; <code>ProcessRecurringAnnouncementReminder</code> + the <code>DispatchRecurringAnnouncements</code> scheduled command (runs every second, <code>withoutOverlapping</code>) materialize the next occurrence based on <code>recurrence_*</code> fields.</p>
+<h3 id="feedback-survey">Feedback &amp; survey</h3>
+<p>A floating feedback button posts quick feedback anytime. CEO opens/closes <strong>survey cycles</strong>; users submit one comprehensive survey per open cycle. Admins view/export (<code>FeedbackExport</code> → xlsx).</p>
+<h3 id="activity-log">Activity log</h3>
+<p><code>ActivityLogger</code> + model observers write polymorphic <code>activity_logs</code> scoped by team, viewable at <code>/activity</code> (admin).</p>
+<hr />
+<h2 id="11-kpi-scoring-engine">11. KPI Scoring Engine</h2>
+<p>Owned by <code>KpiScoringService</code> (+ <code>KpiReportingService</code>, <code>KpiTaskGenerationService</code>, <code>KpiNotificationService</code>).</p>
+<h3 id="task-generation-attendance-gated-manual">Task generation (attendance-gated, manual)</h3>
+<p><code>KpiTaskGenerationService::generateDailyTasksForUser</code> instantiates <code>tasks</code> from each active <code>kpi_task_definition</code> for a KPI-enabled position. SPV users select an assigned store first, then generate per-store visit tasks with a <code>visit_date</code> (due date = H+1).</p>
+<p><strong>Generation is manual + attendance-gated — the old 00:01 bulk cron is disabled.</strong> <code>KpiDashboardController::generateTasks</code> requires <code>AttendanceService::hasCheckedInOn($user, $date)</code> to return <code>true</code> before any task is created:</p>
+<ul>
+<li><code>AttendanceService</code> queries the read-only <code>absen</code> connection (<code>App\Models\Absen\Absensi</code>, table <code>absensi</code> in <code>absen_management</code>), matching on <code>user_id = users.absen_user_id</code> with <code>is_valid = 1</code> for the date.</li>
+<li>Users with <code>absen_user_id = null</code> are treated as <strong>not checked in</strong> → generation blocked (<code>"Anda belum absen hari ini…"</code>).</li>
+<li>The <code>absen_user_id</code> mapping is added by migration <code>2026_08_04_132910_add_absen_user_id_to_users_table</code>, which auto-seeds it by matching <code>users.name</code> to <code>absen_management.user.name</code>. Unmatched users must be mapped by hand.</li>
+</ul>
+<p>Rationale (see <code>routes/console.php</code> comment): a midnight bulk generation would run before anyone checks in and bypass the gate, so it is intentionally left commented out. The <code>app:kpi-generate-daily-tasks</code> command still exists for manual/debug use.</p>
+<h3 id="evidence-verification">Evidence &amp; verification</h3>
+<p>A task is verified when its evidence satisfies the definition's requirements:</p>
+<ul>
+<li><strong>Comment + photo</strong> → baseline pass.</li>
+<li><strong><code>minimum_photos</code></strong> — at least N photos <strong>within a single comment</strong> (photos spread across comments don't count).</li>
+<li><strong><code>require_video_upload</code></strong> — a video attachment must exist among comment media.</li>
+<li><strong><code>auto_done_on_report</code></strong> — task auto-verifies when the daily report is submitted (no independent evidence); total auto-done weight per position capped at <strong>10%</strong>.</li>
+</ul>
+<p>Both requirements are enforced server-side (<code>verifyTask</code>, <code>calculateDailyScore</code>) and gated in the task-modal UI.</p>
+<h3 id="scoring-tiers-structural-fallback">Scoring tiers (structural fallback)</h3>
+<p>Used only for tasks <strong>without</strong> an AI compliance flow (<code>ai_check_status === null</code>), e.g. legacy tasks:</p>
+<table>
+<thead>
+<tr>
+<th>Evidence</th>
+<th style="text-align: center;">Comment</th>
+<th style="text-align: center;">Attachment</th>
+<th style="text-align: center;">Credit</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Full</td>
+<td style="text-align: center;">✓</td>
+<td style="text-align: center;">✓</td>
+<td style="text-align: center;">100%</td>
+</tr>
+<tr>
+<td>Partial</td>
+<td style="text-align: center;">✓</td>
+<td style="text-align: center;">✗</td>
+<td style="text-align: center;">30%</td>
+</tr>
+<tr>
+<td>None</td>
+<td style="text-align: center;">✗</td>
+<td style="text-align: center;">✗</td>
+<td style="text-align: center;">0%</td>
+</tr>
+</tbody>
+</table>
+<p><code>require_video_upload</code> and <code>minimum_photos</code> cap an otherwise-full tier at partial until satisfied.</p>
+<h3 id="ai-compliance-credit-tasks-with-a-definition">AI compliance credit (tasks with a definition)</h3>
+<p>When a task has a <code>kpi_task_definition</code>, <code>KpiScoringService::calculateDailyScore</code> reads <code>ai_check_status</code> instead of the flat tier:</p>
+<table>
+<thead>
+<tr>
+<th><code>ai_check_status</code></th>
+<th>Credit (weight multiplier)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>passed</code> (AI score ≥ 75)</td>
+<td><strong>100%</strong> — full weight, auto-verified</td>
+</tr>
+<tr>
+<td><code>exhausted</code> (3 attempts, never ≥ 75)</td>
+<td><strong>partial</strong> = <code>ai_compliance_score / 100</code></td>
+</tr>
+<tr>
+<td><code>pending</code> / <code>failed</code></td>
+<td><strong>0%</strong> — user must resubmit</td>
+</tr>
+<tr>
+<td><code>auto_done_on_report</code> + verified</td>
+<td><strong>100%</strong> regardless of evidence</td>
+</tr>
+</tbody>
+</table>
+<p>See <a href="#15-ai-integrations">§15</a> for how the 0–100 score is produced.</p>
+<h3 id="aggregation">Aggregation</h3>
+<div class="codehilite"><pre><span></span><code>Daily score   = Σ(completed_weight) vs Σ(total_weight)   → grade
+Weekly score  = average of the week&#39;s daily scores
+Monthly score = average of the 4 weekly scores + consistency bonus
+</code></pre></div>
+
+<h3 id="grading">Grading</h3>
+<table>
+<thead>
+<tr>
+<th>Grade</th>
+<th>Range</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A+</td>
+<td>95–100%</td>
+<td>Reward / promotion consideration</td>
+</tr>
+<tr>
+<td>A</td>
+<td>85–94%</td>
+<td>On target</td>
+</tr>
+<tr>
+<td>B</td>
+<td>70–84%</td>
+<td>Weekly coaching</td>
+</tr>
+<tr>
+<td>C</td>
+<td>50–69%</td>
+<td>Warning, SP1 + 30-day plan</td>
+</tr>
+<tr>
+<td>D</td>
+<td>&lt;50%</td>
+<td>Critical, SP2/SP3 + evaluation</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Consistency bonus:</strong> +5% monthly if no grade D occurred in the month (<code>has_grade_d = false</code>).</p>
+<hr />
+<h2 id="12-scheduled-jobs-queue">12. Scheduled Jobs &amp; Queue</h2>
+<p>Defined in <code>routes/console.php</code>, all in <strong>Asia/Makassar</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>Command</th>
+<th>Schedule (WITA)</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>app:kpi-generate-daily-tasks</code></td>
+<td><strong>disabled</strong> (commented out)</td>
+<td>Bulk generation bypasses the attendance gate; tasks are generated manually per user instead. Command kept for manual/debug use.</td>
+</tr>
+<tr>
+<td><code>app:kpi-calculate-daily-scores</code></td>
+<td>daily 23:00</td>
+<td>Compute daily scores after the deadline</td>
+</tr>
+<tr>
+<td><code>app:kpi-send-report-reminder</code></td>
+<td>daily 21:00</td>
+<td>Remind reporters to submit</td>
+</tr>
+<tr>
+<td><code>app:kpi-calculate-weekly-scores</code></td>
+<td>Monday 01:00</td>
+<td>Weekly roll-up</td>
+</tr>
+<tr>
+<td><code>app:kpi-calculate-monthly-scores</code></td>
+<td>1st of month 02:00</td>
+<td>Monthly roll-up + bonus</td>
+</tr>
+<tr>
+<td><code>DispatchRecurringAnnouncements</code></td>
+<td>every second (<code>withoutOverlapping</code>)</td>
+<td>Materialize recurring announcement occurrences</td>
+</tr>
+</tbody>
+</table>
+<p>Run the scheduler in production via a single cron entry:</p>
+<div class="codehilite"><pre><span></span><code>* * * * * cd /path-to-app &amp;&amp; php artisan schedule:run &gt;&gt; /dev/null 2&gt;&amp;1
+</code></pre></div>
+
+<h3 id="queue">Queue</h3>
+<p><code>QUEUE_CONNECTION=database</code>. Async jobs: <code>CheckTaskComplianceJob</code> (AI task check), <code>ParseTeamSopJob</code> (SOP parsing), <code>GenerateMonthlyTaskReportJob</code> (AI monthly recap), <code>ProcessRecurringAnnouncementReminder</code>. Run a worker:</p>
+<div class="codehilite"><pre><span></span><code>php<span class="w"> </span>artisan<span class="w"> </span>queue:listen<span class="w"> </span>--tries<span class="o">=</span><span class="m">1</span><span class="w"> </span>--timeout<span class="o">=</span><span class="m">0</span><span class="w">     </span><span class="c1"># dev (part of composer run dev)</span>
+php<span class="w"> </span>artisan<span class="w"> </span>queue:work<span class="w">                             </span><span class="c1"># prod (supervised)</span>
+</code></pre></div>
+
+<hr />
+<h2 id="13-access-control-rbac-positions">13. Access Control (RBAC + Positions)</h2>
+<p>Two complementary layers:</p>
+<p><strong>1. Roles (spatie/laravel-permission)</strong> — <code>superadmin</code>, <code>admin</code>, <code>member</code>. Applied with the <code>role:</code> middleware, e.g. <code>role:superadmin|admin</code>.</p>
+<p><strong>2. Positions (area access)</strong> — each <code>position</code> has an <code>area_slug</code> (<code>hr</code>, <code>operational</code>, <code>gudang</code>, <code>spv</code>, …) and <code>has_kpi</code>. The <code>position:</code> and <code>{area}</code> middleware (<code>CheckPositionAccess</code>, <code>ValidateKpiArea</code>) restrict area routes; <code>position_permissions</code> maps route keys to positions.</p>
+<p>Effective rules:</p>
+<ul>
+<li><strong>Superadmin</strong> — bypasses all position checks; reaches every area and the CEO/admin suite.</li>
+<li><strong>Admin</strong> — restricted to the area matching their position (Manager HR → HR only, Manager Operasional → Operational only).</li>
+<li><strong>Generic Manager</strong> — permission for both HR and Operational areas.</li>
+<li><strong>Line positions</strong> (Gudang, SPV, …) — only their own area.</li>
+</ul>
+<p>The generic <code>{area}/kpi/*</code> route group means <strong>any</strong> position with <code>area_slug + has_kpi</code> becomes reachable with no code change — add the position + report template and it works (<code>ValidAreasResolver</code> refreshes the valid-area cache on position save/delete).</p>
+<p>Area route map (each area has the same KPI sub-routes):</p>
+<div class="codehilite"><pre><span></span><code>/{area}/kpi/dashboard
+/{area}/kpi/daily/{date?}
+/{area}/kpi/weekly/{weekStart?}
+/{area}/kpi/monthly/{month?}
+/{area}/kpi/report/create        POST report/submit, GET report/{report}/edit
+/{area}/kpi/reports
+POST /{area}/kpi/tasks/generate
+POST /{area}/kpi/tasks/{task}/verify
+</code></pre></div>
+
+<p>Superadmin-only admin/CEO routes:</p>
+<div class="codehilite"><pre><span></span><code>/kpi/admin/definitions          # CRUD KPI task templates (weight must total 100%)
+/kpi/admin/report-fields        # CRUD daily-report field templates
+/kpi/admin/scores
+/kpi/ceo/dashboard | daily-reports | alerts | spv | user/{user}
+</code></pre></div>
+
+<hr />
+<h2 id="14-api-reference">14. API Reference</h2>
+<p>Two API surfaces live in <code>routes/api.php</code>, both returning JSON.</p>
+<h3 id="141-ai-read-integration-api-sanctum-or-key-guarded">14.1 AI-read / integration API (Sanctum or key-guarded)</h3>
+<p>Read endpoints for agents/integrations to pull team context:</p>
+<div class="codehilite"><pre><span></span><code>GET  api/teams                              # list
+GET  api/teams/{team}                        # show
+GET  api/teams/{team}/context                # aggregated context
+GET  api/teams/{team}/digest
+GET  api/teams/{team}/entity-map
+GET  api/teams/{team}/search
+GET  api/teams/{team}/tasks | members | kanbans | documents | announcements | messages | activity-logs
+GET  api/tasks/{task} | api/documents/{document} | api/announcements/{announcement}
+POST api/teams/{team}/resolve-references
+</code></pre></div>
+
+<h3 id="142-public-reporting-feeds">14.2 Public reporting feeds</h3>
+<div class="codehilite"><pre><span></span><code>GET api/reports/daily-manager                 # H-1 manager reports (submitted + pending) + field templates + KPI task detail
+GET api/reports/daily-reporters?date=Y-m-D     # feed for every reporting position; defaults to yesterday
+</code></pre></div>
+
+<p><code>daily-reporters</code> returns <code>reports</code> (submitted field values only) and <code>pending</code> (not yet submitted); each row includes a <code>store</code> object (<code>id</code>, <code>name</code>, <code>branch_code</code>) or <code>null</code>.</p>
+<h3 id="143-mobile-api-apiv1-sanctum-tokens">14.3 Mobile API (<code>/api/v1</code>, Sanctum tokens)</h3>
+<div class="codehilite"><pre><span></span><code>POST   api/v1/auth/login | logout
+GET    api/v1/me | me/teams
+GET    api/v1/dashboard
+GET    api/v1/tags
+POST   api/v1/tasks
+PATCH  api/v1/tasks/{task}          DELETE api/v1/tasks/{task}
+POST   api/v1/tasks/{task}/comments
+GET    api/v1/teams/{team}/tasks | context | kanbans | messages | announcements | documents
+POST   api/v1/teams/{team}/messages | announcements
+POST   api/v1/teams/{team}/documents/{files|folders|pages}
+PATCH/DELETE api/v1/comments/{comment}
+POST   api/v1/kanbans/tasks/reorder
+GET    api/v1/reports/monthly-tasks | monthly-tasks/recap-per-user | monthly-tasks/show
+GET    api/v1/internal/reports/monthly-tasks[/recap-per-user]
+</code></pre></div>
+
+<p>Contract details are documented under <code>docs/api-contract/</code> and <code>docs/*_contract_*.md</code>.</p>
+<p>Full route dump:</p>
+<div class="codehilite"><pre><span></span><code>php<span class="w"> </span>artisan<span class="w"> </span>route:list<span class="w"> </span>--except-vendor
+</code></pre></div>
+
+<hr />
+<h2 id="15-ai-integrations">15. AI Integrations</h2>
+<p>Three AI-backed features, provider-configurable (OpenAI / Anthropic / Gemini / 9Route):</p>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Service / Job</th>
+<th>Provider selector</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Task compliance check</strong></td>
+<td><code>AiTaskCheckService</code> / <code>CheckTaskComplianceJob</code></td>
+<td><code>AI_TASK_CHECK_PROVIDER</code> (<code>openai</code>|<code>9route</code>)</td>
+<td>AI returns a <strong>direct 0–100</strong> compliance score for how well the evidence comment matches the task's <code>work_method</code> + <code>verification_method</code>. <strong>Passes at ≥ 75</strong> (<code>PASS_THRESHOLD</code>). Max 3 attempts; exhausted = partial credit (<code>score/100 × weight</code>). System failures don't burn an attempt. Toggle with <code>AI_TASK_CHECK_ENABLED</code>.</td>
+</tr>
+<tr>
+<td><strong>SOP parsing</strong></td>
+<td><code>SopAiParser</code> / <code>ParseTeamSopJob</code></td>
+<td>any of the four</td>
+<td>Parses SOP markdown or PDF (via Media Library) into structured <code>document_sop_steps</code>. Tracks <code>sop_parse_status</code> + platform.</td>
+</tr>
+<tr>
+<td><strong>Monthly task recap</strong></td>
+<td><code>AiReportingService</code> / <code>GenerateMonthlyTaskReportJob</code></td>
+<td><code>*_REPORTING_MODEL</code></td>
+<td>Aggregates a month of tasks into a per-user recap stored in <code>monthly_task_reports</code> (payload, model, prompt_version, snapshot).</td>
+</tr>
+</tbody>
+</table>
+<h3 id="task-compliance-scoring-model-current">Task-compliance scoring model (current)</h3>
+<p>The AI is prompted (Indonesian system prompt in <code>AiTaskCheckService::systemPrompt</code>) to be <strong>lenient</strong> and return one JSON object <code>{"score": 0–100, "feedback": "…"}</code>:</p>
+<ul>
+<li><strong>90–100</strong> — evidence explains work method AND matches verification method.</li>
+<li><strong>75–89</strong> — core work matches, minor gaps (still accepted).</li>
+<li><strong>55–74</strong> — under-explains (rejected, asks for fixes).</li>
+<li><strong>0–54</strong> — irrelevant / not compliant (rejected).</li>
+</ul>
+<p><code>CheckTaskComplianceJob</code> maps: <code>score ≥ 75 → passed</code> (verified, full weight); <code>&lt; 75 &amp; attempts left → failed</code> (resubmit); <code>&lt; 75 &amp; attempts exhausted → exhausted</code> (partial credit). Evidence structure (comment + photo) is verified as "full" <em>before</em> the job runs — the AI only judges content relevance.</p>
+<h3 id="9route-gateway">9Route gateway</h3>
+<p><code>9route</code> is a self-hosted, OpenAI-compatible AI gateway (default <code>http://localhost:20128/v1</code>). Configure via <code>NINE_ROUTE_*</code> env keys (<code>config/services.php</code> → <code>9route</code>). Used for both task-compliance checks and SOP parsing when selected. Lets the deployment run AI features against a local/on-prem model without external API calls.</p>
+<p>Prompt/version details live in <code>docs/feedback-prompt.md</code>, <code>docs/ai-read-api.md</code>, and <code>docs/plan-ai-task-check.md</code>.</p>
+<hr />
+<h2 id="16-deployment">16. Deployment</h2>
+<h3 id="build">Build</h3>
+<div class="codehilite"><pre><span></span><code>composer<span class="w"> </span>install<span class="w"> </span>--no-dev<span class="w"> </span>--optimize-autoloader
+npm<span class="w"> </span>ci<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>npm<span class="w"> </span>run<span class="w"> </span>build<span class="w">       </span><span class="c1"># or npm run build:ssr for SSR</span>
+php<span class="w"> </span>artisan<span class="w"> </span>migrate<span class="w"> </span>--force
+php<span class="w"> </span>artisan<span class="w"> </span>config:cache<span class="w"> </span>route:cache<span class="w"> </span>view:cache
+</code></pre></div>
+
+<h3 id="runtime-processes">Runtime processes</h3>
+<ul>
+<li><strong>Web</strong> — PHP-FPM + Nginx/Caddy (or Laravel Cloud / Herd for dev).</li>
+<li><strong>Queue worker</strong> — <code>php artisan queue:work</code> under Supervisor/systemd.</li>
+<li><strong>Scheduler</strong> — one cron line calling <code>schedule:run</code> every minute.</li>
+</ul>
+<h3 id="production-env-musts">Production <code>.env</code> musts</h3>
+<ul>
+<li><code>APP_ENV=production</code>, <code>APP_DEBUG=false</code>, real <code>APP_KEY</code>.</li>
+<li><code>DB_CONNECTION=mysql</code> with credentials.</li>
+<li>Set <code>NIGHTWATCH_TOKEN</code> if using Nightwatch.</li>
+<li>Provide AI keys only for the providers you enable.</li>
+<li>Confirm <code>TZ</code>/scheduler timezone assumptions — KPI logic pins <strong>Asia/Makassar</strong> regardless of server TZ.</li>
+</ul>
+<p>Laravel Cloud is the fastest supported path (per Laravel deployment guidance).</p>
+<h3 id="observability">Observability</h3>
+<p>Nightwatch is wired in (<code>NIGHTWATCH_ENABLED</code>, dashboard URL configurable). A superadmin-only in-app log viewer is available at <code>/log-viewer</code> and Nightwatch at <code>/nightwatch</code>.</p>
+<hr />
+<h2 id="17-troubleshooting">17. Troubleshooting</h2>
+<table>
+<thead>
+<tr>
+<th>Symptom</th>
+<th>Cause / Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ViteException: Unable to locate file in Vite manifest</code></td>
+<td>Assets not built — run <code>npm run build</code> (or <code>npm run dev</code>).</td>
+</tr>
+<tr>
+<td>Frontend change not visible</td>
+<td>Rebuild: <code>npm run build</code> / <code>npm run dev</code> / <code>composer run dev</code>.</td>
+</tr>
+<tr>
+<td>Route function missing in TS (<code>@/actions</code>, <code>@/routes</code>)</td>
+<td>Run <code>php artisan wayfinder:generate</code>.</td>
+</tr>
+<tr>
+<td>KPI tasks not appearing</td>
+<td>Generation is manual + attendance-gated. Confirm the user checked in today (has a valid <code>absensi</code> row and a non-null <code>users.absen_user_id</code>), the position has active definitions and <code>has_kpi</code>, then click <strong>Generate Task</strong>.</td>
+</tr>
+<tr>
+<td>"Anda belum absen hari ini" on generate</td>
+<td>No valid <code>absensi</code> row for the date, or <code>users.absen_user_id</code> is null. Verify the <code>absen</code> connection reaches <code>absen_management</code> and the user is mapped.</td>
+</tr>
+<tr>
+<td>Attendance DB errors / <code>absen</code> connection refused</td>
+<td>Check <code>DB_ABSEN_*</code> (defaults inherit primary DB host/user/pass); the <code>absen_management</code> schema must exist and be reachable.</td>
+</tr>
+<tr>
+<td>Scores never computed</td>
+<td>Ensure the scheduler cron runs; scores compute at 23:00 WITA.</td>
+</tr>
+<tr>
+<td>AI check stuck / no score</td>
+<td>Verify <code>AI_TASK_CHECK_ENABLED=true</code>, provider key set, and the queue worker is running.</td>
+</tr>
+<tr>
+<td>Daily report rejected for a past date</td>
+<td><code>KPI_ALLOW_BACKDATED_REPORT=false</code> — today only. Set <code>true</code> to allow backdating.</td>
+</tr>
+<tr>
+<td>Report marked TERLAMBAT / rejected</td>
+<td>Late threshold 22:30 WITA; hard cutoff at 23:00 WITA.</td>
+</tr>
+<tr>
+<td>Position area returns 403</td>
+<td>Position lacks <code>area_slug</code>/<code>has_kpi</code> or a <code>position_permissions</code> entry; superadmin bypasses all checks.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><em>Generated for the OCB KPI Management platform. For end-user instructions, see the companion </em><em>User Manual</em><em>.</em></p>
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+  mermaid.initialize({ startOnLoad: true, theme: 'neutral', securityLevel: 'loose' });
+</script>
+</body>
+</html>
